@@ -1,0 +1,22 @@
+# Production deployment on public-vm: joins the existing `edge` network so the
+# shared Traefik routes to it by Host header, behind the Cloudflare tunnel.
+# No ports published — nothing reaches this container except through Traefik.
+services:
+  backend:
+    build: .
+    image: fiweatherwatch-backend:latest
+    container_name: fiweatherwatch-backend
+    restart: unless-stopped
+    env_file: .env
+    networks:
+      - edge
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request;urllib.request.urlopen('http://localhost:8791/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  edge:
+    external: true
