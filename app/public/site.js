@@ -9,7 +9,7 @@ STR = {
     onLand:"Maalla", onLandSub:"Havainnot ja loppupäivä lähimmältä asemalta.",
     atSea:"Merellä", atSeaSub:"Tuuli merihavaintoasemalta, aallot Ilmatieteen laitoksen poijuilta.",
     place:"Paikkakunta", station:"Merihavaintoasema", buoy:"Aaltopoiju", nearest:"Lähin havaitseva",
-    wind:"Tuuli", gust:"Puuska", humidity:"Kosteus", pressure:"Paine",
+    dirFrom:"{d}-suunnasta", wind:"Tuuli", gust:"Puuska", humidity:"Kosteus", pressure:"Paine",
     air:"Ilma", waveH:"Aallonkorkeus", period:"Jakso", water:"Vesi", waves:"Aallot",
     whatTitle:"Mitä kello näyttää",
     c1t:"Maa", c1:"Lämpötila, tuuli ja puuskat sekä 10 vuorokauden ennuste — havaintoasema nimettynä ja etäisyys näkyvissä.",
@@ -34,7 +34,7 @@ STR = {
     onLand:"På land", onLandSub:"Observationer och resten av dagen från närmaste station.",
     atSea:"Till havs", atSeaSub:"Vind från en havsstation, vågor från institutets vågbojar.",
     place:"Ort", station:"Havsstation", buoy:"Vågboj", nearest:"Närmaste aktiva",
-    wind:"Vind", gust:"By", humidity:"Fuktighet", pressure:"Lufttryck",
+    dirFrom:"från {d}", wind:"Vind", gust:"By", humidity:"Fuktighet", pressure:"Lufttryck",
     air:"Luft", waveH:"Våghöjd", period:"Period", water:"Vatten", waves:"Vågor",
     whatTitle:"Vad klockan visar",
     c1t:"Land", c1:"Temperatur, vind och byar samt en 10-dygnsprognos — med stationen namngiven och avståndet angivet.",
@@ -59,7 +59,7 @@ STR = {
     onLand:"On land", onLandSub:"Current conditions and the rest of today, from the nearest reporting station.",
     atSea:"At sea", atSeaSub:"Wind from a Finnish marine station, waves from FMI's wave buoys.",
     place:"Place", station:"Sea station", buoy:"Wave buoy", nearest:"Nearest reporting",
-    wind:"Wind", gust:"Gust", humidity:"Humidity", pressure:"Pressure",
+    dirFrom:"from {d}", wind:"Wind", gust:"Gust", humidity:"Humidity", pressure:"Pressure",
     air:"Air", waveH:"Wave height", period:"Period", water:"Water", waves:"Waves",
     whatTitle:"What the watch shows",
     c1t:"Land", c1:"Current temperature, wind and gusts, plus a 10-day forecast — with the reporting station named and its distance shown.",
@@ -128,7 +128,9 @@ async function loadNow(place) {
         </div>
         <div class="facts">
           <div>${T("wind")}<b>${fmt(obs.windspeedms, 1)} m/s</b>
-            <span class="at">${obs.windcompass8 ?? ""} · ${at(obs, "windspeedms")}</span></div>
+            <span class="at">${dirArrow(obs.winddirection, 15)}
+              ${dirLabel(obs.winddirection) || (obs.windcompass8 ?? "")} ·
+              ${at(obs, "windspeedms")}</span></div>
           <div>${T("gust")}<b>${fmt(obs.windgust, 1)} m/s</b>
             <span class="at">${at(obs, "windgust")}</span></div>
           <div>${T("humidity")}<b>${fmt(obs.humidity, 0)}%</b>
@@ -167,14 +169,19 @@ async function loadMarine(fmisid, buoy) {
         <span class="at">${T("noBuoy")}</span></div>`
       : `<div><span>${T("waveH")}</span><b>${fmt(w.wave_height_m, 1)} m</b>
            <span class="at">${w.measured ? w.name : T("modelled")}</span></div>
-         <div><span>${T("period")}</span><b>${fmt(w.wave_period_s, 1)} s</b>
-           <span class="at">${w.wave_direction_deg != null ? Math.round(w.wave_direction_deg) + "°" : ""}</span></div>
+         <div><span>${T("period")}</span><b>${fmt(w.wave_period_s, 1)} s
+             ${dirArrow(w.wave_direction_deg, 22)}</b>
+           <span class="at">${w.wave_direction_deg != null
+             ? dirLabel(w.wave_direction_deg) + " (" + Math.round(w.wave_direction_deg) + "°)"
+             : ""}</span></div>
          <div><span>${T("water")}</span><b>${fmt(w.water_temp_c, 1)}°C</b>
            <span class="at">${w.measured && w.distance_km != null ? w.distance_km + " " + T("away") : ""}</span></div>`;
     host.innerHTML = `
       <div class="grid">
-        <div><span>${T("wind")}</span><b>${fmt(s.windspeedms, 1)} m/s</b>
-          <span class="at">${s.windcompass8 ?? ""} · ${at(s, "windspeedms")}</span></div>
+        <div><span>${T("wind")}</span><b>${fmt(s.windspeedms, 1)} m/s
+            ${dirArrow(s.winddirection, 22)}</b>
+          <span class="at">${dirLabel(s.winddirection) || (s.windcompass8 ?? "")} ·
+            ${at(s, "windspeedms")}</span></div>
         <div><span>${T("gust")}</span><b>${fmt(s.windgust, 1)} m/s</b>
           <span class="at">${at(s, "windgust")}</span></div>
         <div><span>${T("air")}</span><b>${fmt(s.temperature, 1)}°C</b>
@@ -186,6 +193,13 @@ async function loadMarine(fmisid, buoy) {
   } catch (err) {
     host.innerHTML = `<p class="msg">Sea conditions are briefly unavailable (${err.message}).</p>`;
   }
+}
+
+/* Direction label — Finnish suffixes the compass point, the others prefix a
+   preposition, so the whole phrase is a per-language format string. */
+function dirLabel(degreesFrom) {
+  const c = fromCompass(degreesFrom);
+  return c ? T("dirFrom").replace("{d}", c) : "";
 }
 
 function applyStrings() {

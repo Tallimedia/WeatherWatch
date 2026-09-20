@@ -83,3 +83,29 @@ function at(obj, field) {
   const t = obj && obj.at && obj.at[field];
   return t ? localTime(t) : "–";
 }
+
+/* Wind and wave direction arrows.
+
+   FMI reports direction as the bearing the wind (or wave) comes FROM — 244°
+   means it blows from the southwest towards the northeast. An arrow drawn at
+   the raw bearing therefore points backwards, which is the classic way to get
+   this wrong. The arrow is rotated 180° so it shows where the air is going,
+   which is what an arrow means to a reader, while the text keeps saying where
+   it comes from ("from SW"). */
+function dirArrow(degreesFrom, size = 26, colour = "currentColor") {
+  if (degreesFrom === null || degreesFrom === undefined) return "";
+  const heading = (Number(degreesFrom) + 180) % 360;   // from -> towards
+  return `<svg width="${size}" height="${size}" viewBox="0 0 32 32" aria-hidden="true"
+      style="transform:rotate(${heading}deg);vertical-align:-3px">
+    <path d="M16 3 L16 29 M16 3 L10 11 M16 3 L22 11"
+      fill="none" stroke="${colour}" stroke-width="3"
+      stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+/* Compass point of the direction it comes FROM, for the label beside the arrow. */
+function fromCompass(degreesFrom) {
+  if (degreesFrom === null || degreesFrom === undefined) return "";
+  const points = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+  return points[Math.round(Number(degreesFrom) / 45) % 8];
+}
