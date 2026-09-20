@@ -1,0 +1,15 @@
+services:
+  fiweatherwatch:
+    build: .
+    image: fiweatherwatch-backend:latest
+    container_name: fiweatherwatch
+    restart: unless-stopped
+    ports:
+      - "8791:8791"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Charts are the internal prototype only (RESEARCH.md §19).
+      # Production leaves this unset/false.
+      ENABLE_CHARTS: "${ENABLE_CHARTS:-false}"
