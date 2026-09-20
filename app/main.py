@@ -96,6 +96,59 @@ def _latest(rows: list[dict], keys: list[str]) -> tuple[dict[str, Any], dict[str
     return out, at
 
 
+async def _observation_rows(
+    place: str | None = None,
+    lat: float | None = None,
+    lon: float | None = None,
+    fmisid: int | None = None,
+) -> tuple[list[dict], int]:
+    """Observation rows for a station, cached.
+
+    The key and the upstream query are built together here on purpose. They
+    used to be built separately in each endpoint, and drifted: /v1/glance
+    reused this key while asking FMI by `place=` where /v1/observations asks by
+    resolved coordinates. Same key, two different questions — whichever ran
+    first won, and the place-resolution fix (`lang` changes what resolves at
+    all) was silently bypassed half the time.
+    """
+    key = f"obs:{place}:{lat}:{lon}:{fmisid}"
+
+    async def fetch() -> list[dict]:
+        query: dict[str, Any] = {"producer": "opendata", "starttime": "-60m"}
+        if fmisid is not None:
+            query["fmisid"] = fmisid
+        elif place is not None:
+            # Resolve the name first, then ask by coordinates — `lang` must not
+            # be able to make a valid Finnish place name unresolvable (app/fmi.py).
+            plat, plon, _ = await cache.aget_or_set(
+                f"geo:{place}", 86400, lambda: resolve_place(place)
+            )
+            query["latlon"] = f"{plat},{plon}"
+        else:
+            query["latlon"] = f"{lat},{lon}"
+        return await timeseries(_OBSERVATION_PARAMS, **query)
+
+    return await cache.aget_or_set_entry(key, config.TTL_OBSERVATIONS, fetch)
+
+
+async def _station_rows(fmisid: int) -> tuple[list[dict], int]:
+    """Observation rows for a marine station, by fmisid.
+
+    Separate key from :func:`_observation_rows` because marine stations are
+    addressed by id, never by name — free-text lookup returns airports for
+    several of them (RESEARCH.md §11).
+    """
+
+    async def fetch() -> list[dict]:
+        return await timeseries(
+            _OBSERVATION_PARAMS, producer="opendata", fmisid=fmisid, starttime="-60m"
+        )
+
+    return await cache.aget_or_set_entry(
+        f"marine:{fmisid}", config.TTL_OBSERVATIONS, fetch
+    )
+
+
 def _age_seconds(epoch: Any) -> int | None:
     if epoch is None:
         return None
@@ -176,23 +229,8 @@ async def observations(
     """
     if fmisid is None and place is None and (lat is None or lon is None):
         place = config.DEFAULT_PLACE
-    key = f"obs:{place}:{lat}:{lon}:{fmisid}"
-
-    async def fetch() -> list[dict]:
-        query: dict[str, Any] = {"producer": "opendata", "starttime": "-60m"}
-        if fmisid is not None:
-            query["fmisid"] = fmisid
-        elif place is not None:
-            plat, plon, _ = await cache.aget_or_set(
-                f"geo:{place}", 86400, lambda: resolve_place(place)
-            )
-            query["latlon"] = f"{plat},{plon}"
-        else:
-            query["latlon"] = f"{lat},{lon}"
-        return await timeseries(_OBSERVATION_PARAMS, **query)
-
     try:
-        rows, retrieved = await cache.aget_or_set_entry(key, config.TTL_OBSERVATIONS, fetch)
+        rows, retrieved = await _observation_rows(place, lat, lon, fmisid)
     except FMIError as exc:
         raise _fail(exc) from exc
     if not rows:
@@ -308,15 +346,8 @@ async def marine(
     if station is None or station not in stations.MARINE_STATIONS:
         raise HTTPException(status_code=404, detail=f"unknown marine station {fmisid}")
 
-    async def fetch_station() -> list[dict]:
-        return await timeseries(
-            _OBSERVATION_PARAMS, producer="opendata", fmisid=fmisid, starttime="-60m"
-        )
-
     try:
-        rows, retrieved = await cache.aget_or_set_entry(
-            f"marine:{fmisid}", config.TTL_OBSERVATIONS, fetch_station
-        )
+        rows, retrieved = await _station_rows(fmisid)
     except FMIError as exc:
         raise _fail(exc) from exc
 
@@ -386,18 +417,10 @@ async def glance(
     (RESEARCH.md §17).
     """
     try:
-        land_rows = await cache.aget_or_set(
-            f"obs:{place}:None:None:None",
-            config.TTL_OBSERVATIONS,
-            lambda: timeseries(_OBSERVATION_PARAMS, producer="opendata",
-                               place=place, starttime="-60m"),
-        )
-        sea_rows = await cache.aget_or_set(
-            f"marine:{fmisid}",
-            config.TTL_OBSERVATIONS,
-            lambda: timeseries(_OBSERVATION_PARAMS, producer="opendata",
-                               fmisid=fmisid, starttime="-60m"),
-        )
+        # Both go through the shared fetch paths, so the glance sees exactly
+        # what the full pages see rather than its own near-miss of the query.
+        land_rows, _ = await _observation_rows(place=place)
+        sea_rows, _ = await _station_rows(fmisid)
     except FMIError as exc:
         raise _fail(exc) from exc
 

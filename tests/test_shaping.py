@@ -50,3 +50,50 @@ def test_latest_handles_no_rows():
 def test_age_is_never_negative():
     assert _age_seconds(None) is None
     assert _age_seconds(2**31) == 0  # a future timestamp clamps rather than going negative
+
+
+# --- cache bounds -----------------------------------------------------------
+
+def test_cache_evicts_expired_entries_without_being_read():
+    """The leak: an entry used to survive until its own key was read again."""
+    from app.cache import TTLCache
+
+    c = TTLCache(max_entries=4)
+    for i in range(3):
+        c.set(f"stale:{i}", i, ttl=0)          # already expired
+    assert len(c) == 3
+    for i in range(4):                          # writing past the cap sweeps
+        c.set(f"live:{i}", i, ttl=600)
+    assert len(c) <= 4
+    assert c.get("stale:0") is None
+    assert c.get("live:3") == 3
+
+
+def test_cache_is_capped_under_unique_keys():
+    """Distinct keys are caller-controlled, so growth must be bounded."""
+    from app.cache import TTLCache
+
+    c = TTLCache(max_entries=8)
+    for i in range(500):
+        c.set(f"fc:place-{i}", i, ttl=3600)
+    assert len(c) <= 8
+
+
+# --- cache key / query agreement -------------------------------------------
+
+def test_glance_and_observations_share_one_fetch_path():
+    """They shared a cache key while asking FMI two different questions."""
+    import inspect
+
+    from app import main
+
+    glance = inspect.getsource(main.glance)
+    # The glance must not build its own query or its own key.
+    assert "timeseries(" not in glance
+    assert 'f"obs:' not in glance
+    assert "_observation_rows(" in glance
+    assert "_station_rows(" in glance
+
+    observations = inspect.getsource(main.observations)
+    assert "timeseries(" not in observations
+    assert "_observation_rows(" in observations

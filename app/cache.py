@@ -17,11 +17,41 @@ class TTLCache:
     Without that, a cached response looks as fresh as a live one — the caller
     cannot tell a reading fetched two seconds ago from one fetched four minutes
     ago, which is the difference the `retrieved` field exists to show.
+
+    Entries are swept on write, and the cache is capped. Expiry alone is not
+    enough: an entry was only ever dropped when *its own key* was read again,
+    so a key requested once and never again stayed resident for the life of
+    the process. Keys embed caller-supplied values (place names, horizons,
+    languages), so the number of distinct keys is effectively unbounded and
+    memory grew monotonically whatever the TTLs said.
     """
 
-    def __init__(self) -> None:
+    #: Enough for every place, station and horizon in real use; small enough
+    #: that a caller enumerating place names cannot exhaust the container.
+    MAX_ENTRIES = 512
+
+    def __init__(self, max_entries: int | None = None) -> None:
         self._data: dict[str, tuple[float, Any, int]] = {}
         self._lock = threading.Lock()
+        self._max = max_entries or self.MAX_ENTRIES
+
+    def __len__(self) -> int:
+        with self._lock:
+            return len(self._data)
+
+    def _evict(self) -> None:
+        """Drop expired entries, then the soonest-to-expire until under cap.
+
+        Caller holds the lock.
+        """
+        now = time.monotonic()
+        for key in [k for k, (expires, _, _) in self._data.items() if expires < now]:
+            self._data.pop(key, None)
+        if len(self._data) < self._max:
+            return
+        ordered = sorted(self._data.items(), key=lambda kv: kv[1][0])
+        for key, _ in ordered[: len(self._data) - self._max + 1]:
+            self._data.pop(key, None)
 
     def get(self, key: str) -> Any | None:
         entry = self.get_entry(key)
@@ -41,6 +71,8 @@ class TTLCache:
 
     def set(self, key: str, value: Any, ttl: int) -> None:
         with self._lock:
+            if key not in self._data and len(self._data) >= self._max:
+                self._evict()
             self._data[key] = (time.monotonic() + ttl, value, int(time.time()))
 
     async def aget_or_set(self, key: str, ttl: int, factory: Callable) -> Any:
