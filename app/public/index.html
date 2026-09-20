@@ -30,6 +30,14 @@
   .today .h .v { font-family: var(--font-heading); font-size: 20px;
                  font-variant-numeric: tabular-nums; }
   .today .h .w { color: var(--color-neutral-600); font-size: 11px; }
+  /* Precipitation. A fixed height keeps the columns aligned whether or not the
+     hour is wet, and only wet hours carry ink — twelve columns of "0.0" read
+     as data when they are the absence of it. */
+  .today .h .r { font-size: 11px; height: 15px; line-height: 15px;
+                 font-variant-numeric: tabular-nums; }
+  .today .h .r .dry { color: var(--color-neutral-400); }
+  .today .h .r.wet { color: var(--color-accent-700); font-weight: 600; }
+  .today .h .r .u { font-size: 9px; font-weight: 400; margin-left: 1px; opacity: .7; }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 22px; }
   .grid span { font-size: 13px; color: var(--color-neutral-700); }
   .grid b { display: block; font-family: var(--font-heading); font-size: 30px;

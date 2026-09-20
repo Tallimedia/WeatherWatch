@@ -24,7 +24,7 @@ STR = {
     footNote:"FIWeatherWatch on itsenäinen projekti, ei Ilmatieteen laitoksen eikä Garminin tukema. Ajat Suomen aikaa. Kehitysvaiheessa — jaettu palautetta varten.",
     unavailable:"Sää ei ole hetkellisesti saatavilla", noPlace:"Paikkakunnalle ei löytynyt havaintoasemaa", tryNearby:"Kokeile lähikaupunkia.",
     noBuoy:"ei havaitsevaa poijua", modelled:"WAM-malli — ei mitattu", away:"km päässä",
-    justNow:"juuri nyt", minAgo:"min sitten", hAgo:"h sitten", retrieved:"Haettu", loading:"Ladataan…",
+    rain:"Sade", rainNone:"ei sadetta", justNow:"juuri nyt", minAgo:"min sitten", hAgo:"h sitten", retrieved:"Haettu", loading:"Ladataan…",
   },
   sv: {
     heroA:"Finlands väder,", heroB:"på land och till havs.",
@@ -49,7 +49,7 @@ STR = {
     footNote:"FIWeatherWatch är ett fristående projekt, utan koppling till Meteorologiska institutet eller Garmin. Tider i finsk lokaltid. Under utveckling — delad för återkoppling.",
     unavailable:"Vädret är tillfälligt otillgängligt", noPlace:"Ingen väderstation hittades för", tryNearby:"Prova en närliggande ort.",
     noBuoy:"ingen aktiv boj", modelled:"WAM-modell — inte uppmätt", away:"km bort",
-    justNow:"just nu", minAgo:"min sedan", hAgo:"h sedan", retrieved:"Hämtad", loading:"Laddar…",
+    rain:"Nederbörd", rainNone:"inget regn", justNow:"just nu", minAgo:"min sedan", hAgo:"h sedan", retrieved:"Hämtad", loading:"Laddar…",
   },
   en: {
     heroA:"Finnish weather,", heroB:"land and sea.",
@@ -74,7 +74,7 @@ STR = {
     footNote:"FIWeatherWatch is an independent project, not affiliated with or endorsed by the Finnish Meteorological Institute or Garmin. Times in Finnish local time. In development — shared for feedback.",
     unavailable:"Weather is briefly unavailable", noPlace:"No weather station found for", tryNearby:"Try a nearby town.",
     noBuoy:"no buoy reporting", modelled:"WAM model — not measured", away:"km away",
-    justNow:"just now", minAgo:"min ago", hAgo:"h ago", retrieved:"Retrieved", loading:"Loading…",
+    rain:"Rain", rainNone:"no rain", justNow:"just now", minAgo:"min ago", hAgo:"h ago", retrieved:"Retrieved", loading:"Loading…",
   },
 };
 function storedLang() { try { return localStorage.getItem("fiw-lang"); } catch (_) { return null; } }
@@ -94,6 +94,15 @@ async function jget(path) {
     throw err;
   }
   return r.json();
+}
+
+function rainCell(mm) {
+  if (mm === null || mm === undefined) return `<div class="r"></div>`;
+  if (mm < 0.05) {
+    return `<div class="r" title="${T("rainNone")}"><span class="dry">·</span></div>`;
+  }
+  return `<div class="r wet" title="${T("rain")} ${mm.toFixed(1)} mm"
+    >${mm.toFixed(1)}<span class="u">mm</span></div>`;
 }
 
 function ageText(seconds) {
@@ -147,6 +156,7 @@ async function loadNow(place) {
             ${icon(i ? i.c : "unknown", i ? i.night : false, 30)}
             <div class="v">${fmt(p.temperature, 0)}°</div>
             <div class="w">${fmt(p.windspeedms, 0)}<span style="opacity:.6">/${fmt(p.hourlymaximumgust, 0)}</span></div>
+            ${rainCell(p.precipitation1h)}
           </div>`;
         }).join("")}
       </div>`;
