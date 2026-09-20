@@ -23,14 +23,44 @@ module Pages {
 
     //! Page title and the source line beneath it.
     function header(dc as Graphics.Dc, title as String, source as String?) as Void {
+        headerPin(dc, title, source, true);
+    }
+
+    function headerPlain(dc as Graphics.Dc, title as String, source as String?) as Void {
+        headerPin(dc, title, source, false);
+    }
+
+    //! `pin` marks the source line as a place the app resolved for you. Without
+    //! it the line is just a name the user already chose.
+    function headerPin(dc as Graphics.Dc, title as String, source as String?,
+                       pin as Boolean) as Void {
         var cx = w(dc) / 2;
         dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
-        dc.drawText((cx).toNumber(), (h(dc) * 0.11).toNumber(), Graphics.FONT_XTINY, title, Graphics.TEXT_JUSTIFY_CENTER);
-        if (source != null) {
-            dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
-            dc.drawText((cx).toNumber(), (h(dc) * 0.175).toNumber(), Graphics.FONT_XTINY, source,
+        dc.drawText(cx, (h(dc) * 0.11).toNumber(), Graphics.FONT_XTINY, title,
+                    Graphics.TEXT_JUSTIFY_CENTER);
+        if (source == null) { return; }
+
+        dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
+        var top = (h(dc) * 0.175).toNumber();
+        var fh = dc.getFontHeight(Graphics.FONT_XTINY);
+        // Round screens narrow toward the top, so the usable width here is well
+        // short of the full diameter.
+        var usable = (w(dc) * 0.78).toNumber();
+
+        if (!pin) {
+            dc.drawText(cx, top, Graphics.FONT_XTINY,
+                        fit(dc, source, Graphics.FONT_XTINY, usable),
                         Graphics.TEXT_JUSTIFY_CENTER);
+            return;
         }
+
+        var size = (fh * 0.62).toNumber();
+        var label = fit(dc, source, Graphics.FONT_XTINY, usable - size - 4);
+        var tw = dc.getTextWidthInPixels(label, Graphics.FONT_XTINY);
+        var left = ((w(dc) - (size + 4 + tw)) / 2).toNumber();
+        Icons.station(dc, left, top + ((fh - size) / 2).toNumber(), size, Theme.FAINT);
+        dc.drawText(left + size + 4, top, Graphics.FONT_XTINY, label,
+                    Graphics.TEXT_JUSTIFY_LEFT);
     }
 
     //! Dots showing which page you are on.
@@ -123,7 +153,7 @@ module Pages {
 
     function drawSea(dc as Graphics.Dc) as Void {
         var m = Api.marine;
-        header(dc, res(Rez.Strings.PageSea), Api.v(m, "stName"));
+        headerPlain(dc, res(Rez.Strings.PageSea), Api.v(m, "stName"));
 
         if (m == null) {
             if (!loading(dc, Api.marineState)) { message(dc, Rez.Strings.NoPhone); }
@@ -167,13 +197,22 @@ module Pages {
         var m = Api.marine;
         var hasWave = Api.v(m, "hasWave") == true;
 
+        var auto = Config.seaBuoy() == 0;
         var src = null;
         if (hasWave) {
-            src = (Api.v(m, "wMeas") == true)
-                ? Fmt.shortStation(Api.v(m, "wName"))
-                : res(Rez.Strings.Modelled);
+            if (Api.v(m, "wMeas") == true) {
+                src = Fmt.shortStation(Api.v(m, "wName"));
+                // Distance matters only when the app chose the buoy: a
+                // sheltered one 2 km out and an open-sea one 21 km out report
+                // very different seas (RESEARCH.md §4). If the user picked it,
+                // the number is noise.
+                var d = Api.v(m, "wDist");
+                if (auto && d != null) { src = src + " · " + Fmt.dist(d); }
+            } else {
+                src = res(Rez.Strings.Modelled);
+            }
         }
-        header(dc, res(Rez.Strings.PageBuoy), src);
+        headerPin(dc, res(Rez.Strings.PageBuoy), src, auto);
 
         if (!hasWave) {
             if (!loading(dc, Api.marineState)) { message(dc, Rez.Strings.NoBuoy); }
@@ -206,12 +245,9 @@ module Pages {
                     res(Rez.Strings.WaterTemp) + " " + Fmt.temp(water), Theme.DIM, 0);
         }
 
-        var dist = Api.v(m, "wDist");
-        if (dist != null) {
-            dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(w(dc) / 2, (h(dc) * 0.855).toNumber(), Graphics.FONT_XTINY,
-                        Fmt.dist(dist), Graphics.TEXT_JUSTIFY_CENTER);
-        }
+        dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w(dc) / 2, (h(dc) * 0.855).toNumber(), Graphics.FONT_XTINY,
+                    Fmt.age(Api.v(m, "stAt")), Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     // -------------------------------------------------------------- shared
