@@ -227,7 +227,9 @@ module Pages {
         var cx = cxf.toNumber();
         var cy = cyf.toNumber();
         var r = rf.toFloat();
-        var a = (degFrom + 180) % 360;
+        // Monkey C's % is integer modulo — applying it to the Float that comes
+        // back from JSON faults at runtime. Round to a Number first.
+        var a = (degFrom.toNumber() + 180) % 360;
         var rad = Math.toRadians(a - 90);
         var tipX = cx + r * Math.cos(rad);
         var tipY = cy + r * Math.sin(rad);
