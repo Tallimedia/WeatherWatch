@@ -279,7 +279,16 @@ async def _buoy_reading(lat: float, lon: float, prefer_fmisid: int | None) -> di
             # reports every 5, so these genuinely differ (RESEARCH.md §4).
             at[target] = entry["time"]
     out["at"] = at
-    out["observed_at"] = max(at.values()) if at else None
+    newest = max(at.values()) if at else None
+    out["observed_at"] = newest
+    # Epoch too: the watch ages readings by subtraction and has no ISO parser.
+    if newest:
+        try:
+            out["observed_epoch"] = int(
+                datetime.fromisoformat(newest.replace("Z", "+00:00")).timestamp()
+            )
+        except ValueError:
+            out["observed_epoch"] = None
     return out
 
 

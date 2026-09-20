@@ -75,6 +75,19 @@ module Pages {
         }
     }
 
+    //! The "last updated" footer: download glyph, then the age.
+    function updated(dc as Graphics.Dc, age as String) as Void {
+        var font = Graphics.FONT_XTINY;
+        var fh = dc.getFontHeight(font);
+        var size = (fh * 0.66).toNumber();
+        var tw = dc.getTextWidthInPixels(age, font);
+        var top = (h(dc) * 0.855).toNumber();
+        var left = ((w(dc) - (size + 4 + tw)) / 2).toNumber();
+        Icons.download(dc, left, top + ((fh - size) / 2).toNumber(), size, Theme.FAINT);
+        dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(left + size + 4, top, font, age, Graphics.TEXT_JUSTIFY_LEFT);
+    }
+
     function loading(dc as Graphics.Dc, state as Number) as Boolean {
         if (state == Api.STATE_LOADING) {
             dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
@@ -117,9 +130,7 @@ module Pages {
 
         // One age per page here rather than two: the earlier "8 min · 8 min"
         // read as a repeat rather than as two different fields.
-        dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w(dc) / 2, (h(dc) * 0.855).toNumber(), Graphics.FONT_XTINY,
-                    Fmt.age(Api.v(d, "atW")), Graphics.TEXT_JUSTIFY_CENTER);
+        updated(dc, Fmt.age(Api.v(d, "atW")));
     }
 
     //! Next few forecast steps, 6-hourly (RESEARCH.md §20), drawn from the
@@ -187,9 +198,7 @@ module Pages {
 
         iconRow(dc, :temp, Graphics.FONT_XTINY, Fmt.temp(Api.v(m, "stTemp")), Theme.DIM, 0);
 
-        dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w(dc) / 2, (h(dc) * 0.855).toNumber(), Graphics.FONT_XTINY,
-                    Fmt.age(Api.v(m, "stAt")), Graphics.TEXT_JUSTIFY_CENTER);
+        updated(dc, Fmt.age(Api.v(m, "stAt")));
     }
 
     // ---------------------------------------------------------------- buoy
@@ -202,7 +211,8 @@ module Pages {
         var src = null;
         if (hasWave) {
             if (Api.v(m, "wMeas") == true) {
-                src = Fmt.shortStation(Api.v(m, "wName"));
+                src = Fmt.dropPrefix(Fmt.shortStation(Api.v(m, "wName")),
+                                     Config.landPlace());
                 // Distance matters only when the app chose the buoy: a
                 // sheltered one 2 km out and an open-sea one 21 km out report
                 // very different seas (RESEARCH.md §4). If the user picked it,
@@ -246,9 +256,7 @@ module Pages {
                     res(Rez.Strings.WaterTemp) + " " + Fmt.temp(water), Theme.DIM, 0);
         }
 
-        dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w(dc) / 2, (h(dc) * 0.855).toNumber(), Graphics.FONT_XTINY,
-                    Fmt.age(Api.v(m, "stAt")), Graphics.TEXT_JUSTIFY_CENTER);
+        updated(dc, Fmt.age(Api.v(m, "wAt")));
     }
 
     // -------------------------------------------------------------- shared

@@ -69,19 +69,23 @@ module Icons {
     //! hills. A continuous sine reads as water because the curve never breaks.
     function wave(dc as Graphics.Dc, x as Number, y as Number, s as Number, colour as Number) as Void {
         dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
-        var pen = (s * 0.14).toNumber();
+        var pen = (s * 0.13).toNumber();
         if (pen < 2) { pen = 2; }
         dc.setPenWidth(pen);
-        ripple(dc, x, y + (s * 0.33).toNumber(), s);
-        ripple(dc, x, y + (s * 0.72).toNumber(), s);
+        // Water is wide and shallow. Squeezed into a square box the curve has
+        // no horizontal room and the segments read as chevrons.
+        var wide = (s * 1.35).toNumber();
+        ripple(dc, x, y + (s * 0.38).toNumber(), wide);
+        ripple(dc, x, y + (s * 0.70).toNumber(), wide);
         dc.setPenWidth(1);
     }
 
     //! One sine period across the width, trough first so it leads with water
     //! rather than with a hill.
     function ripple(dc as Graphics.Dc, x as Number, midY as Number, s as Number) as Void {
-        var amp = (s * 0.17).toFloat();
-        var steps = 8;
+        var amp = (s * 0.13).toFloat();
+        if (amp < 1.5) { amp = 1.5; }
+        var steps = 14;   // enough segments that the curve reads as curved
         var prevX = x;
         var prevY = midY + amp;
         for (var i = 1; i <= steps; i += 1) {
@@ -104,6 +108,24 @@ module Icons {
         dc.drawCircle(cx, cy, r);
         dc.drawLine(cx, cy, cx, cy - (r * 0.55).toNumber());
         dc.drawLine(cx, cy, cx + (r * 0.45).toNumber(), cy);
+        dc.setPenWidth(1);
+    }
+
+    //! Download: an arrow dropping onto a baseline. Marks the row that says
+    //! when the reading was last pulled.
+    function download(dc as Graphics.Dc, x as Number, y as Number, s as Number, colour as Number) as Void {
+        dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
+        var pen = (s * 0.13).toNumber();
+        if (pen < 2) { pen = 2; }
+        dc.setPenWidth(pen);
+        var cx = x + s / 2;
+        var tipY = y + (s * 0.62).toNumber();
+        var wing = (s * 0.26).toNumber();
+        dc.drawLine(cx, y + 1, cx, tipY);
+        dc.drawLine(cx - wing, tipY - wing, cx, tipY);
+        dc.drawLine(cx + wing, tipY - wing, cx, tipY);
+        dc.drawLine(x + (s * 0.12).toNumber(), y + s - 1,
+                    x + (s * 0.88).toNumber(), y + s - 1);
         dc.setPenWidth(1);
     }
 

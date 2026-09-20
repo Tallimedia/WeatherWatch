@@ -206,7 +206,8 @@ module Api {
                 "wHs"     => f(pick(wv, "wave_height_m")),
                 "wPer"    => f(pick(wv, "wave_period_s")),
                 "wDir"    => f(pick(wv, "wave_direction_deg")),
-                "wTemp"   => f(pick(wv, "water_temp_c"))
+                "wTemp"   => f(pick(wv, "water_temp_c")),
+                "wAt"     => n(pick(wv, "observed_epoch"))
             };
             marine = flat;
             marineState = STATE_OK;
