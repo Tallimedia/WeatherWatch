@@ -12,7 +12,7 @@ module Config {
     //! Shown at the foot of every page so a tester can say which build they are
     //! looking at. Must match `version` in manifest.xml — build-release.sh
     //! refuses to package if the two drift.
-    const VERSION = "0.1.1";
+    const VERSION = "0.1.2";
 
     // Gust limits are derived, not set: land is wind + 3, sea is wind + 5.
     // The offsets differ because the measured gust-minus-mean gap does —

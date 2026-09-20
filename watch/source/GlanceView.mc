@@ -83,7 +83,11 @@ class FIWeatherGlanceView extends WatchUi.GlanceView {
             if (f == null) { continue; }
             var x = 2 + i * colW;
             var room = colW - 6;
-            dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
+            // White, not a grey: the carousel dims the whole glance strip on
+            // AMOLED, so anything recessive stops being legible there even
+            // when it reads fine in the simulator. The caption stays
+            // subordinate to the value by font size instead of by colour.
+            dc.setColor(Theme.INK, Graphics.COLOR_TRANSPARENT);
             dc.drawText(x, top, Graphics.FONT_XTINY, clip(dc, f[0] as String,
                         Graphics.FONT_XTINY, room), Graphics.TEXT_JUSTIFY_LEFT);
             dc.setColor(f[2] as Number, Graphics.COLOR_TRANSPARENT);
