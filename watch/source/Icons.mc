@@ -92,13 +92,14 @@ module Icons {
         dc.setPenWidth(pen);
 
         var width = (s * widthFactor(:wave)).toNumber();
-        ripple(dc, x, y + (s * 0.26).toNumber(), width);
+        ripple(dc, x, y + (s * 0.18).toNumber(), width);
 
-        // Arrow rising toward the surface.
+        // Arrow rising toward the surface, kept clear of it — when the head
+        // crosses the ripple the two shapes tangle and neither reads.
         var cx = x + width / 2;
-        var tipY = y + (s * 0.50).toNumber();
+        var tipY = y + (s * 0.52).toNumber();
         var baseY = y + s;
-        var wing = (s * 0.24).toNumber();
+        var wing = (s * 0.22).toNumber();
         dc.drawLine(cx, baseY, cx, tipY);
         dc.drawLine(cx - wing, tipY + wing, cx, tipY);
         dc.drawLine(cx + wing, tipY + wing, cx, tipY);
