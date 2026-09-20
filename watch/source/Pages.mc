@@ -92,8 +92,9 @@ module Pages {
         var d = Api.land;
         var name = Api.v(d, "name");
         var km = Api.v(d, "dist");
-        var src = name == null ? null : name + " · " + Fmt.dist(km);
-        header(dc, res(Rez.Strings.PageLand), src);
+        var shortName = Fmt.dropPrefix(name, Config.landPlace());
+        var src = shortName == null ? null : shortName + " · " + Fmt.dist(km);
+        headerPlain(dc, res(Rez.Strings.PageLand), src);
 
         if (d == null) {
             if (!loading(dc, Api.landState)) { message(dc, Rez.Strings.NoPhone); }
@@ -212,7 +213,7 @@ module Pages {
                 src = res(Rez.Strings.Modelled);
             }
         }
-        headerPin(dc, res(Rez.Strings.PageBuoy), src, auto);
+        headerPlain(dc, res(Rez.Strings.PageBuoy), src);
 
         if (!hasWave) {
             if (!loading(dc, Api.marineState)) { message(dc, Rez.Strings.NoBuoy); }

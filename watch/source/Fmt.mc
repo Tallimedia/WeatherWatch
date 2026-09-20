@@ -71,6 +71,23 @@ module Fmt {
         return name;
     }
 
+    //! FMI station names repeat the municipality — with the place set to
+    //! Helsinki, "Helsinki Kaisaniemi" says Helsinki twice and costs the width
+    //! that the distance then loses to truncation.
+    function dropPrefix(name as String?, place as String?) as String? {
+        if (name == null || place == null) { return name; }
+        var p = place + " ";
+        if (name.length() > p.length() && name.substring(0, p.length()).equals(p)) {
+            return name.substring(p.length(), name.length());
+        }
+        return name;
+    }
+
+    //! Compact wind for the glance, where "5.5 (6.5)" overflows its column.
+    function windPair(ms as Numeric?, gust as Numeric?) as String {
+        return windValue(ms) + "/" + windValue(gust);
+    }
+
     function one(v as Numeric) as String {
         return v.format("%.1f");
     }

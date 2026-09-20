@@ -44,7 +44,7 @@ class FIWeatherGlanceView extends WatchUi.GlanceView {
             // Mean and gust coloured together — splitting them implies a
             // distinction that does not exist (RESEARCH.md §17).
             return [Labels.seaWind(),
-                    Fmt.windValue(sms) + " (" + Fmt.windValue(sg) + ")",
+                    Fmt.windPair(sms, sg),
                     Theme.windColour(sms, sg, Config.seaWind(), Config.seaGust())];
         } else if (which == 3) {
             var g2 = Api.v(m, "stGust");
@@ -82,12 +82,24 @@ class FIWeatherGlanceView extends WatchUi.GlanceView {
             var f = field(slots[i]);
             if (f == null) { continue; }
             var x = 2 + i * colW;
+            var room = colW - 6;
             dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(x, top, Graphics.FONT_XTINY, f[0] as String,
-                        Graphics.TEXT_JUSTIFY_LEFT);
+            dc.drawText(x, top, Graphics.FONT_XTINY, clip(dc, f[0] as String,
+                        Graphics.FONT_XTINY, room), Graphics.TEXT_JUSTIFY_LEFT);
             dc.setColor(f[2] as Number, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(x, top + labelH - 2, valueFont, f[1] as String,
-                        Graphics.TEXT_JUSTIFY_LEFT);
+            dc.drawText(x, top + labelH - 2, valueFont, clip(dc, f[1] as String,
+                        valueFont, room), Graphics.TEXT_JUSTIFY_LEFT);
         }
+    }
+
+    //! A glance column is narrow; a value that overruns it spills into the next
+    //! one rather than being clipped, so trim before drawing.
+    hidden function clip(dc as Graphics.Dc, text as String,
+                         font as Graphics.FontDefinition, room as Number) as String {
+        var t = text;
+        while (t.length() > 2 && dc.getTextWidthInPixels(t, font) > room) {
+            t = t.substring(0, t.length() - 1);
+        }
+        return t;
     }
 }
