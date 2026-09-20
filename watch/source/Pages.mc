@@ -65,6 +65,7 @@ module Pages {
 
     //! Dots showing which page you are on.
     function drawPager(dc as Graphics.Dc, index as Number, count as Number) as Void {
+        version(dc);
         var cx = w(dc) / 2;
         var y = h(dc) * 0.945;
         var gap = 10;
@@ -73,6 +74,14 @@ module Pages {
             dc.setColor(i == index ? Theme.INK : Theme.FAINT, Graphics.COLOR_TRANSPARENT);
             dc.fillCircle((startX + i * gap).toNumber(), y.toNumber(), i == index ? 3 : 2);
         }
+    }
+
+    //! Build version, small and dim below the footer. Beta testers need to be
+    //! able to say which build they are looking at without guessing.
+    function version(dc as Graphics.Dc) as Void {
+        dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w(dc) / 2, (h(dc) * 0.895).toNumber(), Graphics.FONT_XTINY,
+                    "v" + Config.VERSION, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     //! The "last updated" footer: download glyph, then the age.
