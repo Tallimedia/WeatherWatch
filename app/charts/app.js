@@ -94,9 +94,9 @@ function toDaily(rows, key) {
 /* Default thresholds from §20 — drawn as a reference line so the chart shows how
    often the limit is actually crossed, which is the point of choosing one. */
 const THRESHOLDS = {
-  windspeedms: { land: 5, sea: 8 },
-  windgust:    { land: 8, sea: 11 },
-  WaveHs:      { any: 0.5 },
+  windspeedms: { land: 5, sea: 10 },
+  windgust:    { land: 8, sea: 15 },
+  WaveHs:      { any: 1.0 },
   temperature: { cold: 0, hot: 25 },
 };
 
