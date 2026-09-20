@@ -83,7 +83,7 @@ class FIWeatherGlanceView extends WatchUi.GlanceView {
             if (f == null) { continue; }
             var x = 2 + i * colW;
             var room = colW - 6;
-            dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
             dc.drawText(x, top, Graphics.FONT_XTINY, clip(dc, f[0] as String,
                         Graphics.FONT_XTINY, room), Graphics.TEXT_JUSTIFY_LEFT);
             dc.setColor(f[2] as Number, Graphics.COLOR_TRANSPARENT);
