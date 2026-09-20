@@ -310,16 +310,19 @@ module Pages {
                      text as String, colour as Number, gapAfter as Number) as Void {
         var fh = dc.getFontHeight(font);
         var size = (fh * 0.62).toNumber();
+        // Some glyphs draw wider than their box side; ask rather than assume,
+        // or a wide icon runs under the text next to it.
+        var drawnW = (size * Icons.widthFactor(kind)).toNumber();
         var tw = dc.getTextWidthInPixels(text, font);
         var gap = 5;
-        var left = ((w(dc) - (size + gap + tw)) / 2).toNumber();
+        var left = ((w(dc) - (drawnW + gap + tw)) / 2).toNumber();
         var iy = _y + ((fh - size) / 2).toNumber();
         if (kind == :temp)         { Icons.temp(dc, left, iy, size, Theme.DIM); }
         else if (kind == :wind)    { Icons.wind(dc, left, iy, size, Theme.DIM); }
         else if (kind == :wave)    { Icons.wave(dc, left, iy, size, Theme.DIM); }
         else if (kind == :clock)   { Icons.clock(dc, left, iy, size, Theme.DIM); }
         dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(left + size + gap, _y, font, text, Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(left + drawnW + gap, _y, font, text, Graphics.TEXT_JUSTIFY_LEFT);
         _y += fh + gapAfter;
     }
 

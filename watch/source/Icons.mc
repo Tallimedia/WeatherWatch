@@ -67,31 +67,40 @@ module Icons {
     //! Drawn as sampled polylines rather than paired arcs. Two arcs side by
     //! side looked like something else entirely; two arcs stacked still read as
     //! hills. A continuous sine reads as water because the curve never breaks.
+    //! How wide a glyph actually draws, in units of its box side. Water is a
+    //! wide, shallow shape and needs the room; the layout has to know that or
+    //! the icon runs under the text beside it.
+    function widthFactor(kind as Symbol) as Float {
+        if (kind == :wave) { return 1.45; }
+        return 1.0;
+    }
+
+    //! Waves: one thick band, crest-trough-crest across the width.
+    //! Earlier versions failed in instructive ways — two arcs side by side read
+    //! as something else entirely, two stacked arcs read as hills, and a
+    //! narrow sine folded into chevrons. A single wide band is unambiguous at
+    //! 12 px and has no second line to collide with.
     function wave(dc as Graphics.Dc, x as Number, y as Number, s as Number, colour as Number) as Void {
         dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
-        var pen = (s * 0.13).toNumber();
-        if (pen < 2) { pen = 2; }
+        var pen = (s * 0.30).toNumber();
+        if (pen < 3) { pen = 3; }
         dc.setPenWidth(pen);
-        // Water is wide and shallow. Squeezed into a square box the curve has
-        // no horizontal room and the segments read as chevrons.
-        var wide = (s * 1.35).toNumber();
-        ripple(dc, x, y + (s * 0.38).toNumber(), wide);
-        ripple(dc, x, y + (s * 0.70).toNumber(), wide);
+        ripple(dc, x, y + s / 2, (s * widthFactor(:wave)).toNumber());
         dc.setPenWidth(1);
     }
 
     //! One sine period across the width, trough first so it leads with water
     //! rather than with a hill.
     function ripple(dc as Graphics.Dc, x as Number, midY as Number, s as Number) as Void {
-        var amp = (s * 0.13).toFloat();
-        if (amp < 1.5) { amp = 1.5; }
-        var steps = 14;   // enough segments that the curve reads as curved
+        var amp = (s * 0.19).toFloat();
+        if (amp < 2) { amp = 2; }
+        var steps = 16;   // enough segments that the curve reads as curved
         var prevX = x;
-        var prevY = midY + amp;
+        var prevY = midY + amp;   // start in a trough
         for (var i = 1; i <= steps; i += 1) {
             var t = i.toFloat() / steps;
             var px = (x + s * t).toNumber();
-            var py = (midY + amp * Math.cos(t * 2 * Math.PI)).toNumber();
+            var py = (midY + amp * Math.cos(t * 3 * Math.PI)).toNumber();
             dc.drawLine(prevX, prevY.toNumber(), px, py);
             prevX = px;
             prevY = py;
