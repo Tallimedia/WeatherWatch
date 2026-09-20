@@ -18,7 +18,7 @@ from fastapi import FastAPI, HTTPException, Query
 
 from . import config, stations
 from .cache import cache
-from .fmi import FMIError, timeseries, wave_observations
+from .fmi import FMIError, timeseries, wave_observations, wfs_timevaluepair
 from .geo import bearing_deg, compass_8, haversine_km
 
 app = FastAPI(
@@ -350,3 +350,102 @@ async def glance(
         "sea_wind_dir": sea.get("windcompass8"),
         "age_seconds": _age_seconds(sea.get("epochtime")),
     }
+
+
+# --- Prototype data-graphics site -------------------------------------------
+# Enabled only on the internal deployment (RESEARCH.md §19). Production runs the
+# same image with ENABLE_CHARTS unset, so none of this is routed there.
+
+if config.ENABLE_CHARTS:
+    from pathlib import Path
+
+    from fastapi.responses import FileResponse
+    from fastapi.staticfiles import StaticFiles
+
+    _CHARTS_DIR = Path(__file__).parent / "charts"
+
+    @app.get("/v1/series")
+    async def series(
+        params: str = Query(..., description="Comma-separated FMI parameter names"),
+        producer: str | None = Query(None, description="Omit for the default forecast producer"),
+        fmisid: int | None = None,
+        place: str | None = None,
+        lat: float | None = None,
+        lon: float | None = None,
+        start: str = Query(..., description="Absolute ISO time, e.g. 2026-02-01T00:00:00Z"),
+        end: str = Query(..., description="Absolute ISO time"),
+        step: int = Query(60, ge=10, le=10080, description="Minutes"),
+    ) -> dict:
+        """Arbitrary time series, for exploration only.
+
+        Absolute ``start``/``end`` are required rather than relative offsets:
+        relative offsets are unreliable on some producers — ``starttime=-72h``
+        on the flash producer returns flashes ending two days early
+        (RESEARCH.md §7). Absolute bounds always behave.
+
+        This endpoint is prototype-only and is not sized for the watch.
+        """
+        query: dict[str, Any] = {"starttime": start, "endtime": end, "timestep": step}
+        if producer:
+            query["producer"] = producer
+        if fmisid is not None:
+            query["fmisid"] = fmisid
+        elif place is not None:
+            query["place"] = place
+        elif lat is not None and lon is not None:
+            query["latlon"] = f"{lat},{lon}"
+        else:
+            raise HTTPException(status_code=400, detail="need one of fmisid, place, or lat+lon")
+
+        wanted = [p.strip() for p in params.split(",") if p.strip()]
+        try:
+            rows = await timeseries(wanted, **query)
+        except FMIError as exc:
+            raise _fail(exc) from exc
+        return {"params": wanted, "rows": rows, "attribution": ATTRIBUTION}
+
+    @app.get("/v1/ice-series")
+    async def ice_series(
+        place: str = Query("Helsinki"),
+        start: str = Query(...),
+        end: str = Query(...),
+    ) -> dict:
+        """Sea ice thickness and snow-on-ice for one coastal point.
+
+        WFS-only — no JSON producer exists (RESEARCH.md §18). Readings are
+        weekly and seasonal (late November to late April), so an empty result
+        outside that window is correct, not a failure.
+        """
+        try:
+            series = await wfs_timevaluepair(
+                "fmi::observations::seaice::manual::timevaluepair",
+                place=place, starttime=start, endtime=end,
+            )
+        except FMIError as exc:
+            raise _fail(exc) from exc
+        rows: dict[str, dict] = {}
+        for parameter, points in series.items():
+            for point in points:
+                row = rows.setdefault(point["time"], {"time": point["time"]})
+                row[parameter] = point["value"]
+        return {"rows": [rows[k] for k in sorted(rows)], "attribution": ATTRIBUTION}
+
+    @app.get("/v1/buoys")
+    async def buoy_registry() -> dict:
+        """The buoy and marine-station lists, so the page can build its pickers."""
+        return {
+            "marine_stations": [
+                {"fmisid": s.fmisid, "name": s.name, "lat": s.lat, "lon": s.lon}
+                for s in stations.MARINE_STATIONS
+            ],
+            "wave_buoys": [
+                {"fmisid": s.fmisid, "name": s.name, "lat": s.lat, "lon": s.lon}
+                for s in stations.WAVE_BUOYS
+            ],
+        }
+
+    @app.get("/")
+    async def charts_index() -> FileResponse:
+        return FileResponse(_CHARTS_DIR / "index.html")
+
+    app.mount("/charts", StaticFiles(directory=_CHARTS_DIR, html=True), name="charts")

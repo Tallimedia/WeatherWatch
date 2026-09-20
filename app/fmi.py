@@ -125,3 +125,45 @@ async def wave_observations(start: str) -> dict[tuple[float, float], dict]:
         if previous is None or row["time"] >= previous["time"]:
             bucket[row["parameter"]] = {"value": row["value"], "time": row["time"]}
     return latest
+
+
+_TVP_SERIES_RE = re.compile(
+    r'<wml2:MeasurementTimeseries[^>]*gml:id="[^"]*?-([A-Za-z0-9_]+)"(.*?)</wml2:MeasurementTimeseries>',
+    re.S,
+)
+_TVP_POINT_RE = re.compile(
+    r"<wml2:time>(.*?)</wml2:time>\s*<wml2:value>(.*?)</wml2:value>", re.S
+)
+
+
+async def wfs_timevaluepair(storedquery_id: str, **query: Any) -> dict[str, list[dict]]:
+    """Query a ``timevaluepair`` stored query, returning one series per parameter.
+
+    Used for sea ice, which has **no JSON producer at all** — verified against
+    ``opendata``, ``seaice``, ``icechart`` and others, all of which return either
+    an empty list or "Unknown producer name" (RESEARCH.md §18). WFS is the only
+    route, so this parser is also the groundwork for the v1.5 ice feature.
+    """
+    args: dict[str, Any] = {
+        "service": "WFS",
+        "version": "2.0.0",
+        "request": "getFeature",
+        "storedquery_id": storedquery_id,
+        **{k: v for k, v in query.items() if v is not None},
+    }
+    async with await _client() as client:
+        response = await client.get(config.FMI_WFS, params=args)
+    if response.status_code != 200:
+        raise FMIError(f"wfs {response.status_code}: {response.text[:200]}")
+
+    series: dict[str, list[dict]] = {}
+    for parameter, body in _TVP_SERIES_RE.findall(response.text):
+        points = series.setdefault(parameter, [])
+        for stamp, raw in _TVP_POINT_RE.findall(body):
+            value = raw.strip()
+            if value in {"NaN", ""}:
+                continue
+            points.append({"time": stamp.strip(), "value": float(value)})
+    for points in series.values():
+        points.sort(key=lambda p: p["time"])
+    return series

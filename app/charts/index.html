@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FIWeatherWatch data</title>
+<style>
+  :root {
+    color-scheme: light;
+    --plane: #f9f9f7; --surface: #fcfcfb;
+    --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --axis: #c3c2b7;
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --plane: #0d0d0d; --surface: #1a1a19;
+      --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --axis: #383835;
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --plane: #0d0d0d; --surface: #1a1a19;
+    --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--plane); color: var(--ink);
+    font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 24px 16px 64px;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--ink-2); margin: 0 0 20px; font-size: 0.9rem; }
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: end;
+    background: var(--surface); border: 1px solid var(--grid);
+    border-radius: 10px; padding: 12px; margin-bottom: 20px;
+  }
+  label { display: block; font-size: 0.72rem; text-transform: uppercase;
+          letter-spacing: 0.04em; color: var(--muted); margin-bottom: 3px; }
+  select, input, button {
+    font: inherit; padding: 6px 9px; border-radius: 7px;
+    border: 1px solid var(--axis); background: var(--surface); color: var(--ink);
+  }
+  button { cursor: pointer; border-color: var(--s1); color: var(--s1); font-weight: 600; }
+  button:hover { background: color-mix(in srgb, var(--s1) 10%, var(--surface)); }
+  .presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+  .presets button { font-size: 0.82rem; font-weight: 500; color: var(--ink-2);
+                    border-color: var(--grid); }
+  figure {
+    margin: 0 0 22px; background: var(--surface);
+    border: 1px solid var(--grid); border-radius: 10px; padding: 14px 14px 8px;
+  }
+  figcaption { font-weight: 600; font-size: 0.95rem; margin-bottom: 2px; }
+  .q { color: var(--ink-2); font-size: 0.82rem; margin-bottom: 10px; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin: 2px 0 8px;
+            font-size: 0.82rem; color: var(--ink-2); }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+              margin-right: 5px; vertical-align: -1px; }
+  .stats { display: flex; gap: 20px; flex-wrap: wrap; margin: 8px 0 0;
+           font-size: 0.8rem; color: var(--ink-2); }
+  .stats b { color: var(--ink); font-variant-numeric: tabular-nums; font-size: 0.95rem;
+             display: block; font-weight: 600; }
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .msg { color: var(--muted); font-size: 0.85rem; padding: 18px 0; }
+  details { margin-top: 10px; }
+  summary { cursor: pointer; font-size: 0.8rem; color: var(--muted); }
+  pre { overflow: auto; max-height: 260px; font-size: 0.72rem; color: var(--ink-2);
+        background: var(--plane); padding: 10px; border-radius: 7px;
+        border: 1px solid var(--grid); }
+  .foot { color: var(--muted); font-size: 0.78rem; margin-top: 30px;
+          border-top: 1px solid var(--grid); padding-top: 12px; }
+  .tip { position: fixed; pointer-events: none; opacity: 0; transition: opacity .1s;
+         background: var(--surface); border: 1px solid var(--axis); border-radius: 7px;
+         padding: 7px 9px; font-size: 0.78rem; box-shadow: 0 3px 10px rgba(0,0,0,.14);
+         z-index: 9; white-space: nowrap; }
+  .tip b { font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>FIWeatherWatch — data explorer</h1>
+  <p class="sub">
+    FMI open data, as the backend serves it. For understanding what the values do —
+    not a preview of the watch UI.
+  </p>
+
+  <div class="controls">
+    <div><label for="station">Sea station</label><select id="station"></select></div>
+    <div><label for="buoy">Wave buoy</label><select id="buoy"></select></div>
+    <div><label for="place">Land place</label><input id="place" value="Helsinki" size="12"></div>
+    <div><label for="start">From</label><input id="start" type="date"></div>
+    <div><label for="end">To</label><input id="end" type="date"></div>
+    <div><button id="go">Load</button></div>
+  </div>
+
+  <div class="presets">
+    <button data-days="3">Last 3 days</button>
+    <button data-days="14">Last 14 days</button>
+    <button data-days="60">Last 60 days</button>
+    <button data-range="2026-02-01,2026-03-01">Feb 2026 — ice season</button>
+    <button data-range="2026-09-18,2026-09-21">19 Sep — storm</button>
+  </div>
+
+  <div id="charts"></div>
+
+  <p class="foot">
+    Data: Finnish Meteorological Institute, CC BY 4.0.
+    Buoys are lifted out of the water roughly December–April, so gaps in winter are
+    expected rather than faults. Times are UTC.
+  </p>
+</div>
+<div class="tip" id="tip"></div>
+<script src="app.js"></script>
+</body>
+</html>
