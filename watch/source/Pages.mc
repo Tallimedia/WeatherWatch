@@ -65,7 +65,6 @@ module Pages {
 
     //! Dots showing which page you are on.
     function drawPager(dc as Graphics.Dc, index as Number, count as Number) as Void {
-        version(dc);
         var cx = w(dc) / 2;
         var y = h(dc) * 0.945;
         var gap = 10;
@@ -78,23 +77,23 @@ module Pages {
 
     //! Build version, small and dim below the footer. Beta testers need to be
     //! able to say which build they are looking at without guessing.
-    function version(dc as Graphics.Dc) as Void {
-        dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w(dc) / 2, (h(dc) * 0.895).toNumber(), Graphics.FONT_XTINY,
-                    "v" + Config.VERSION, Graphics.TEXT_JUSTIFY_CENTER);
-    }
-
-    //! The "last updated" footer: download glyph, then the age.
+    //! The "last updated" footer: download glyph, age, then the build.
+    //!
+    //! The version rides on this row rather than getting its own. Stacked, the
+    //! two rows collided — the gap between them was smaller than the font's
+    //! own height — which left the version unreadable, and the version exists
+    //! precisely so a tester can say which build they are looking at.
     function updated(dc as Graphics.Dc, age as String) as Void {
         var font = Graphics.FONT_XTINY;
         var fh = dc.getFontHeight(font);
         var size = (fh * 0.66).toNumber();
-        var tw = dc.getTextWidthInPixels(age, font);
+        var text = age + " · v" + Config.VERSION;
+        var tw = dc.getTextWidthInPixels(text, font);
         var top = (h(dc) * 0.855).toNumber();
         var left = ((w(dc) - (size + 4 + tw)) / 2).toNumber();
         Icons.download(dc, left, top + ((fh - size) / 2).toNumber(), size, Theme.FAINT);
         dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(left + size + 4, top, font, age, Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(left + size + 4, top, font, text, Graphics.TEXT_JUSTIFY_LEFT);
     }
 
     function loading(dc as Graphics.Dc, state as Number) as Boolean {
