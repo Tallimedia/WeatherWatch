@@ -23,6 +23,10 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 HERE = Path(__file__).parent
+
+# The Connect IQ store rejects screenshots over 300 kB. A framed capture is
+# around that as plain RGB, so it is palettised only if it has to be.
+STORE_MAX_BYTES = 300_000
 OUT = HERE / "framed"
 DEVICE = "fenix847mm"
 SDK_DEVICES = Path.home() / "Library/Application Support/Garmin/ConnectIQ/Devices"
@@ -43,6 +47,32 @@ def geometry() -> tuple[Image.Image, tuple[int, int, int, int]]:
     )
 
 
+def save_under_cap(img: Image.Image, out: Path, cap: int = STORE_MAX_BYTES) -> None:
+    """Save a PNG under `cap` bytes, palettising only as far as it has to.
+
+    FASTOCTREE, not MEDIANCUT. MEDIANCUT picks palette entries by splitting the
+    colour *population*, so a small saturated region loses to a large neutral
+    one and gets merged into it. That matters here specifically: a threshold
+    breach is a handful of blue or orange pixels against a large grey device
+    photo, and those are the pixels the screenshot exists to show. FASTOCTREE
+    partitions the colour *space* instead, so a distinct hue keeps its own
+    entry however few pixels carry it.
+
+    (Same conclusion VolvoWatch reached for its green charging text —
+    `VolvoWatch/watch/store/make_store_art.py`.)
+    """
+    rgb = img.convert("RGB")
+    rgb.save(out, "PNG", optimize=True)
+    if out.stat().st_size <= cap:
+        return
+    for colours in (256, 192, 128, 96, 64):
+        rgb.quantize(
+            colors=colours, method=Image.FASTOCTREE, dither=Image.Dither.NONE
+        ).save(out, "PNG", optimize=True)
+        if out.stat().st_size <= cap:
+            return
+
+
 def frame(src: Path, skin: Image.Image, rect: tuple[int, int, int, int]) -> Path:
     shot = Image.open(src).convert("RGBA")
     x, y, w, h = rect
@@ -55,7 +85,7 @@ def frame(src: Path, skin: Image.Image, rect: tuple[int, int, int, int]) -> Path
     canvas.paste(disc, (x, y), mask)
     OUT.mkdir(exist_ok=True)
     out = OUT / src.name
-    canvas.save(out)
+    save_under_cap(canvas, out)
     return out
 
 
@@ -70,7 +100,9 @@ def main() -> None:
         raise SystemExit("no captures found")
     for src in sources:
         out = frame(src, skin, rect)
-        print(f"{src.name:14} -> {out.relative_to(HERE)}  {out.stat().st_size:,} bytes")
+        size = out.stat().st_size
+        flag = "" if size <= STORE_MAX_BYTES else "  OVER STORE LIMIT"
+        print(f"{src.name:14} -> {out.relative_to(HERE)}  {size:>7,} B{flag}")
 
 
 if __name__ == "__main__":
