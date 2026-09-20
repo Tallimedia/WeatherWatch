@@ -21,6 +21,8 @@ from . import config, stations
 from .cache import cache
 from .fmi import (
     FMIError,
+    UnknownPlace,
+    resolve_place,
     timeseries,
     wave_observations,
     wfs_simple,
@@ -101,6 +103,12 @@ def _age_seconds(epoch: Any) -> int | None:
 
 
 def _fail(exc: FMIError) -> HTTPException:
+    # An unrecognised place name is the caller's problem, not an upstream
+    # outage — returning 502 made a typo look like the service was down.
+    if isinstance(exc, UnknownPlace):
+        return HTTPException(status_code=404, detail=f"unknown place: {exc}")
+    if "Unknown location" in str(exc):
+        return HTTPException(status_code=404, detail=str(exc))
     return HTTPException(status_code=502, detail=f"upstream FMI error: {exc}")
 
 
@@ -131,7 +139,12 @@ async def forecast(
     async def fetch() -> list[dict]:
         query: dict[str, Any] = {"timestep": step, "hours": hours, "lang": lang}
         if place is not None:
-            query["place"] = place
+            # Resolve the name first, then ask by coordinates — `lang` must not
+            # be able to make a valid Finnish place name unresolvable (app/fmi.py).
+            plat, plon, _ = await cache.aget_or_set(
+                f"geo:{place}", 86400, lambda: resolve_place(place)
+            )
+            query["latlon"] = f"{plat},{plon}"
         else:
             query["latlon"] = f"{lat},{lon}"
         return await timeseries(_FORECAST_PARAMS, **query)
@@ -164,7 +177,10 @@ async def observations(
         if fmisid is not None:
             query["fmisid"] = fmisid
         elif place is not None:
-            query["place"] = place
+            plat, plon, _ = await cache.aget_or_set(
+                f"geo:{place}", 86400, lambda: resolve_place(place)
+            )
+            query["latlon"] = f"{plat},{plon}"
         else:
             query["latlon"] = f"{lat},{lon}"
         return await timeseries(_OBSERVATION_PARAMS, **query)

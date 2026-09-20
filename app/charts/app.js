@@ -1,3 +1,39 @@
+/* Page strings in the three v1 languages. Weather descriptions are NOT here —
+   FMI returns those already localised via `smartsymboltext`, so the app only
+   ever translates its own chrome (RESEARCH.md §16). */
+STR = {
+  en: { measured:"measured", retrieved:"fetched", language:"Language", landPlace:"Land place", seaStation:"Sea station", waveBuoy:"Wave buoy",
+        from:"From", to:"To", load:"Load", loading:"Loading…",
+        d3:"Last 3 days", d14:"Last 14 days", d60:"Last 60 days",
+        ice:"Feb 2026 — ice season", storm:"19 Sep — storm",
+        wind:"Wind", gust:"Gust", humidity:"Humidity", pressure:"Pressure",
+        away:"km away", justNow:"just now", minAgo:"min ago", hAgo:"h ago",
+        gLand:"Land", gSea:"Sea station", gBuoy:"Wave buoy", gIce:"Sea ice",
+        noData:"No data in this range — expected for seasonal sensors.",
+        raw:"Raw JSON", latest:"latest", subtitle:"FMI open data, as the backend serves it. For understanding what the values do — not a preview of the watch UI.",
+        foot:"Data: Finnish Meteorological Institute, CC BY 4.0. Buoys are lifted out of the water roughly December–April, so gaps in winter are expected rather than faults. Times are Finnish local time (Europe/Helsinki)." },
+  fi: { measured:"mitattu", retrieved:"haettu", language:"Kieli", landPlace:"Paikkakunta", seaStation:"Merihavaintoasema", waveBuoy:"Aaltopoiju",
+        from:"Alkaen", to:"Asti", load:"Hae", loading:"Ladataan…",
+        d3:"3 vrk", d14:"14 vrk", d60:"60 vrk",
+        ice:"Helmikuu 2026 — jääkausi", storm:"19.9. — ukkonen",
+        wind:"Tuuli", gust:"Puuska", humidity:"Kosteus", pressure:"Paine",
+        away:"km päässä", justNow:"juuri nyt", minAgo:"min sitten", hAgo:"h sitten",
+        gLand:"Maa", gSea:"Merihavaintoasema", gBuoy:"Aaltopoiju", gIce:"Merijää",
+        noData:"Ei havaintoja tällä aikavälillä — odotettua kausiluonteisilta antureilta.",
+        raw:"Raakadata (JSON)", latest:"viimeisin", subtitle:"Ilmatieteen laitoksen avointa dataa sellaisena kuin taustapalvelu sen tarjoaa. Arvojen ymmärtämiseen — ei esikatselu kellon käyttöliittymästä.",
+        foot:"Data: Ilmatieteen laitos, CC BY 4.0. Aaltopoijut nostetaan vedestä suunnilleen joulu–huhtikuuksi, joten talven katkot ovat odotettuja eivätkä vikoja. Ajat Suomen aikaa (Europe/Helsinki)." },
+  sv: { measured:"uppmätt", retrieved:"hämtad", language:"Språk", landPlace:"Ort", seaStation:"Havsstation", waveBuoy:"Vågboj",
+        from:"Från", to:"Till", load:"Hämta", loading:"Laddar…",
+        d3:"3 dygn", d14:"14 dygn", d60:"60 dygn",
+        ice:"Februari 2026 — issäsong", storm:"19 sep — åska",
+        wind:"Vind", gust:"By", humidity:"Fuktighet", pressure:"Lufttryck",
+        away:"km bort", justNow:"just nu", minAgo:"min sedan", hAgo:"h sedan",
+        gLand:"Land", gSea:"Havsstation", gBuoy:"Vågboj", gIce:"Havsis",
+        noData:"Inga data i detta intervall — väntat för säsongsgivare.",
+        raw:"Rådata (JSON)", latest:"senaste", subtitle:"Meteorologiska institutets öppna data, som backend levererar dem. För att förstå vad värdena gör — inte en förhandsvisning av klockans gränssnitt.",
+        foot:"Data: Meteorologiska institutet, CC BY 4.0. Vågbojarna tas upp ur vattnet ungefär december–april, så luckor på vintern är väntade och inte fel. Tider i finsk lokaltid (Europe/Helsinki)." },
+};
+
 /* Charts for the FIWeatherWatch data explorer.
    Hand-rolled SVG line charts: the data is small, and a dependency-free page
    keeps the prototype deployable anywhere without a build step. */

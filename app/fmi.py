@@ -39,6 +39,10 @@ class FMIError(RuntimeError):
     """FMI returned something we could not use."""
 
 
+class UnknownPlace(FMIError):
+    """FMI does not recognise the place name — a client error, not an outage."""
+
+
 async def _client() -> httpx.AsyncClient:
     return httpx.AsyncClient(timeout=config.HTTP_TIMEOUT, follow_redirects=True)
 
@@ -167,3 +171,31 @@ async def wfs_timevaluepair(storedquery_id: str, **query: Any) -> dict[str, list
     for points in series.values():
         points.sort(key=lambda p: p["time"])
     return series
+
+
+# `lang` changes place *resolution*, not just the language of the output text.
+# "Tammisaari" resolves with no lang or lang=fi but is "Unknown location" under
+# sv and en; "Hangö" resolves only under sv. So a Finnish place name breaks the
+# moment the user switches the page to English, which is exactly backwards for a
+# Finnish weather app. Resolution is therefore decoupled from display language:
+# find the coordinates by trying each gazetteer in turn, then query by latlon.
+_GAZETTEERS = (None, "fi", "sv", "en")
+
+
+async def resolve_place(place: str) -> tuple[float, float, str]:
+    """Coordinates for a place name, tried across every language gazetteer.
+
+    Raises :class:`UnknownPlace` only when no gazetteer knows the name.
+    """
+    for lang in _GAZETTEERS:
+        query: dict[str, Any] = {"place": place, "hours": 1, "timestep": 60}
+        if lang:
+            query["lang"] = lang
+        try:
+            rows = await timeseries(["latitude", "longitude", "name"], **query)
+        except FMIError:
+            continue
+        for row in rows:
+            if row.get("latitude") is not None and row.get("longitude") is not None:
+                return float(row["latitude"]), float(row["longitude"]), row.get("name") or place
+    raise UnknownPlace(place)

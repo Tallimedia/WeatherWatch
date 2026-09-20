@@ -57,8 +57,14 @@
   </a>
   <span style="color:var(--color-neutral-500)">/</span>
   <span style="font-family:var(--font-heading);font-weight:600;font-size:18px">FIWeatherWatch</span>
-  <span style="margin-left:auto;display:flex;gap:18px;flex-wrap:wrap">
-    <a href="#live">Live data</a><a href="#what">What it shows</a><a href="#data">Data</a>
+  <span style="margin-left:auto;display:flex;gap:18px;flex-wrap:wrap;align-items:center">
+    <a href="#live" id="nav-live">Live data</a>
+    <a href="#what" id="nav-what">What it shows</a>
+    <a href="#data" id="nav-data">Data</a>
+    <select id="lang" aria-label="Language" style="font:inherit;font-size:14px;padding:5px 8px;
+        border-radius:8px;border:1px solid var(--color-neutral-300);background:#fff">
+      <option value="fi">Suomi</option><option value="sv">Svenska</option><option value="en">English</option>
+    </select>
   </span>
 </nav>
 
@@ -66,72 +72,70 @@
   <div style="padding:64px 0 48px;border-bottom:1px solid var(--color-divider)">
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px">
       <span class="tag tag-accent">Connect IQ · Widget</span>
-      <span class="tag tag-outline">In development</span>
-      <span class="tag tag-neutral">Finland</span>
+      <span class="tag tag-outline" id="tag-dev">In development</span>
+      <span class="tag tag-neutral" id="tag-area">Finland</span>
     </div>
     <h1 style="font-size:76px;line-height:0.94;letter-spacing:-0.02em;margin:0 0 20px;text-wrap:balance">
-      Finnish weather,<br>land and sea.</h1>
+      <span id="hero-a">Finnish weather,</span><br><span id="hero-b">land and sea.</span></h1>
     <p style="font-size:19px;max-width:52ch;color:var(--color-neutral-800);margin:0;text-wrap:pretty">
-      Forecasts, marine wind and live wave data on your Garmin watch — from the Finnish
-      Meteorological Institute's own open data, not a global model.
-      Everything below is live right now, and it is exactly what the watch receives.</p>
+      <span id="lede"></span></p>
   </div>
 </header>
 
 <section id="live" class="wrap" style="padding:56px 32px 0">
-  <h2 style="font-size:40px;margin:0 0 6px">On land</h2>
+  <h2 style="font-size:40px;margin:0 0 6px" id="h-land">On land</h2>
   <p style="color:var(--color-neutral-700);margin:0 0 22px">
-    Current conditions and the rest of today, from the nearest reporting station.</p>
+    <span id="sub-land"></span></p>
   <div class="pick">
-    <div><label for="place">Place</label><input id="place" value="Helsinki" size="15"></div>
+    <div><label for="place" id="l-place">Place</label><input id="place" value="Helsinki" size="15"></div>
   </div>
   <div class="panel" id="widget"><p class="msg">Loading…</p></div>
 </section>
 
 <section class="wrap" style="padding:48px 32px 56px">
-  <h2 style="font-size:40px;margin:0 0 6px">At sea</h2>
+  <h2 style="font-size:40px;margin:0 0 6px" id="h-sea">At sea</h2>
   <p style="color:var(--color-neutral-700);margin:0 0 22px">
-    Wind from a Finnish marine station, waves from FMI's wave buoys.</p>
+    <span id="sub-sea"></span></p>
   <div class="pick">
-    <div><label for="station">Sea station</label><select id="station"></select></div>
-    <div><label for="buoy">Wave buoy</label><select id="buoy"></select></div>
+    <div><label for="station" id="l-station">Sea station</label><select id="station"></select></div>
+    <div><label for="buoy" id="l-buoy">Wave buoy</label><select id="buoy"></select></div>
   </div>
   <div class="panel" id="marine"><p class="msg">Loading…</p></div>
 </section>
 
 <section id="what" style="background:var(--color-accent-900);color:#f5f8fd;padding:64px 0">
   <div class="wrap">
-    <h2 style="font-size:40px;margin:0 0 26px;color:#f5f8fd">What the watch shows</h2>
+    <h2 style="font-size:40px;margin:0 0 26px;color:#f5f8fd" id="h-what">What the watch shows</h2>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:30px">
-      <div><h3 style="font-family:var(--font-heading);font-size:21px;margin:0 0 6px">Land</h3>
-        <p style="margin:0;color:#c9d7e8">Current temperature, wind and gusts, plus a
+      <div><h3 id="c1t" style="font-family:var(--font-heading);font-size:21px;margin:0 0 6px">Land</h3>
+        <p style="margin:0;color:#c9d7e8" id="c1">Current temperature, wind and gusts, plus a
         10-day forecast — with the reporting station named and its distance shown.</p></div>
-      <div><h3 style="font-family:var(--font-heading);font-size:21px;margin:0 0 6px">Sea</h3>
-        <p style="margin:0;color:#c9d7e8">Wind and gusts from Harmaja, Utö, Kalbådagrund
+      <div><h3 id="c2t" style="font-family:var(--font-heading);font-size:21px;margin:0 0 6px">Sea</h3>
+        <p style="margin:0;color:#c9d7e8" id="c2">Wind and gusts from Harmaja, Utö, Kalbådagrund
         and 19 other Finnish marine stations.</p></div>
-      <div><h3 style="font-family:var(--font-heading);font-size:21px;margin:0 0 6px">Waves</h3>
-        <p style="margin:0;color:#c9d7e8">Significant wave height, period, direction and
+      <div><h3 id="c3t" style="font-family:var(--font-heading);font-size:21px;margin:0 0 6px">Waves</h3>
+        <p style="margin:0;color:#c9d7e8" id="c3">Significant wave height, period, direction and
         sea water temperature from FMI's wave buoys.</p></div>
-      <div><h3 style="font-family:var(--font-heading);font-size:21px;margin:0 0 6px">Your limits</h3>
-        <p style="margin:0;color:#c9d7e8">Set your own wind, gust and wave thresholds, so a
+      <div><h3 id="c4t" style="font-family:var(--font-heading);font-size:21px;margin:0 0 6px">Your limits</h3>
+        <p style="margin:0;color:#c9d7e8" id="c4">Set your own wind, gust and wave thresholds, so a
         reading stands out when it matters to you.</p></div>
     </div>
   </div>
 </section>
 
 <section id="data" class="wrap" style="padding:56px 32px">
-  <h2 style="font-size:40px;margin:0 0 6px">About the data</h2>
+  <h2 style="font-size:40px;margin:0 0 6px" id="h-data">About the data</h2>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:30px;margin-top:22px">
-    <div><h3 style="font-family:var(--font-heading);font-size:20px;margin:0 0 6px">Wind is a 10-minute mean</h3>
-      <p style="margin:0;color:var(--color-neutral-700)">The meteorological standard, and
+    <div><h3 id="d1t" style="font-family:var(--font-heading);font-size:20px;margin:0 0 6px">Wind is a 10-minute mean</h3>
+      <p style="margin:0;color:var(--color-neutral-700)" id="d1">The meteorological standard, and
       the same basis FMI's own marine warnings use. Gust is the highest gust in that
       window, not an average.</p></div>
-    <div><h3 style="font-family:var(--font-heading);font-size:20px;margin:0 0 6px">Every value is timestamped</h3>
-      <p style="margin:0;color:var(--color-neutral-700)">Stations update at different
+    <div><h3 id="d2t" style="font-family:var(--font-heading);font-size:20px;margin:0 0 6px">Every value is timestamped</h3>
+      <p style="margin:0;color:var(--color-neutral-700)" id="d2">Stations update at different
       rates — Harmaja republishes wind every minute, most stations every ten — so each
       reading shows when it was measured rather than assuming.</p></div>
-    <div><h3 style="font-family:var(--font-heading);font-size:20px;margin:0 0 6px">Wave buoys are seasonal</h3>
-      <p style="margin:0;color:var(--color-neutral-700)">They are lifted out of the water
+    <div><h3 id="d3t" style="font-family:var(--font-heading);font-size:20px;margin:0 0 6px">Wave buoys are seasonal</h3>
+      <p style="margin:0;color:var(--color-neutral-700)" id="d3">They are lifted out of the water
       roughly December to April. When none is reporting, the page says so and falls back
       to model output, clearly labelled.</p></div>
   </div>
@@ -145,9 +149,7 @@
       open data, licensed
       <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.</p>
     <p style="margin:0;color:var(--color-neutral-600);font-size:13px">
-      FIWeatherWatch is an independent project, not affiliated with or endorsed by the
-      Finnish Meteorological Institute or Garmin. Times in Finnish local time.
-      In development — shared for feedback.</p>
+      <span id="foot-note"></span></p>
   </div>
 </footer>
 
