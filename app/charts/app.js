@@ -12,26 +12,48 @@ const fmt = (n, d = 1) => (n === null || n === undefined ? "–" : Number(n).toF
 
 /* Each chart names the question it exists to answer (RESEARCH.md §19). */
 const CHARTS = [
-  { id: "wind", title: "Sea wind and gust",
+  { id: "landwind", group: "Land", title: "Land wind and gust",
+    q: "The land threshold default — how much lower is it than at sea?",
+    source: (c) => ({ place: c.place, producer: "opendata",
+                      params: "windspeedms,windgust", step: 60 }),
+    series: [ { key: "windspeedms", label: "Mean wind", unit: "m/s" },
+              { key: "windgust",    label: "Gust",      unit: "m/s" } ] },
+
+  { id: "landrain", group: null, title: "Land rainfall",
+    q: "Does hourly precipitation carry enough signal to show on the watch?",
+    source: (c) => ({ place: c.place, producer: "opendata",
+                      params: "precipitation1h", step: 60 }),
+    series: [ { key: "precipitation1h", label: "Rain", unit: "mm/h" } ] },
+
+  { id: "forecast", group: null, title: "Land forecast — next 10 days",
+    q: "What the watch's page 1 draws on. Forward-looking, so it ignores the date range above.",
+    forecast: true,
+    source: (c) => ({ place: c.place,
+                      params: "temperature,windspeedms,hourlymaximumgust", step: 360 }),
+    series: [ { key: "temperature",       label: "Temperature", unit: "°C" },
+              { key: "windspeedms",       label: "Wind",        unit: "m/s" },
+              { key: "hourlymaximumgust", label: "Gust",        unit: "m/s" } ] },
+
+  { id: "fcrain", group: null, title: "Forecast rainfall — next 10 days",
+    q: "How far out does the forecast still show meaningful precipitation?",
+    forecast: true,
+    source: (c) => ({ place: c.place, params: "precipitation1h", step: 360 }),
+    series: [ { key: "precipitation1h", label: "Rain", unit: "mm/h" } ] },
+
+  { id: "symbols", group: null, title: "Weather symbols in this forecast",
+    q: "Which smartsymbol codes actually occur — i.e. which icons need drawing?",
+    forecast: true, symbols: true,
+    source: (c) => ({ place: c.place, params: "smartsymbol", step: 180 }),
+    series: [ { key: "smartsymbol", label: "Symbol", unit: "" } ] },
+
+  { id: "wind", group: "Sea station", title: "Sea wind and gust",
     q: "How do mean and gust relate — and what gust value should the default threshold be?",
     source: (c) => ({ fmisid: c.station, producer: "opendata",
                       params: "windspeedms,windgust", step: 60 }),
     series: [ { key: "windspeedms", label: "Mean wind", unit: "m/s" },
               { key: "windgust",    label: "Gust",      unit: "m/s" } ] },
 
-  { id: "waves", title: "Wave height at the chosen buoy",
-    q: "What is a normal wave height here, and what counts as high?",
-    buoy: true,
-    series: [ { key: "WaveHs", label: "Significant height", unit: "m" },
-              { key: "WTP",    label: "Period",             unit: "s" } ] },
-
-  { id: "wavedir", title: "Wave direction and spread",
-    q: "Does WHDD (spread) ever say anything useful, or is ModalWDi enough?",
-    buoy: true,
-    series: [ { key: "ModalWDi", label: "Direction (ModalWDi)", unit: "°" },
-              { key: "WHDD",     label: "Spread (WHDD)",        unit: "°" } ] },
-
-  { id: "landsea", title: "Land vs sea air temperature",
+  { id: "landsea", group: null, title: "Land vs sea air temperature",
     q: "How far apart are the two stations — do they justify separate thresholds?",
     source: (c) => ({ fmisid: c.station, producer: "opendata",
                       params: "temperature", step: 60 }),
@@ -40,16 +62,29 @@ const CHARTS = [
     series: [ { key: "temperature",  label: "Sea station", unit: "°C" },
               { key: "temperature2", label: "Land place",  unit: "°C" } ] },
 
-  { id: "water", title: "Sea water temperature",
+  { id: "waves", group: "Wave buoy", title: "Wave height at the chosen buoy",
+    q: "What is a normal wave height here, and what counts as high?",
+    buoy: true,
+    series: [ { key: "WaveHs", label: "Significant height", unit: "m" },
+              { key: "WTP",    label: "Period",             unit: "s" } ] },
+
+  { id: "wavedir", group: null, title: "Wave direction and spread",
+    q: "Does WHDD (spread) ever say anything useful, or is ModalWDi enough?",
+    buoy: true,
+    series: [ { key: "ModalWDi", label: "Direction (ModalWDi)", unit: "°" },
+              { key: "WHDD",     label: "Spread (WHDD)",        unit: "°" } ] },
+
+  { id: "water", group: null, title: "Sea water temperature",
     q: "Does the buoy's water temperature earn a line on the watch?",
     buoy: true,
     series: [ { key: "TWATER", label: "Water", unit: "°C" } ] },
 
-  { id: "ice", title: "Sea ice thickness (winter only)",
+  { id: "ice", group: "Sea ice", title: "Sea ice thickness (winter only)",
     q: "How does ice build and decay? Weekly readings — empty outside late Nov–late Apr.",
     ice: true,
     series: [ { key: "ICE_PT1S_INSTANT", label: "Ice thickness", unit: "cm" },
               { key: "SNDICE_PT1M_AVG",  label: "Snow on ice",   unit: "cm" } ] },
+
 ];
 
 const COLORS = ["var(--s1)", "var(--s2)", "var(--s3)"];
@@ -158,11 +193,79 @@ function drawPanel(fig, rows, series, pts, COLORS) {
   });
 }
 
+/* smartsymbol is a CATEGORICAL code, not a magnitude — code 134 is not "more"
+   than code 1, so a line chart of it would be meaningless. Rendered as an
+   inventory instead, which is the actual question: which icons need drawing?
+   Night variants are the day code + 100. Labels below cover only the codes
+   confirmed in FMI's published symbol set; anything else is flagged rather than
+   guessed, because a wrong icon is worse than an unknown one. */
+const SYMBOL_LABELS = {
+  1: "Clear", 2: "Partly cloudy", 3: "Cloudy",
+  21: "Light showers", 22: "Moderate showers", 23: "Heavy showers",
+  31: "Light rain", 32: "Moderate rain", 33: "Heavy rain",
+  41: "Light snow showers", 42: "Moderate snow showers", 43: "Heavy snow showers",
+  51: "Light snowfall", 52: "Moderate snowfall", 53: "Heavy snowfall",
+  61: "Thundershowers", 62: "Heavy thundershowers", 63: "Thunder", 64: "Heavy thunder",
+  71: "Light sleet showers", 72: "Moderate sleet showers", 73: "Heavy sleet showers",
+};
+
+function drawSymbols(fig, rows) {
+  const counts = new Map();
+  for (const r of rows) {
+    const code = r.smartsymbol;
+    if (code === null || code === undefined) continue;
+    counts.set(code, (counts.get(code) || 0) + 1);
+  }
+  if (!counts.size) {
+    fig.querySelector(".plot").innerHTML = '<p class="msg">No symbols in this range.</p>';
+    return;
+  }
+  const total = [...counts.values()].reduce((a, b) => a + b, 0);
+  const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  const unmapped = [];
+  const rowsHtml = sorted.map(([code, n]) => {
+    const night = code > 100;
+    const day = night ? code - 100 : code;
+    const label = SYMBOL_LABELS[day];
+    if (!label) unmapped.push(code);
+    const pct = Math.round((n / total) * 100);
+    return `<tr>
+      <td style="font-variant-numeric:tabular-nums"><b>${code}</b></td>
+      <td>${label ? label : '<span style="color:var(--s2)">unmapped — look up</span>'}</td>
+      <td style="color:var(--muted)">${night ? "night" : "day"}</td>
+      <td style="font-variant-numeric:tabular-nums">${n}</td>
+      <td><span style="display:inline-block;height:8px;border-radius:2px;background:var(--s1);width:${Math.max(2, pct * 2)}px"></span>
+          <span style="color:var(--muted);font-size:.75rem"> ${pct}%</span></td>
+    </tr>`;
+  }).join("");
+  fig.querySelector(".plot").innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:.85rem">
+      <thead><tr style="color:var(--muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;text-align:left">
+        <th>Code</th><th>Meaning</th><th></th><th>Count</th><th>Share</th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>`;
+  const stats = fig.querySelector(".stats");
+  if (stats) {
+    stats.innerHTML = `<div><span>Distinct codes</span><b>${counts.size}</b>
+        over ${total} forecast points</div>` +
+      (unmapped.length
+        ? `<div><span style="color:var(--s2)">Needs lookup</span><b>${unmapped.length}</b>
+             ${unmapped.join(", ")} — icons can't be drawn without these</div>`
+        : `<div><span>Coverage</span><b>complete</b> every code has a label</div>`);
+  }
+}
+
 async function load() {
   const cfg = { station: $("#station").value, buoy: $("#buoy").value,
                 place: $("#place").value.trim(), start: $("#start").value, end: $("#end").value };
   const host = $("#charts"); host.innerHTML = "";
   for (const c of CHARTS) {
+    if (c.group) {
+      const h = document.createElement("h2");
+      h.textContent = c.group;
+      h.className = "group";
+      host.appendChild(h);
+    }
     const fig = document.createElement("figure");
     fig.innerHTML = `<figcaption>${c.title}</figcaption><p class="q">${c.q}</p>
       <div class="legend">${c.series.map((s, i) => `<span><i style="background:${COLORS[i]}"></i>${s.label}</span>`).join("")}</div>
@@ -172,6 +275,13 @@ async function load() {
     host.appendChild(fig);
     try {
       let rows;
+      let from = cfg.start, to = cfg.end;
+      if (c.forecast) {
+        // Forecasts are forward-looking; the date pickers select history.
+        const now = new Date();
+        from = now.toISOString().slice(0, 10);
+        to = new Date(now.getTime() + 10 * 864e5).toISOString().slice(0, 10);
+      }
       if (c.buoy) {
         // Buoy observations are WFS-only — the JSON timeseries endpoint returns
         // all-null rows for WaveHs rather than an error (RESEARCH.md §4).
@@ -186,16 +296,16 @@ async function load() {
         if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
         rows = (await r.json()).rows.map((x) => ({ ...x, epochtime: Date.parse(x.time) / 1000 }));
       } else {
-      const primary = await fetchSeries(c.source(cfg), cfg.start, cfg.end);
+      const primary = await fetchSeries(c.source(cfg), from, to);
       rows = primary.rows;
       if (c.extra) {
-        const second = await fetchSeries(c.extra(cfg), cfg.start, cfg.end);
+        const second = await fetchSeries(c.extra(cfg), from, to);
         const byTime = new Map(second.rows.map((r) => [r.epochtime, r.temperature]));
         rows = rows.map((r) => ({ ...r, temperature2: byTime.get(r.epochtime) ?? null }));
       }
       }
       fig.querySelector("pre").textContent = JSON.stringify(rows.slice(0, 40), null, 1);
-      draw(fig, rows, c.series);
+      if (c.symbols) drawSymbols(fig, rows); else draw(fig, rows, c.series);
     } catch (err) {
       fig.querySelector(".plot").innerHTML = `<p class="msg">${err.message}</p>`;
     }
