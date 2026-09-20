@@ -6,6 +6,7 @@ only to keep repeated requests off FMI's service.
 """
 
 from __future__ import annotations
+import asyncio
 import threading
 import time
 from typing import Any, Callable
@@ -34,6 +35,11 @@ class TTLCache:
         self._data: dict[str, tuple[float, Any, int]] = {}
         self._lock = threading.Lock()
         self._max = max_entries or self.MAX_ENTRIES
+        # One lock per in-flight key, so concurrent misses on the same key wait
+        # for the first fetch instead of each calling FMI. Without it the cache
+        # gives no protection at the only moment it matters — a cold key under
+        # simultaneous requests from the watch and the public page.
+        self._inflight: dict[str, asyncio.Lock] = {}
 
     def __len__(self) -> int:
         with self._lock:
@@ -83,8 +89,17 @@ class TTLCache:
         cached = self.get_entry(key)
         if cached is not None:
             return cached
-        value = await factory()
-        self.set(key, value, ttl)
+        lock = self._inflight.setdefault(key, asyncio.Lock())
+        async with lock:
+            # Re-check: another caller may have filled it while we queued.
+            cached = self.get_entry(key)
+            if cached is not None:
+                return cached
+            try:
+                value = await factory()
+            finally:
+                self._inflight.pop(key, None)
+            self.set(key, value, ttl)
         entry = self.get_entry(key)
         return entry if entry is not None else (value, int(time.time()))
 

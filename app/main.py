@@ -12,8 +12,9 @@ with charts off for production.
 from __future__ import annotations
 
 import time
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, AsyncIterator
 
 from fastapi import FastAPI, HTTPException, Query
 
@@ -22,6 +23,7 @@ from .cache import cache
 from .fmi import (
     FMIError,
     UnknownPlace,
+    aclose as fmi_aclose,
     resolve_place,
     timeseries,
     wave_observations,
@@ -30,7 +32,15 @@ from .fmi import (
 )
 from .geo import bearing_deg, compass_8, haversine_km
 
+@asynccontextmanager
+async def _lifespan(_: FastAPI) -> AsyncIterator[None]:
+    """Close the shared upstream client on the way out."""
+    yield
+    await fmi_aclose()
+
+
 app = FastAPI(
+    lifespan=_lifespan,
     title="FIWeatherWatch backend",
     version="0.1.0",
     description="FMI open data, reshaped for a Garmin watch. Data: "
@@ -38,6 +48,28 @@ app = FastAPI(
 )
 
 ATTRIBUTION = "Finnish Meteorological Institute, CC BY 4.0"
+
+
+
+async def _resolve(place: str) -> tuple[float, float, str]:
+    """Coordinates for a place, with the failure cached too.
+
+    An unknown name costs four upstream calls — `resolve_place` tries every
+    gazetteer in turn — and nothing stopped a caller repeating it. Negative
+    results are cached for a spell so a typo, or a loop of them, is paid for
+    once rather than every time.
+    """
+    hit = cache.get(f"geo:{place}")
+    if hit is not None:
+        if hit == "unknown":
+            raise UnknownPlace(place)
+        return hit
+    try:
+        found = await cache.aget_or_set(f"geo:{place}", 86400, lambda: resolve_place(place))
+    except UnknownPlace:
+        cache.set(f"geo:{place}", "unknown", config.TTL_UNKNOWN_PLACE)
+        raise
+    return found
 
 # Forecast parameters. Gust is `hourlymaximumgust` on this side (RESEARCH.md §2).
 _FORECAST_PARAMS = [
@@ -120,9 +152,7 @@ async def _observation_rows(
         elif place is not None:
             # Resolve the name first, then ask by coordinates — `lang` must not
             # be able to make a valid Finnish place name unresolvable (app/fmi.py).
-            plat, plon, _ = await cache.aget_or_set(
-                f"geo:{place}", 86400, lambda: resolve_place(place)
-            )
+            plat, plon, _ = await _resolve(place)
             query["latlon"] = f"{plat},{plon}"
         else:
             query["latlon"] = f"{lat},{lon}"
@@ -178,7 +208,8 @@ async def version() -> dict:
 
 @app.get("/v1/forecast")
 async def forecast(
-    place: str | None = Query(None, description="Place name, geocoded by FMI"),
+    place: str | None = Query(None, max_length=config.MAX_PLACE_LEN,
+                             description="Place name, geocoded by FMI"),
     lat: float | None = None,
     lon: float | None = None,
     hours: int = Query(48, ge=3, le=240),
@@ -200,9 +231,7 @@ async def forecast(
         if place is not None:
             # Resolve the name first, then ask by coordinates — `lang` must not
             # be able to make a valid Finnish place name unresolvable (app/fmi.py).
-            plat, plon, _ = await cache.aget_or_set(
-                f"geo:{place}", 86400, lambda: resolve_place(place)
-            )
+            plat, plon, _ = await _resolve(place)
             query["latlon"] = f"{plat},{plon}"
         else:
             query["latlon"] = f"{lat},{lon}"
@@ -217,7 +246,7 @@ async def forecast(
 
 @app.get("/v1/observations")
 async def observations(
-    place: str | None = None,
+    place: str | None = Query(None, max_length=config.MAX_PLACE_LEN),
     lat: float | None = None,
     lon: float | None = None,
     fmisid: int | None = Query(None, description="Preferred for marine stations"),
@@ -407,7 +436,7 @@ async def marine(
 
 @app.get("/v1/glance")
 async def glance(
-    place: str = Query(config.DEFAULT_PLACE),
+    place: str = Query(config.DEFAULT_PLACE, max_length=config.MAX_PLACE_LEN),
     fmisid: int = Query(config.DEFAULT_SEA_FMISID),
 ) -> dict:
     """The two or three numbers the glance draws.

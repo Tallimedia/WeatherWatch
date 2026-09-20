@@ -43,8 +43,31 @@ class UnknownPlace(FMIError):
     """FMI does not recognise the place name — a client error, not an outage."""
 
 
-async def _client() -> httpx.AsyncClient:
-    return httpx.AsyncClient(timeout=config.HTTP_TIMEOUT, follow_redirects=True)
+# One client for the process, not one per request. A fresh AsyncClient per call
+# meant a new connection pool and a new TLS handshake every time, and /v1/marine
+# makes two or three upstream calls. Keeping it open lets HTTP/2 and keep-alive
+# do their job against a single upstream host.
+_CLIENT: httpx.AsyncClient | None = None
+
+
+def client() -> httpx.AsyncClient:
+    global _CLIENT
+    if _CLIENT is None or _CLIENT.is_closed:
+        _CLIENT = httpx.AsyncClient(
+            timeout=config.HTTP_TIMEOUT,
+            follow_redirects=True,
+            limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+            headers={"User-Agent": config.USER_AGENT},
+        )
+    return _CLIENT
+
+
+async def aclose() -> None:
+    """Close the shared client. Called from the app's shutdown hook."""
+    global _CLIENT
+    if _CLIENT is not None and not _CLIENT.is_closed:
+        await _CLIENT.aclose()
+    _CLIENT = None
 
 
 async def timeseries(params: list[str], **query: Any) -> list[dict]:
@@ -60,8 +83,7 @@ async def timeseries(params: list[str], **query: Any) -> list[dict]:
         "param": ",".join(requested),
         **{k: v for k, v in query.items() if v is not None},
     }
-    async with await _client() as client:
-        response = await client.get(config.FMI_TIMESERIES, params=args)
+    response = await client().get(config.FMI_TIMESERIES, params=args)
     if response.status_code != 200:
         raise FMIError(f"timeseries {response.status_code}: {response.text[:200]}")
     body = response.text.strip()
@@ -85,8 +107,7 @@ async def wfs_simple(storedquery_id: str, **query: Any) -> list[dict]:
         "storedquery_id": storedquery_id,
         **{k: v for k, v in query.items() if v is not None},
     }
-    async with await _client() as client:
-        response = await client.get(config.FMI_WFS, params=args)
+    response = await client().get(config.FMI_WFS, params=args)
     if response.status_code != 200:
         raise FMIError(f"wfs {response.status_code}: {response.text[:200]}")
 
@@ -155,8 +176,7 @@ async def wfs_timevaluepair(storedquery_id: str, **query: Any) -> dict[str, list
         "storedquery_id": storedquery_id,
         **{k: v for k, v in query.items() if v is not None},
     }
-    async with await _client() as client:
-        response = await client.get(config.FMI_WFS, params=args)
+    response = await client().get(config.FMI_WFS, params=args)
     if response.status_code != 200:
         raise FMIError(f"wfs {response.status_code}: {response.text[:200]}")
 
