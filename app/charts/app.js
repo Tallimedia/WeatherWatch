@@ -62,10 +62,36 @@ async function fetchSeries(args, start, end) {
   return r.json();
 }
 
+/* One axis per measure. Two series only share a y-axis when they are the same
+   unit AND comparable in magnitude — otherwise the smaller one flattens against
+   the baseline and says nothing. Different scales get their own panel. */
+function sharesAxis(series, pts) {
+  if (series.length < 2) return true;
+  if (new Set(series.map((s) => s.unit)).size > 1) return false;
+  const spans = pts.map((p) => (p.length ? Math.max(...p.map((d) => d.v)) : 0));
+  const hi = Math.max(...spans), lo = Math.min(...spans);
+  return lo > 0 && hi / lo < 3;
+}
+
 function draw(fig, rows, series) {
   const pts = series.map((s) =>
     rows.map((r) => ({ t: r.epochtime, v: r[s.key] })).filter((d) => d.v !== null && d.v !== undefined)
   );
+  if (!sharesAxis(series, pts)) {
+    const host = fig.querySelector(".plot");
+    host.innerHTML = "";
+    series.forEach((s, i) => {
+      const panel = document.createElement("div");
+      panel.innerHTML = '<div class="plot"></div><div class="stats"></div>';
+      host.appendChild(panel);
+      drawPanel(panel, rows, [s], [pts[i]], [COLORS[i]]);
+    });
+    return;
+  }
+  drawPanel(fig, rows, series, pts, COLORS);
+}
+
+function drawPanel(fig, rows, series, pts, COLORS) {
   if (!pts.some((p) => p.length)) {
     fig.querySelector(".plot").innerHTML =
       '<p class="msg">No data in this range — expected for seasonal sensors.</p>';
@@ -105,13 +131,15 @@ function draw(fig, rows, series) {
     </svg>`;
 
   // Summary stats double as the table view the contrast WARN obliges.
-  fig.querySelector(".stats").innerHTML = series.map((s, i) => {
+  const statsEl = fig.querySelector(".stats");
+  if (statsEl) statsEl.innerHTML = series.map((s, i) => {
     const p = pts[i]; if (!p.length) return "";
-    const vals = p.map((d) => d.v).sort((a, b) => a - b);
+    const latest = p[p.length - 1].v;                       // last by TIME
+    const vals = p.map((d) => d.v).slice().sort((a, b) => a - b);
     const q = (f) => vals[Math.floor((vals.length - 1) * f)];
     return `<div><span style="color:${COLORS[i]}">${s.label}</span>
-      <b>${fmt(vals[vals.length - 1])} ${s.unit}</b>
-      min ${fmt(vals[0])} · median ${fmt(q(0.5))} · p90 ${fmt(q(0.9))} · max ${fmt(vals[vals.length - 1])}</div>`;
+      <b>${fmt(latest)} ${s.unit}</b>
+      latest · min ${fmt(vals[0])} · median ${fmt(q(0.5))} · p90 ${fmt(q(0.9))} · max ${fmt(vals[vals.length - 1])}</div>`;
   }).join("");
 
   const svg = fig.querySelector("svg"), cross = svg.querySelector(".cross");
