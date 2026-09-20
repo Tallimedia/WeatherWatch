@@ -117,6 +117,12 @@ async def healthz() -> dict:
     return {"ok": True, "version": app.version, "charts": config.ENABLE_CHARTS}
 
 
+@app.get("/version")
+async def version() -> dict:
+    """Asset fingerprint, so a deploy can be confirmed past any CDN cache."""
+    return {"version": app.version, "assets": globals().get("ASSET_V")}
+
+
 @app.get("/v1/forecast")
 async def forecast(
     place: str | None = Query(None, description="Place name, geocoded by FMI"),
@@ -412,10 +418,35 @@ async def glance(
 if config.ENABLE_PUBLIC or config.ENABLE_CHARTS:
     from pathlib import Path
 
-    from fastapi.responses import FileResponse
+    import hashlib
+    import re
+
+    from fastapi.responses import HTMLResponse
     from fastapi.staticfiles import StaticFiles
 
     _HERE = Path(__file__).parent
+
+    def _asset_version() -> str:
+        """Short fingerprint of the served assets, used to bust CDN caches.
+
+        Cloudflare caches static files for four hours by default, so a deploy
+        would otherwise leave visitors running the previous JavaScript against
+        the new HTML — which is exactly how a language selector can appear but
+        do nothing. Versioned URLs make a long cache lifetime correct rather
+        than dangerous: the URL changes whenever the bytes do.
+        """
+        digest = hashlib.sha256()
+        for path in sorted(_HERE.glob("*/*.js")) + sorted(_HERE.glob("*/*.css")):
+            digest.update(path.read_bytes())
+        return digest.hexdigest()[:10]
+
+    ASSET_V = _asset_version()
+
+    def _page(name: str) -> HTMLResponse:
+        html = (_HERE / name / "index.html").read_text(encoding="utf-8")
+        html = re.sub(r'((?:src|href)="/[^"]+?\.(?:js|css))"', r'\1?v=' + ASSET_V + '"', html)
+        # The HTML must never be cached, or it keeps pointing at an old version.
+        return HTMLResponse(html, headers={"Cache-Control": "no-cache, must-revalidate"})
 
     @app.get("/v1/stations")
     async def stations_list() -> dict:
@@ -565,14 +596,18 @@ if config.ENABLE_CHARTS:
 
 
 
+    @app.get("/charts/")
+    async def charts_index() -> HTMLResponse:
+        return _page("charts")
+
     app.mount("/charts", StaticFiles(directory=_HERE / "charts", html=True), name="charts")
 
 
 if config.ENABLE_PUBLIC:
 
     @app.get("/")
-    async def public_index() -> FileResponse:
-        return FileResponse(_HERE / "public" / "index.html")
+    async def public_index() -> HTMLResponse:
+        return _page("public")
 
     app.mount("/public", StaticFiles(directory=_HERE / "public", html=True), name="public")
 
@@ -580,5 +615,5 @@ if config.ENABLE_PUBLIC:
 elif config.ENABLE_CHARTS:
 
     @app.get("/")
-    async def charts_root() -> FileResponse:
-        return FileResponse(_HERE / "charts" / "index.html")
+    async def charts_root() -> HTMLResponse:
+        return _page("charts")
