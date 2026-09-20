@@ -70,38 +70,30 @@ module Pages {
             return;
         }
 
-        var cx = w(dc) / 2;
         var t = Api.v(d, "temp");
-        dc.setColor(Theme.tempColour(t), Graphics.COLOR_TRANSPARENT);
-        dc.drawText((cx).toNumber(), (h(dc) * 0.30).toNumber(), Graphics.FONT_NUMBER_MEDIUM, Fmt.temp(t),
-                    Graphics.TEXT_JUSTIFY_CENTER);
-
-        // Wind, with the gust in brackets — the marine convention, and the gust
-        // is what the threshold actually compares against (RESEARCH.md §20).
         var ms = Api.v(d, "wind");
         var gust = Api.v(d, "gust");
         var dir = Api.v(d, "dir");
-        dc.setColor(Theme.windColour(ms, gust, Config.landWind(), Config.landGust()),
-                    Graphics.COLOR_TRANSPARENT);
-        var windLine = Fmt.windValue(ms) + " (" + Fmt.windValue(gust) + ") " + Fmt.windUnitLabel();
-        dc.drawText((cx).toNumber(), (h(dc) * 0.52).toNumber(), Graphics.FONT_MEDIUM, windLine, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
-        dc.drawText((cx).toNumber(), (h(dc) * 0.635).toNumber(), Graphics.FONT_XTINY, Fmt.compass(dir),
-                    Graphics.TEXT_JUSTIFY_CENTER);
 
-        forecastStrip(dc);
+        stackStart(dc, 0.255);
+        row(dc, Graphics.FONT_NUMBER_MILD, Fmt.temp(t), Theme.tempColour(t), 0);
+        row(dc, Graphics.FONT_SMALL,
+            Fmt.windValue(ms) + " (" + Fmt.windValue(gust) + ") " + Fmt.windUnitLabel()
+                + "  " + Fmt.compass(dir),
+            Theme.windColour(ms, gust, Config.landWind(), Config.landGust()), 2);
 
-        // Per-field age: wind and temperature update at different rates, so one
-        // age for the reading would be wrong for most of it (RESEARCH.md §3).
+        forecastStrip(dc, _y);
+
+        // One age per page here rather than two: the earlier "8 min · 8 min"
+        // read as a repeat rather than as two different fields.
         dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
-        dc.drawText((cx).toNumber(), (h(dc) * 0.86).toNumber(), Graphics.FONT_XTINY,
-                    Fmt.age(Api.v(d, "atT")) + " · " + Fmt.age(Api.v(d, "atW")),
-                    Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(w(dc) / 2, (h(dc) * 0.855).toNumber(), Graphics.FONT_XTINY,
+                    Fmt.age(Api.v(d, "atW")), Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    //! Next few forecast steps, 6-hourly (RESEARCH.md §20). The backend
-    //! supplies the series; the app stores it as parallel primitive arrays.
-    function forecastStrip(dc as Graphics.Dc) as Void {
+    //! Next few forecast steps, 6-hourly (RESEARCH.md §20), drawn from the
+    //! running stack position so it can never sit on top of the wind line.
+    function forecastStrip(dc as Graphics.Dc, top as Number) as Void {
         var f = Api.forecast;
         if (f == null) { return; }
         var times = Api.v(f, "t");
@@ -109,18 +101,18 @@ module Pages {
         if (!(times instanceof Array) || times.size() == 0) { return; }
 
         var slots = 4;
-        var y = h(dc) * 0.735;
-        var span = w(dc) * 0.76;
+        var span = (w(dc) * 0.80).toNumber();
         var x0 = (w(dc) - span) / 2;
         var count = times.size() < slots ? times.size() : slots;
+        var lineH = dc.getFontHeight(Graphics.FONT_XTINY);
         for (var i = 0; i < count; i += 1) {
             var x = (x0 + (span / slots) * i + (span / slots) / 2).toNumber();
             dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(x, y.toNumber(), Graphics.FONT_XTINY, Fmt.clock(times[i]),
+            dc.drawText(x, top, Graphics.FONT_XTINY, Fmt.hour(times[i]),
                         Graphics.TEXT_JUSTIFY_CENTER);
             var t = temps[i];
             dc.setColor(Theme.tempColour(t), Graphics.COLOR_TRANSPARENT);
-            dc.drawText(x, (y + h(dc) * 0.055).toNumber(), Graphics.FONT_XTINY, Fmt.zero(t),
+            dc.drawText(x, top + lineH - 2, Graphics.FONT_XTINY, Fmt.zero(t),
                         Graphics.TEXT_JUSTIFY_CENTER);
         }
     }
@@ -129,49 +121,47 @@ module Pages {
 
     function drawSea(dc as Graphics.Dc) as Void {
         var m = Api.marine;
-        var name = Api.v(m, "stName");
-        header(dc, res(Rez.Strings.PageSea), name);
+        header(dc, res(Rez.Strings.PageSea), Api.v(m, "stName"));
 
         if (m == null) {
             if (!loading(dc, Api.marineState)) { message(dc, Rez.Strings.NoPhone); }
             return;
         }
 
-        var cx = w(dc) / 2;
         var ms = Api.v(m, "stWind");
         var gust = Api.v(m, "stGust");
         var dir = Api.v(m, "stDir");
+        var colour = Theme.windColour(ms, gust, Config.seaWind(), Config.seaGust());
 
-        dc.setColor(Theme.windColour(ms, gust, Config.seaWind(), Config.seaGust()),
-                    Graphics.COLOR_TRANSPARENT);
-        dc.drawText((cx).toNumber(), (h(dc) * 0.28).toNumber(), Graphics.FONT_NUMBER_MEDIUM, Fmt.windValue(ms),
-                    Graphics.TEXT_JUSTIFY_CENTER);
-        dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
-        dc.drawText((cx).toNumber(), (h(dc) * 0.48).toNumber(), Graphics.FONT_XTINY,
-                    Fmt.windUnitLabel() + "  " + res(Rez.Strings.Gust) + " "
-                        + Fmt.windValue(gust),
-                    Graphics.TEXT_JUSTIFY_CENTER);
+        stackStart(dc, 0.255);
+        row(dc, Graphics.FONT_NUMBER_MILD, Fmt.windValue(ms), colour, -4);
+        row(dc, Graphics.FONT_XTINY,
+            Fmt.windUnitLabel() + "  " + res(Rez.Strings.Gust) + " " + Fmt.windValue(gust),
+            Theme.DIM, 6);
 
-        arrow(dc, cx, h(dc) * 0.615, h(dc) * 0.055, dir);
+        // Arrow and compass point share a row, measured so the pair is centred
+        // rather than each guessing its own offset.
+        var label = Fmt.compass(dir);
+        var labelW = dc.getTextWidthInPixels(label, Graphics.FONT_SMALL);
+        var r = (h(dc) * 0.045).toNumber();
+        var total = r * 2 + 6 + labelW;
+        var left = (w(dc) - total) / 2;
+        arrow(dc, left + r, _y + dc.getFontHeight(Graphics.FONT_SMALL) / 2, r, dir);
         dc.setColor(Theme.INK, Graphics.COLOR_TRANSPARENT);
-        dc.drawText((cx + h(dc) * 0.10).toNumber(), (h(dc) * 0.595).toNumber(), Graphics.FONT_SMALL, Fmt.compass(dir),
-                    Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(left + r * 2 + 6, _y, Graphics.FONT_SMALL, label, Graphics.TEXT_JUSTIFY_LEFT);
+        _y += dc.getFontHeight(Graphics.FONT_SMALL) + 4;
 
-        var t = Api.v(m, "stTemp");
-        dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
-        dc.drawText((cx).toNumber(), (h(dc) * 0.73).toNumber(), Graphics.FONT_XTINY, Fmt.temp(t),
-                    Graphics.TEXT_JUSTIFY_CENTER);
+        row(dc, Graphics.FONT_XTINY, Fmt.temp(Api.v(m, "stTemp")), Theme.DIM, 0);
 
         dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
-        dc.drawText((cx).toNumber(), (h(dc) * 0.86).toNumber(), Graphics.FONT_XTINY, Fmt.age(Api.v(m, "stAt")),
-                    Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(w(dc) / 2, (h(dc) * 0.855).toNumber(), Graphics.FONT_XTINY,
+                    Fmt.age(Api.v(m, "stAt")), Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     // ---------------------------------------------------------------- buoy
 
     function drawBuoy(dc as Graphics.Dc) as Void {
         var m = Api.marine;
-        var cx = w(dc) / 2;
         var hasWave = Api.v(m, "hasWave") == true;
 
         var src = null;
@@ -186,34 +176,34 @@ module Pages {
         }
 
         var hs = Api.v(m, "wHs");
-        dc.setColor(Theme.waveColour(hs), Graphics.COLOR_TRANSPARENT);
-        dc.drawText((cx).toNumber(), (h(dc) * 0.28).toNumber(), Graphics.FONT_NUMBER_MEDIUM, Fmt.metres(hs),
-                    Graphics.TEXT_JUSTIFY_CENTER);
-
-        // Period earns its place: 4 s chop and 8 s swell are different seas at
-        // the same height (RESEARCH.md §17).
         var per = Api.v(m, "wPer");
-        dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
-        dc.drawText((cx).toNumber(), (h(dc) * 0.49).toNumber(), Graphics.FONT_SMALL, Fmt.one(per == null ? 0 : per) + " s",
-                    Graphics.TEXT_JUSTIFY_CENTER);
-
         var dir = Api.v(m, "wDir");
-        arrow(dc, cx, h(dc) * 0.635, h(dc) * 0.05, dir);
+
+        stackStart(dc, 0.255);
+        row(dc, Graphics.FONT_NUMBER_MILD, Fmt.metres(hs), Theme.waveColour(hs), -4);
+        row(dc, Graphics.FONT_XTINY,
+            (per == null ? Fmt.DASH : Fmt.one(per)) + " s", Theme.DIM, 6);
+
+        var label = Fmt.compass(dir);
+        var labelW = dc.getTextWidthInPixels(label, Graphics.FONT_SMALL);
+        var r = (h(dc) * 0.045).toNumber();
+        var total = r * 2 + 6 + labelW;
+        var left = (w(dc) - total) / 2;
+        arrow(dc, left + r, _y + dc.getFontHeight(Graphics.FONT_SMALL) / 2, r, dir);
         dc.setColor(Theme.INK, Graphics.COLOR_TRANSPARENT);
-        dc.drawText((cx + h(dc) * 0.09).toNumber(), (h(dc) * 0.615).toNumber(), Graphics.FONT_XTINY, Fmt.compass(dir),
-                    Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(left + r * 2 + 6, _y, Graphics.FONT_SMALL, label, Graphics.TEXT_JUSTIFY_LEFT);
+        _y += dc.getFontHeight(Graphics.FONT_SMALL) + 4;
 
         var water = Api.v(m, "wTemp");
         if (water != null) {
-            dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
-            dc.drawText((cx).toNumber(), (h(dc) * 0.745).toNumber(), Graphics.FONT_XTINY, Fmt.temp(water) + " ~",
-                        Graphics.TEXT_JUSTIFY_CENTER);
+            row(dc, Graphics.FONT_XTINY, Fmt.temp(water) + " " + res(Rez.Strings.Water),
+                Theme.DIM, 0);
         }
 
         var dist = Api.v(m, "wDist");
         if (dist != null) {
             dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
-            dc.drawText((cx).toNumber(), (h(dc) * 0.86).toNumber(), Graphics.FONT_XTINY,
+            dc.drawText(w(dc) / 2, (h(dc) * 0.855).toNumber(), Graphics.FONT_XTINY,
                         Fmt.dist(dist), Graphics.TEXT_JUSTIFY_CENTER);
         }
     }
@@ -247,6 +237,39 @@ module Pages {
                     (tipX + r * 0.6 * Math.cos(rw)).toNumber(),
                     (tipY + r * 0.6 * Math.sin(rw)).toNumber());
         dc.setPenWidth(1);
+    }
+
+
+    // ------------------------------------------------------------- layout
+    //
+    // Elements are stacked using the real font heights rather than fractions
+    // of the screen. Guessed fractions collided as soon as a number font was
+    // involved, and they would drift further across the 70 devices the release
+    // targets, which vary in both resolution and font metrics.
+
+    var _y = 0;
+
+    function stackStart(dc as Graphics.Dc, topFraction as Float) as Void {
+        _y = (h(dc) * topFraction).toNumber();
+    }
+
+    function row(dc as Graphics.Dc, font as Graphics.FontDefinition, text as String,
+                 colour as Number, gapAfter as Number) as Void {
+        dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w(dc) / 2, _y, font, text, Graphics.TEXT_JUSTIFY_CENTER);
+        _y += dc.getFontHeight(font) + gapAfter;
+    }
+
+    //! Trim a label until it fits, so a long buoy name cannot run off the edge.
+    function fit(dc as Graphics.Dc, text as String?, font as Graphics.FontDefinition,
+                 maxW as Number) as String {
+        if (text == null) { return ""; }
+        if (dc.getTextWidthInPixels(text, font) <= maxW) { return text; }
+        var t = text;
+        while (t.length() > 4 && dc.getTextWidthInPixels(t + "…", font) > maxW) {
+            t = t.substring(0, t.length() - 1);
+        }
+        return t + "…";
     }
 
     function res2(id as ResourceId) as String { return WatchUi.loadResource(id) as String; }

@@ -90,6 +90,14 @@ module Fmt {
         return (secs / 3600).toNumber().toString() + " h";
     }
 
+    //! Hour only, for the forecast strip — "06" reads better than "06:00" in
+    //! four columns on a round screen.
+    function hour(epoch as Number?) as String {
+        if (epoch == null) { return DASH; }
+        var info = Gregorian.info(new Time.Moment(epoch), Time.FORMAT_SHORT);
+        return info.hour.format("%02d");
+    }
+
     //! Local clock time for an epoch second.
     function clock(epoch as Number?) as String {
         if (epoch == null) { return DASH; }

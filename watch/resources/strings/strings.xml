@@ -65,6 +65,7 @@
     <string id="PageSea">Sea</string>
     <string id="PageBuoy">Waves</string>
     <string id="Gust">gust</string>
+    <string id="Water">water</string>
     <string id="Modelled">modelled</string>
     <string id="NoBuoy">No buoy reporting</string>
     <string id="Attribution">Data: Finnish Meteorological Institute</string>
