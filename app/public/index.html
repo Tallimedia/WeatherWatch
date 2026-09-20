@@ -23,8 +23,12 @@
              color: var(--color-text); font-variant-numeric: tabular-nums; line-height: 1.1; }
   .facts .at { display: block; color: var(--color-neutral-500); font-size: 11px;
                font-variant-numeric: tabular-nums; }
-  .today { display: flex; gap: 6px; margin-top: 22px; padding-top: 18px;
-           border-top: 1px solid var(--color-divider); overflow-x: auto; }
+  /* `overflow: auto hidden`, not `overflow-x: auto`: when one axis is not
+     `visible` the other computes to `auto`, so a strip that overflowed
+     vertically by a couple of pixels grew a vertical scrollbar. This is a
+     horizontal strip and should never scroll vertically. */
+  .today { display: flex; gap: 6px; margin-top: 22px; padding-top: 18px; padding-bottom: 2px;
+           border-top: 1px solid var(--color-divider); overflow: auto hidden; }
   .today .h { flex: 1 0 64px; text-align: center; }
   .today .h .t { color: var(--color-neutral-600); font-size: 12px; }
   .today .h .v { font-family: var(--font-heading); font-size: 20px;
