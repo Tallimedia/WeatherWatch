@@ -24,6 +24,12 @@ certificate already proven to work on Garmin hardware. (§2, §10, §12)
 | `GET /v1/observations` | nearest station, current conditions, provenance | ~300 B |
 | `GET /v1/marine` | station wind + waves, with a `mode` field | ~510 B |
 | `GET /v1/forecast` | land forecast, up to 10 days | ~0.8–1.4 kB |
+| `GET /v1/marine-series` | 12 h of station wind + gust, for the web chart | ~1.8 kB |
+| `GET /v1/stations` | marine stations and wave buoys, for the pickers | ~2 kB |
+
+`/v1/marine-series` is for the public page, not the watch — a single current reading
+cannot show whether the wind is rising or falling, and the watch cannot hold the
+series anyway.
 
 `/v1/marine` carries `mode` (`waves` or `model`) from day one. Sea ice adds a
 third value in v1.5; shipping the field now keeps that a server change rather
@@ -38,6 +44,28 @@ python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 ```
 
 With Docker: `cp .env.example .env && docker compose up -d --build`
+
+## Deployment
+
+Production is `weatherapp.tallimedia.com`, on **public-vm** under
+`~/public-services/weatherapp/`, behind the shared Traefik and Cloudflare tunnel. It
+is not a git checkout — copy the tree up and rebuild:
+
+```bash
+tar --exclude='__pycache__' --exclude='.DS_Store' -czf - app Dockerfile pyproject.toml \
+  | ssh public-vm-auto 'cd ~/public-services/weatherapp && tar -xzf -'
+ssh public-vm-auto 'cd ~/public-services/weatherapp && docker compose build && docker compose up -d'
+```
+
+There is no `rsync` on that host. Tag `fiweatherwatch-backend:rollback` before
+building so a revert is one command. `.env` there sets `ENABLE_PUBLIC=true` and
+`ENABLE_CHARTS=false` — **the charts explorer must stay off in production.**
+
+**Cloudflare caches assets for four hours and will hide a correct deploy.** Asset
+URLs carry a hash of their own bytes (`site.js?v=<hash>`) and the HTML is served
+`no-cache`, so a change always moves the URL. Verify against the live URL, never
+against the file on the host — they have disagreed for hours while both were
+"correct".
 
 ## Deployments
 
