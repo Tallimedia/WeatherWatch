@@ -67,24 +67,31 @@ _OBSERVATION_PARAMS = [
 ]
 
 
-def _latest(rows: list[dict], keys: list[str]) -> dict[str, Any]:
+def _latest(rows: list[dict], keys: list[str]) -> tuple[dict[str, Any], dict[str, int]]:
     """Collapse a series to its most recent non-null value per key.
 
-    Stations report parameters on different cadences and drop sensors they do
-    not have — Harmaja returns null `cloudheight` and no precipitation at all
-    (RESEARCH.md Appendix A) — so this is per-parameter, not per-row.
+    Returns the values and, alongside them, **the measurement time of each one
+    separately**. Stations report parameters on different cadences and drop
+    sensors they do not have — Harmaja publishes wind every minute but returns
+    null `cloudheight`, and the Suomenlinna buoy reports water temperature every
+    5 minutes against waves every 30 (RESEARCH.md §3, Appendix A). A single age
+    for the whole reading would therefore be wrong for most of its fields.
     """
     out: dict[str, Any] = {}
+    at: dict[str, int] = {}
     for key in keys:
         for row in reversed(rows):
             if row.get(key) is not None:
                 out[key] = row[key]
+                stamp = row.get("epochtime")
+                if stamp is not None:
+                    at[key] = int(stamp)
                 break
         else:
             out[key] = None
     if rows:
         out["epochtime"] = rows[-1].get("epochtime")
-    return out
+    return out, at
 
 
 def _age_seconds(epoch: Any) -> int | None:
@@ -163,14 +170,18 @@ async def observations(
         return await timeseries(_OBSERVATION_PARAMS, **query)
 
     try:
-        rows = await cache.aget_or_set(key, config.TTL_OBSERVATIONS, fetch)
+        rows, retrieved = await cache.aget_or_set_entry(key, config.TTL_OBSERVATIONS, fetch)
     except FMIError as exc:
         raise _fail(exc) from exc
     if not rows:
         raise HTTPException(status_code=404, detail="no observations for that location")
 
-    current = _latest(rows, _OBSERVATION_PARAMS)
+    current, measured_at = _latest(rows, _OBSERVATION_PARAMS)
     current["age_seconds"] = _age_seconds(current.get("epochtime"))
+    # `at` is when FMI measured each field; `retrieved` is when we fetched from
+    # FMI, which differs by up to the cache TTL.
+    current["at"] = measured_at
+    current["retrieved"] = retrieved
     current["attribution"] = ATTRIBUTION
     return current
 
@@ -237,11 +248,16 @@ async def _buoy_reading(lat: float, lon: float, prefer_fmisid: int | None) -> di
         "distance_km": round(haversine_km(lat, lon, station.lat, station.lon), 1),
         "measured": True,
     }
+    at: dict[str, str] = {}
     for source, target in _BUOY_FIELDS.items():
         entry = readings.get(source)
         out[target] = entry["value"] if entry else None
-    stamp = next((r["time"] for r in readings.values()), None)
-    out["observed_at"] = stamp
+        if entry:
+            # Wave height reports roughly every 30 min while water temperature
+            # reports every 5, so these genuinely differ (RESEARCH.md §4).
+            at[target] = entry["time"]
+    out["at"] = at
+    out["observed_at"] = max(at.values()) if at else None
     return out
 
 
@@ -267,13 +283,13 @@ async def marine(
         )
 
     try:
-        rows = await cache.aget_or_set(
+        rows, retrieved = await cache.aget_or_set_entry(
             f"marine:{fmisid}", config.TTL_OBSERVATIONS, fetch_station
         )
     except FMIError as exc:
         raise _fail(exc) from exc
 
-    current = _latest(rows, _OBSERVATION_PARAMS) if rows else {}
+    current, measured_at = _latest(rows, _OBSERVATION_PARAMS) if rows else ({}, {})
     buoy = await _buoy_reading(station.lat, station.lon, buoy_fmisid)
 
     waves: dict[str, Any] | None = buoy
@@ -319,8 +335,10 @@ async def marine(
             "windcompass8": current.get("windcompass8"),
             "pressure": current.get("pressure"),
             "age_seconds": _age_seconds(current.get("epochtime")),
+            "at": measured_at,
         },
         "waves": waves,
+        "retrieved": retrieved,
         "attribution": ATTRIBUTION,
     }
 
@@ -352,13 +370,15 @@ async def glance(
     except FMIError as exc:
         raise _fail(exc) from exc
 
-    land = _latest(land_rows, _OBSERVATION_PARAMS) if land_rows else {}
-    sea = _latest(sea_rows, _OBSERVATION_PARAMS) if sea_rows else {}
+    land, land_at = _latest(land_rows, _OBSERVATION_PARAMS) if land_rows else ({}, {})
+    sea, sea_at = _latest(sea_rows, _OBSERVATION_PARAMS) if sea_rows else ({}, {})
     return {
         "land_temp_c": land.get("temperature"),
+        "land_at": land_at.get("temperature"),
         "sea_wind_ms": sea.get("windspeedms"),
         "sea_gust_ms": sea.get("windgust"),
         "sea_wind_dir": sea.get("windcompass8"),
+        "sea_at": sea_at.get("windspeedms"),
         "age_seconds": _age_seconds(sea.get("epochtime")),
     }
 

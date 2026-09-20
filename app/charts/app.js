@@ -25,7 +25,7 @@ function symbolInfo(code) {
    FMI returns those already localised via `smartsymboltext`, so the app only
    ever translates its own chrome (RESEARCH.md §16). */
 const STR = {
-  en: { language:"Language", landPlace:"Land place", seaStation:"Sea station", waveBuoy:"Wave buoy",
+  en: { measured:"measured", retrieved:"fetched", language:"Language", landPlace:"Land place", seaStation:"Sea station", waveBuoy:"Wave buoy",
         from:"From", to:"To", load:"Load", loading:"Loading…",
         d3:"Last 3 days", d14:"Last 14 days", d60:"Last 60 days",
         ice:"Feb 2026 — ice season", storm:"19 Sep — storm",
@@ -35,7 +35,7 @@ const STR = {
         noData:"No data in this range — expected for seasonal sensors.",
         raw:"Raw JSON", latest:"latest", subtitle:"FMI open data, as the backend serves it. For understanding what the values do — not a preview of the watch UI.",
         foot:"Data: Finnish Meteorological Institute, CC BY 4.0. Buoys are lifted out of the water roughly December–April, so gaps in winter are expected rather than faults. Times are Finnish local time (Europe/Helsinki)." },
-  fi: { language:"Kieli", landPlace:"Paikkakunta", seaStation:"Merihavaintoasema", waveBuoy:"Aaltopoiju",
+  fi: { measured:"mitattu", retrieved:"haettu", language:"Kieli", landPlace:"Paikkakunta", seaStation:"Merihavaintoasema", waveBuoy:"Aaltopoiju",
         from:"Alkaen", to:"Asti", load:"Hae", loading:"Ladataan…",
         d3:"3 vrk", d14:"14 vrk", d60:"60 vrk",
         ice:"Helmikuu 2026 — jääkausi", storm:"19.9. — ukkonen",
@@ -45,7 +45,7 @@ const STR = {
         noData:"Ei havaintoja tällä aikavälillä — odotettua kausiluonteisilta antureilta.",
         raw:"Raakadata (JSON)", latest:"viimeisin", subtitle:"Ilmatieteen laitoksen avointa dataa sellaisena kuin taustapalvelu sen tarjoaa. Arvojen ymmärtämiseen — ei esikatselu kellon käyttöliittymästä.",
         foot:"Data: Ilmatieteen laitos, CC BY 4.0. Aaltopoijut nostetaan vedestä suunnilleen joulu–huhtikuuksi, joten talven katkot ovat odotettuja eivätkä vikoja. Ajat Suomen aikaa (Europe/Helsinki)." },
-  sv: { language:"Språk", landPlace:"Ort", seaStation:"Havsstation", waveBuoy:"Vågboj",
+  sv: { measured:"uppmätt", retrieved:"hämtad", language:"Språk", landPlace:"Ort", seaStation:"Havsstation", waveBuoy:"Vågboj",
         from:"Från", to:"Till", load:"Hämta", loading:"Laddar…",
         d3:"3 dygn", d14:"14 dygn", d60:"60 dygn",
         ice:"Februari 2026 — issäsong", storm:"19 sep — åska",
@@ -429,6 +429,14 @@ function icon(cat, night, size = 56) {
   return `<svg class="icon" width="${size}" height="${size}" viewBox="0 0 68 72" aria-hidden="true">${body}</svg>`;
 }
 
+/* Each field carries its own measurement time: at Harmaja wind updates every
+   minute while temperature and pressure update every ten, so one age for the
+   whole reading would overstate most of it (RESEARCH.md §3). */
+function at(obj, field) {
+  const t = obj && obj.at && obj.at[field];
+  return t ? localTime(t) : "—";
+}
+
 async function loadWidget(cfg) {
   const host = $("#widget");
   try {
@@ -454,13 +462,17 @@ async function loadWidget(cfg) {
           <div class="desc">${ahead.length && ahead[0].smartsymboltext
               ? ahead[0].smartsymboltext.replace(/^./, (m) => m.toUpperCase())
               : (sym ? sym.t : "—")}</div>
-          <div class="where">${obs.stationname ?? "—"} · ${fmt(obs.distance, 1)} ${T("away")} · ${ageTxt}</div>
+          <div class="where">${obs.stationname ?? "—"} · ${fmt(obs.distance, 1)} ${T("away")} ·
+            ${T("measured")} ${at(obs, "temperature")} · ${ageTxt}</div>
+          <div class="where">${T("retrieved")} ${obs.retrieved ? localTime(obs.retrieved) : "—"}</div>
         </div>
         <div class="facts">
-          <div>${T("wind")}<b>${fmt(obs.windspeedms, 1)} m/s</b>${obs.windcompass8 ?? ""}</div>
-          <div>${T("gust")}<b>${fmt(obs.windgust, 1)} m/s</b></div>
-          <div>${T("humidity")}<b>${fmt(obs.humidity, 0)}%</b></div>
-          <div>${T("pressure")}<b>${fmt(obs.pressure, 0)} hPa</b></div>
+          ${[["wind", fmt(obs.windspeedms, 1) + " m/s", "windspeedms", obs.windcompass8 ?? ""],
+             ["gust", fmt(obs.windgust, 1) + " m/s", "windgust", ""],
+             ["humidity", fmt(obs.humidity, 0) + "%", "humidity", ""],
+             ["pressure", fmt(obs.pressure, 0) + " hPa", "pressure", ""]]
+            .map(([k, v, field, extra]) => `<div>${T(k)}<b>${v}</b>
+               <span class="at">${at(obs, field)}${extra ? " · " + extra : ""}</span></div>`).join("")}
         </div>
       </div>
       <div class="today">

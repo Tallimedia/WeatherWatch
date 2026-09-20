@@ -5,26 +5,46 @@ def test_latest_takes_most_recent_non_null_per_parameter():
     """Stations drop sensors they do not have and report on different cadences.
 
     Harmaja returns null cloudheight and no precipitation at all, while its wind
-    updates off the ten-minute grid (RESEARCH.md Appendix A) — so the collapse
-    must be per-parameter, not per-row.
+    updates every minute (RESEARCH.md §3) — so the collapse must be
+    per-parameter, not per-row.
     """
     rows = [
         {"epochtime": 100, "temperature": 14.0, "windgust": 11.0},
         {"epochtime": 200, "temperature": 14.5, "windgust": None},
     ]
-    out = _latest(rows, ["temperature", "windgust"])
+    out, _ = _latest(rows, ["temperature", "windgust"])
     assert out["temperature"] == 14.5
     assert out["windgust"] == 11.0, "should fall back to the older non-null gust"
     assert out["epochtime"] == 200
 
 
-def test_latest_reports_none_for_a_sensor_that_never_appears():
+def test_each_field_carries_its_own_measurement_time():
+    """The point of per-field timestamps: one age for the reading would be wrong.
+
+    Here the gust is 100 seconds older than the temperature, and saying both
+    were measured at 200 would overstate the gust's freshness.
+    """
+    rows = [
+        {"epochtime": 100, "temperature": 14.0, "windgust": 11.0},
+        {"epochtime": 200, "temperature": 14.5, "windgust": None},
+    ]
+    _, at = _latest(rows, ["temperature", "windgust"])
+    assert at["temperature"] == 200
+    assert at["windgust"] == 100
+
+
+def test_absent_sensor_gets_no_timestamp():
     rows = [{"epochtime": 1, "temperature": 3.0, "precipitation1h": None}]
-    assert _latest(rows, ["precipitation1h"])["precipitation1h"] is None
+    out, at = _latest(rows, ["temperature", "precipitation1h"])
+    assert out["precipitation1h"] is None
+    assert "precipitation1h" not in at, "a field with no reading must not claim a time"
+    assert at["temperature"] == 1
 
 
 def test_latest_handles_no_rows():
-    assert _latest([], ["temperature"]) == {"temperature": None}
+    out, at = _latest([], ["temperature"])
+    assert out == {"temperature": None}
+    assert at == {}
 
 
 def test_age_is_never_negative():
