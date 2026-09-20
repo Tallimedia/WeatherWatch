@@ -67,14 +67,9 @@
     <string id="Gust">puuska</string>
     <string id="WaterTemp">Vesi</string>
     <string id="Period">Jakso</string>
-    <!-- Glance captions: short enough for half a glance column -->
-    <string id="GLand">Maa</string>
-    <string id="GLandWind">Tuuli maalla</string>
-    <string id="GSeaWind">Merituuli</string>
-    <string id="GSeaGust">Puuska</string>
-    <string id="GWave">Aallot</string>
-    <string id="GWater">Vesi</string>
     <string id="Modelled">mallinnettu</string>
+    <string id="NoData">Palvelu ei vastaa</string>
+    <string id="PageAbout">Tietoja</string>
     <string id="NoBuoy">Ei poijutietoa</string>
     <string id="Attribution">Lähde: Ilmatieteen laitos</string>
 </strings>

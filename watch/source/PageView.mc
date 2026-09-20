@@ -17,19 +17,20 @@ class PageView extends WatchUi.View {
         _page = Config.seaFirst() ? 1 : 0;
     }
 
-    function pageCount() as Number { return 3; }
+    function pageCount() as Number { return 4; }
 
     function next() as Void { _page = (_page + 1) % pageCount(); WatchUi.requestUpdate(); }
     function prev() as Void { _page = (_page + pageCount() - 1) % pageCount(); WatchUi.requestUpdate(); }
 
+    // Page order, held as constants rather than rebuilt on each draw: pageAt
+    // runs inside onUpdate. About is last either way.
+    hidden const LAND_ORDER = [0, 1, 2, 3];
+    hidden const SEA_ORDER = [1, 2, 0, 3];
+
     //! Maps the carousel position to a page, honouring the order setting.
     hidden function pageAt(index as Number) as Number {
-        // Land order: Land, Sea, Buoy.  Sea order: Sea, Buoy, Land.
-        if (Config.seaFirst()) {
-            var seaOrder = [1, 2, 0];
-            return seaOrder[index % 3];
-        }
-        return index % 3;
+        var order = Config.seaFirst() ? SEA_ORDER : LAND_ORDER;
+        return order[index % order.size()];
     }
 
     function onShow() as Void {
@@ -42,7 +43,8 @@ class PageView extends WatchUi.View {
         var which = pageAt(_page);
         if (which == 0) { Pages.drawLand(dc); }
         else if (which == 1) { Pages.drawSea(dc); }
-        else { Pages.drawBuoy(dc); }
+        else if (which == 2) { Pages.drawBuoy(dc); }
+        else { Pages.drawAbout(dc); }
         Pages.drawPager(dc, _page, pageCount());
     }
 }
@@ -60,7 +62,7 @@ class PageDelegate extends WatchUi.BehaviorDelegate {
     function onPreviousPage() as Boolean { _view.prev(); return true; }
 
     function onSelect() as Boolean {
-        Api.refreshAll();
+        Api.refreshNow();
         WatchUi.requestUpdate();
         return true;
     }

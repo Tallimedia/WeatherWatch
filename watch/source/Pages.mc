@@ -83,11 +83,17 @@ module Pages {
     //! two rows collided — the gap between them was smaller than the font's
     //! own height — which left the version unreadable, and the version exists
     //! precisely so a tester can say which build they are looking at.
-    function updated(dc as Graphics.Dc, age as String) as Void {
+    function updated(dc as Graphics.Dc, age as String, stale as Boolean) as Void {
         var font = Graphics.FONT_XTINY;
         var fh = dc.getFontHeight(font);
         var size = (fh * 0.66).toNumber();
-        var text = age + " · v" + Config.VERSION;
+        // When the refresh failed but a cached reading is on screen, say so
+        // here. Otherwise a stale number looks exactly like a live one, which
+        // on the water is the difference that matters. The version gives up
+        // its place for that one line; it is on the About page regardless.
+        var text = stale
+            ? age + " · " + res(Rez.Strings.Offline)
+            : age + " · v" + Config.VERSION;
         var tw = dc.getTextWidthInPixels(text, font);
         var top = (h(dc) * 0.855).toNumber();
         var left = ((w(dc) - (size + 4 + tw)) / 2).toNumber();
@@ -118,7 +124,7 @@ module Pages {
         headerPlain(dc, res(Rez.Strings.PageLand), src);
 
         if (d == null) {
-            if (!loading(dc, Api.landState)) { message(dc, Rez.Strings.NoPhone); }
+            if (!loading(dc, Api.landState)) { failureMessage(dc); }
             return;
         }
 
@@ -138,7 +144,7 @@ module Pages {
 
         // One age per page here rather than two: the earlier "8 min · 8 min"
         // read as a repeat rather than as two different fields.
-        updated(dc, Fmt.age(Api.v(d, "atW")));
+        updated(dc, Fmt.age(Api.v(d, "atW")), Api.landState == Api.STATE_ERROR);
     }
 
     //! Next few forecast steps, 6-hourly (RESEARCH.md §20), drawn from the
@@ -176,7 +182,7 @@ module Pages {
         headerPlain(dc, res(Rez.Strings.PageSea), Api.v(m, "stName"));
 
         if (m == null) {
-            if (!loading(dc, Api.marineState)) { message(dc, Rez.Strings.NoPhone); }
+            if (!loading(dc, Api.marineState)) { failureMessage(dc); }
             return;
         }
 
@@ -206,7 +212,7 @@ module Pages {
 
         iconRow(dc, :temp, Graphics.FONT_XTINY, Fmt.temp(Api.v(m, "stTemp")), Theme.DIM, 0);
 
-        updated(dc, Fmt.age(Api.v(m, "stAt")));
+        updated(dc, Fmt.age(Api.v(m, "stAt")), Api.marineState == Api.STATE_ERROR);
     }
 
     // ---------------------------------------------------------------- buoy
@@ -264,7 +270,7 @@ module Pages {
                     res(Rez.Strings.WaterTemp) + " " + Fmt.temp(water), Theme.DIM, 0);
         }
 
-        updated(dc, Fmt.age(Api.v(m, "wAt")));
+        updated(dc, Fmt.age(Api.v(m, "wAt")), Api.marineState == Api.STATE_ERROR);
     }
 
     // -------------------------------------------------------------- shared
@@ -354,6 +360,47 @@ module Pages {
     }
 
     function res2(id as ResourceId) as String { return WatchUi.loadResource(id) as String; }
+
+    //! The message for whatever actually went wrong.
+    //!
+    //! "No connection" used to cover every failure, including a place name FMI
+    //! does not know — which told the user to check their phone when the fix
+    //! was in the settings.
+    function failureMessage(dc as Graphics.Dc) as Void {
+        if (Api.failure == Api.FAIL_PLACE) { message(dc, Rez.Strings.NoPlace); }
+        else if (Api.failure == Api.FAIL_SERVER) { message(dc, Rez.Strings.NoData); }
+        else { message(dc, Rez.Strings.NoPhone); }
+    }
+
+    //! About: the build, and the attribution FMI's licence requires.
+    //!
+    //! This page exists because the credit had nowhere else to go. The data
+    //! pages are full — the gap between the last reading and the page dots is
+    //! smaller than a line of text, which is what made the version collide
+    //! there — and CC BY 4.0 wants the source named in the app, not only in
+    //! the store listing.
+    function drawAbout(dc as Graphics.Dc) as Void {
+        headerPlain(dc, res(Rez.Strings.PageAbout), null);
+        var cx = (w(dc) / 2).toNumber();
+        var fh = dc.getFontHeight(Graphics.FONT_XTINY);
+        var top = (h(dc) * 0.36).toNumber();
+
+        dc.setColor(Theme.INK, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, top, Graphics.FONT_SMALL, "FIWeatherWatch",
+                    Graphics.TEXT_JUSTIFY_CENTER);
+        top += dc.getFontHeight(Graphics.FONT_SMALL);
+
+        dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, top, Graphics.FONT_XTINY, "v" + Config.VERSION,
+                    Graphics.TEXT_JUSTIFY_CENTER);
+        top += fh + (fh / 2).toNumber();
+
+        dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, top, Graphics.FONT_XTINY, res(Rez.Strings.Attribution),
+                    Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, top + fh, Graphics.FONT_XTINY, "CC BY 4.0",
+                    Graphics.TEXT_JUSTIFY_CENTER);
+    }
 
     function message(dc as Graphics.Dc, res as ResourceId) as Void {
         dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);

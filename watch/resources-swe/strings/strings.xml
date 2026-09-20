@@ -67,14 +67,9 @@
     <string id="Gust">by</string>
     <string id="WaterTemp">Vatten</string>
     <string id="Period">Period</string>
-    <!-- Glance captions: short enough for half a glance column -->
-    <string id="GLand">Land</string>
-    <string id="GLandWind">Vind land</string>
-    <string id="GSeaWind">Havsvind</string>
-    <string id="GSeaGust">By</string>
-    <string id="GWave">Vågor</string>
-    <string id="GWater">Vatten</string>
     <string id="Modelled">modellerad</string>
+    <string id="NoData">Tjänsten svarar inte</string>
+    <string id="PageAbout">Om appen</string>
     <string id="NoBuoy">Ingen bojdata</string>
     <string id="Attribution">Källa: Meteorologiska institutet</string>
 </strings>

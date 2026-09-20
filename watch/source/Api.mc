@@ -30,6 +30,30 @@ module Api {
     var forecastState = STATE_IDLE;
     var marineState = STATE_IDLE;
 
+    //! Why the last request failed, so the page can say something true rather
+    //! than blaming the phone for everything.
+    enum { FAIL_NONE, FAIL_OFFLINE, FAIL_PLACE, FAIL_SERVER }
+    var failure = FAIL_NONE;
+
+    //! Wall-clock second of the last refresh. Select fires a refresh, and
+    //! without a floor a held button queues requests faster than the radio can
+    //! retire them — which is what fills the BLE queue and then reads, wrongly,
+    //! as "no connection".
+    var lastRefresh = 0;
+    const MIN_REFRESH_SECS = 30;
+
+    //! Maps a Communications result to a reason.
+    //!
+    //! Every non-200 used to render as "No connection". A queue-full, an
+    //! oversized payload and a genuinely absent phone are different problems
+    //! and only one of them is the user's to fix.
+    function classify(code as Number) as Number {
+        if (code == 404) { return FAIL_PLACE; }
+        if (code >= 400 && code < 600) { return FAIL_SERVER; }
+        if (code == Communications.BLE_REQUEST_TOO_LARGE) { return FAIL_SERVER; }
+        return FAIL_OFFLINE;
+    }
+
     function options() as Dictionary {
         return {
             :method => Communications.HTTP_REQUEST_METHOD_GET,
@@ -132,8 +156,10 @@ module Api {
             save("f_land", flat);
         } else {
             landState = STATE_ERROR;
+            failure = classify(code);
         }
         WatchUi.requestUpdate();
+        fetchForecast();
     }
 
     // ----------------------------------------------------------- forecast
@@ -172,6 +198,7 @@ module Api {
             forecastState = STATE_ERROR;
         }
         WatchUi.requestUpdate();
+        fetchMarine();
     }
 
     // ------------------------------------------------------------- marine
@@ -214,14 +241,28 @@ module Api {
             save("f_marine", flat);
         } else {
             marineState = STATE_ERROR;
+            failure = classify(code);
         }
         WatchUi.requestUpdate();
     }
 
+    //! Fetch the three payloads **one after another**, not all at once.
+    //!
+    //! Connect IQ's request queue is shallow and shared with the system. Three
+    //! simultaneous requests — plus the two the glance makes — overrun it, and
+    //! the failure surfaces as an ordinary error the user reads as "no phone".
+    //! Each response chains the next from its own callback.
     function refreshAll() as Void {
+        var now = Time.now().value();
+        if (now - lastRefresh < MIN_REFRESH_SECS && lastRefresh != 0) { return; }
+        lastRefresh = now;
         fetchLand();
-        fetchForecast();
-        fetchMarine();
+    }
+
+    //! Force a refresh regardless of the floor, for a settings change.
+    function refreshNow() as Void {
+        lastRefresh = Time.now().value();
+        fetchLand();
     }
 
     //! Read a normalised field. Everything the views draw goes through here.

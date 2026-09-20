@@ -28,7 +28,7 @@ class FIWeatherWatchApp extends Application.AppBase {
 
     //! Settings are phone-edited, so this fires whenever the user changes one.
     function onSettingsChanged() as Void {
-        Api.refreshAll();
+        Api.refreshNow();
         WatchUi.requestUpdate();
     }
 }
