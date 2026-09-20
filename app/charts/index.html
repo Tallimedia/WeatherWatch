@@ -10,7 +10,8 @@
     --plane: #f9f9f7; --surface: #fcfcfb;
     --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
     --grid: #e1e0d9; --axis: #c3c2b7;
-    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a;
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+    --cloud: #c3c2b7; --cloud-2: #a9a89f;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -18,7 +19,8 @@
       --plane: #0d0d0d; --surface: #1a1a19;
       --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
       --grid: #2c2c2a; --axis: #383835;
-      --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+      --cloud: #52514e; --cloud-2: #6b6a64;
     }
   }
   :root[data-theme="dark"] {
@@ -26,7 +28,8 @@
     --plane: #0d0d0d; --surface: #1a1a19;
     --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
     --grid: #2c2c2a; --axis: #383835;
-    --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --cloud: #52514e; --cloud-2: #6b6a64;
   }
   * { box-sizing: border-box; }
   body {
@@ -58,6 +61,25 @@
   h2.group:first-of-type { margin-top: 4px; }
   h2.group { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em;
              color: var(--muted); margin: 26px 0 10px; font-weight: 600; }
+  .widget { background: var(--surface); border: 1px solid var(--grid);
+            border-radius: 10px; padding: 16px; margin-bottom: 20px; }
+  .now { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; }
+  .now .icon { flex: none; }
+  .now .temp { font-size: 2.6rem; font-weight: 650; letter-spacing: -0.02em;
+               font-variant-numeric: tabular-nums; line-height: 1; }
+  .now .desc { color: var(--ink-2); margin-top: 2px; }
+  .now .where { color: var(--muted); font-size: 0.78rem; margin-top: 3px; }
+  .now .facts { display: flex; gap: 18px; flex-wrap: wrap; margin-left: auto;
+                font-size: 0.82rem; color: var(--ink-2); }
+  .now .facts b { display: block; color: var(--ink); font-size: 1.05rem;
+                  font-weight: 600; font-variant-numeric: tabular-nums; }
+  .today { display: flex; gap: 4px; margin-top: 16px; padding-top: 14px;
+           border-top: 1px solid var(--grid); overflow-x: auto; }
+  .today .h { flex: 1 0 62px; text-align: center; font-size: 0.78rem; color: var(--ink-2); }
+  .today .h .t { color: var(--muted); font-size: 0.72rem; }
+  .today .h .v { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums;
+                 margin-top: 2px; }
+  .today .h .w { color: var(--muted); font-size: 0.72rem; }
   figure {
     margin: 0 0 22px; background: var(--surface);
     border: 1px solid var(--grid); border-radius: 10px; padding: 14px 14px 8px;
@@ -97,13 +119,15 @@
   </p>
 
   <div class="controls">
+    <div><label for="place">Land place</label><input id="place" value="Helsinki" size="12"></div>
     <div><label for="station">Sea station</label><select id="station"></select></div>
     <div><label for="buoy">Wave buoy</label><select id="buoy"></select></div>
-    <div><label for="place">Land place</label><input id="place" value="Helsinki" size="12"></div>
     <div><label for="start">From</label><input id="start" type="date"></div>
     <div><label for="end">To</label><input id="end" type="date"></div>
     <div><button id="go">Load</button></div>
   </div>
+
+  <div id="widget" class="widget"><p class="msg">Loading current conditions…</p></div>
 
   <div class="presets">
     <button data-days="3">Last 3 days</button>

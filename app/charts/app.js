@@ -2,6 +2,20 @@
    Hand-rolled SVG line charts: the data is small, and a dependency-free page
    keeps the prototype deployable anywhere without a build step. */
 
+/* SmartSymbol codes, from FMI's published symbol table.
+   Night variants are the day code + 100; codes not listed explicitly fall
+   back to that rule. Earlier hand-written guesses in this file were wrong
+   (71 is Isolated thundershowers, not sleet) — this table replaces them. */
+const SYMBOLS = {"1": {"c": "clear", "t": "Clear"}, "2": {"c": "mostlyclear", "t": "Mostly clear"}, "4": {"c": "partly", "t": "Partly cloudy"}, "6": {"c": "mostlycloudy", "t": "Mostly cloudy"}, "7": {"c": "overcast", "t": "Overcast"}, "9": {"c": "fog", "t": "Fog"}, "11": {"c": "rain", "t": "Drizzle"}, "14": {"c": "sleet", "t": "Freezing drizzle"}, "17": {"c": "sleet", "t": "Freezing rain"}, "21": {"c": "rain", "t": "Isolated showers"}, "24": {"c": "rain", "t": "Scattered showers"}, "27": {"c": "rain", "t": "Showers"}, "31": {"c": "rain", "t": "Partly cloudy and periods of light rain"}, "32": {"c": "rain", "t": "Partly cloudy and periods of moderate rain"}, "33": {"c": "rain", "t": "Partly cloudy and periods of heavy rain"}, "34": {"c": "rain", "t": "Mostly cloudy and periods of light rain"}, "35": {"c": "rain", "t": "Mostly cloudy and periods of moderate rain"}, "36": {"c": "rain", "t": "Mostly cloudy and periods of heavy rain"}, "37": {"c": "rain", "t": "Light rain"}, "38": {"c": "rain", "t": "Moderate rain"}, "39": {"c": "rain", "t": "Heavy rain"}, "41": {"c": "sleet", "t": "Isolated light sleet showers"}, "42": {"c": "sleet", "t": "Isolated moderate sleet showers"}, "43": {"c": "sleet", "t": "Isolated heavy sleet showers"}, "44": {"c": "sleet", "t": "Scattered light sleet showers"}, "45": {"c": "sleet", "t": "Scattered moderate sleet showers"}, "46": {"c": "sleet", "t": "Scattered heavy sleet showers"}, "47": {"c": "sleet", "t": "Light sleet"}, "48": {"c": "sleet", "t": "Moderate sleet"}, "49": {"c": "sleet", "t": "Heavy sleet"}, "51": {"c": "snow", "t": "Isolated light snow showers"}, "52": {"c": "snow", "t": "Isolated moderate snow showers"}, "53": {"c": "snow", "t": "Isolated heavy snow showers"}, "54": {"c": "snow", "t": "Scattered light snow showers"}, "55": {"c": "snow", "t": "Scattered moderate snow showers"}, "56": {"c": "snow", "t": "Scattered heavy snow showers"}, "57": {"c": "snow", "t": "Light snowfall"}, "58": {"c": "snow", "t": "Moderate snowfall"}, "59": {"c": "snow", "t": "Heavy snowfall"}, "61": {"c": "rain", "t": "Isolated hail showers"}, "64": {"c": "rain", "t": "Scattered hail showers"}, "67": {"c": "rain", "t": "Hail showers"}, "71": {"c": "thunder", "t": "Isolated thundershowers"}, "74": {"c": "thunder", "t": "Scattered thundershowers"}, "77": {"c": "thunder", "t": "Thundershowers"}, "101": {"c": "clear", "t": "Clear"}, "102": {"c": "mostlyclear", "t": "Mostly clear"}, "104": {"c": "partly", "t": "Partly cloudy"}, "106": {"c": "mostlycloudy", "t": "Mostly cloudy"}, "121": {"c": "rain", "t": "Isolated showers"}, "124": {"c": "rain", "t": "Scattered showers"}, "131": {"c": "rain", "t": "Partly cloudy and periods of light rain"}, "132": {"c": "rain", "t": "Partly cloudy and periods of moderate rain"}, "133": {"c": "rain", "t": "Partly cloudy and periods of heavy rain"}, "134": {"c": "rain", "t": "Mostly cloudy and periods of light rain"}, "135": {"c": "rain", "t": "Mostly cloudy and periods of moderate rain"}, "136": {"c": "rain", "t": "Mostly cloudy and periods of heavy rain"}, "141": {"c": "sleet", "t": "Isolated light sleet showers"}, "142": {"c": "sleet", "t": "Isolated moderate sleet showers"}, "143": {"c": "sleet", "t": "Isolated heavy sleet showers"}, "144": {"c": "sleet", "t": "Scattered light sleet showers"}, "145": {"c": "sleet", "t": "Scattered moderate sleet showers"}, "151": {"c": "snow", "t": "Isolated light snow showers"}, "152": {"c": "snow", "t": "Isolated moderate snow showers"}, "153": {"c": "snow", "t": "Isolated heavy snow showers"}, "154": {"c": "snow", "t": "Scattered light snow showers"}, "155": {"c": "snow", "t": "Scattered moderate snow showers"}, "156": {"c": "snow", "t": "Scattered heavy snow showers"}, "161": {"c": "rain", "t": "Isolated hail showers"}, "164": {"c": "rain", "t": "Scattered hail showers"}, "171": {"c": "thunder", "t": "Isolated thundershowers"}, "174": {"c": "thunder", "t": "Scattered thundershowers"}};
+
+function symbolInfo(code) {
+  if (code === null || code === undefined) return null;
+  if (SYMBOLS[code]) return { ...SYMBOLS[code], night: code > 100 };
+  if (code > 100 && SYMBOLS[code - 100])
+    return { ...SYMBOLS[code - 100], night: true };   // documented +100 rule
+  return null;
+}
+
 const $ = (s) => document.querySelector(s);
 const tip = $("#tip");
 const PAD = { l: 46, r: 14, t: 10, b: 26 };
@@ -193,22 +207,6 @@ function drawPanel(fig, rows, series, pts, COLORS) {
   });
 }
 
-/* smartsymbol is a CATEGORICAL code, not a magnitude — code 134 is not "more"
-   than code 1, so a line chart of it would be meaningless. Rendered as an
-   inventory instead, which is the actual question: which icons need drawing?
-   Night variants are the day code + 100. Labels below cover only the codes
-   confirmed in FMI's published symbol set; anything else is flagged rather than
-   guessed, because a wrong icon is worse than an unknown one. */
-const SYMBOL_LABELS = {
-  1: "Clear", 2: "Partly cloudy", 3: "Cloudy",
-  21: "Light showers", 22: "Moderate showers", 23: "Heavy showers",
-  31: "Light rain", 32: "Moderate rain", 33: "Heavy rain",
-  41: "Light snow showers", 42: "Moderate snow showers", 43: "Heavy snow showers",
-  51: "Light snowfall", 52: "Moderate snowfall", 53: "Heavy snowfall",
-  61: "Thundershowers", 62: "Heavy thundershowers", 63: "Thunder", 64: "Heavy thunder",
-  71: "Light sleet showers", 72: "Moderate sleet showers", 73: "Heavy sleet showers",
-};
-
 function drawSymbols(fig, rows) {
   const counts = new Map();
   for (const r of rows) {
@@ -224,9 +222,9 @@ function drawSymbols(fig, rows) {
   const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
   const unmapped = [];
   const rowsHtml = sorted.map(([code, n]) => {
+    const info = symbolInfo(code);
     const night = code > 100;
-    const day = night ? code - 100 : code;
-    const label = SYMBOL_LABELS[day];
+    const label = info ? info.t : null;
     if (!label) unmapped.push(code);
     const pct = Math.round((n / total) * 100);
     return `<tr>
@@ -255,10 +253,91 @@ function drawSymbols(fig, rows) {
   }
 }
 
+
+/* Weather icons — one per SmartSymbol category, day and night variants where it
+   matters. Inline SVG so the page keeps its no-dependency, no-build property. */
+function icon(cat, night, size = 56) {
+  const sun = night
+    ? `<path d="M40 22a14 14 0 1 1-14-14 11 11 0 0 0 14 14Z" fill="var(--s4,#eda100)"/>`
+    : `<circle cx="26" cy="24" r="11" fill="var(--s4,#eda100)"/>`;
+  const cloud = (x = 0, y = 0, c = "var(--cloud)") =>
+    `<path transform="translate(${x},${y})" fill="${c}" d="M20 44a11 11 0 0 1 .6-21.9 15 15 0 0 1 28.3 4.4A9.5 9.5 0 0 1 47 44Z"/>`;
+  const drops = (c = "var(--s1)") =>
+    `<g stroke="${c}" stroke-width="3" stroke-linecap="round">
+       <line x1="24" y1="49" x2="21" y2="57"/><line x1="34" y1="49" x2="31" y2="57"/>
+       <line x1="44" y1="49" x2="41" y2="57"/></g>`;
+  const flakes = (c = "var(--s1)") =>
+    `<g stroke="${c}" stroke-width="2.5" stroke-linecap="round">
+       <g transform="translate(24,53)"><line x1="-4" y1="0" x2="4" y2="0"/><line x1="0" y1="-4" x2="0" y2="4"/></g>
+       <g transform="translate(38,53)"><line x1="-4" y1="0" x2="4" y2="0"/><line x1="0" y1="-4" x2="0" y2="4"/></g></g>`;
+  const bolt = `<path d="M33 46l-8 12h6l-3 10 11-14h-6l4-8z" fill="var(--s4,#eda100)"/>`;
+  const body = {
+    clear:        sun,
+    mostlyclear:  sun + cloud(10, 10, "var(--cloud-2)"),
+    partly:       sun + cloud(6, 6),
+    mostlycloudy: cloud(0, 2),
+    overcast:     cloud(0, 2, "var(--cloud-2)"),
+    fog:          cloud(0, -2) + `<g stroke="var(--muted)" stroke-width="3" stroke-linecap="round"><line x1="18" y1="52" x2="48" y2="52"/><line x1="22" y1="59" x2="44" y2="59"/></g>`,
+    rain:         cloud(0, -2) + drops(),
+    sleet:        cloud(0, -2) + drops() + flakes("var(--muted)"),
+    snow:         cloud(0, -2) + flakes(),
+    thunder:      cloud(0, -2) + bolt,
+    unknown:      `<circle cx="34" cy="34" r="16" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="4 4"/>`,
+  }[cat] || `<circle cx="34" cy="34" r="16" fill="none" stroke="var(--muted)" stroke-width="2"/>`;
+  return `<svg class="icon" width="${size}" height="${size}" viewBox="0 0 68 72" aria-hidden="true">${body}</svg>`;
+}
+
+async function loadWidget(cfg) {
+  const host = $("#widget");
+  try {
+    const [obs, fc] = await Promise.all([
+      fetch(`/v1/observations?place=${encodeURIComponent(cfg.place)}`).then((r) => r.json()),
+      fetch(`/v1/forecast?place=${encodeURIComponent(cfg.place)}&hours=24&step=60`).then((r) => r.json()),
+    ]);
+    const now = Math.floor(Date.now() / 1000);
+    const ahead = (fc.points || []).filter((p) => p.epochtime >= now - 1800).slice(0, 12);
+    const sym = symbolInfo(ahead.length ? ahead[0].smartsymbol : null);
+    const age = obs.age_seconds;
+    const ageTxt = age == null ? "" :
+      age < 90 ? "just now" : age < 5400 ? `${Math.round(age / 60)} min ago` : `${Math.round(age / 3600)} h ago`;
+
+    host.innerHTML = `
+      <div class="now">
+        <div>${icon(sym ? sym.c : "unknown", sym ? sym.night : false, 68)}</div>
+        <div>
+          <div class="temp">${fmt(obs.temperature, 1)}°C</div>
+          <div class="desc">${sym ? sym.t : "—"}</div>
+          <div class="where">${obs.stationname ?? "—"} · ${fmt(obs.distance, 1)} km away · ${ageTxt}</div>
+        </div>
+        <div class="facts">
+          <div>Wind<b>${fmt(obs.windspeedms, 1)} m/s</b>${obs.windcompass8 ?? ""}</div>
+          <div>Gust<b>${fmt(obs.windgust, 1)} m/s</b></div>
+          <div>Humidity<b>${fmt(obs.humidity, 0)}%</b></div>
+          <div>Pressure<b>${fmt(obs.pressure, 0)} hPa</b></div>
+        </div>
+      </div>
+      <div class="today">
+        ${ahead.map((p) => {
+          const i = symbolInfo(p.smartsymbol);
+          const d = new Date(p.epochtime * 1000);
+          return `<div class="h" title="${i ? i.t : ""}">
+            <div class="t">${String(d.getUTCHours()).padStart(2, "0")}Z</div>
+            ${icon(i ? i.c : "unknown", i ? i.night : false, 30)}
+            <div class="v">${fmt(p.temperature, 0)}°</div>
+            <div class="w">${fmt(p.windspeedms, 0)}<span style="opacity:.6">/${fmt(p.hourlymaximumgust, 0)}</span></div>
+          </div>`;
+        }).join("")}
+      </div>`;
+  } catch (err) {
+    host.innerHTML = `<p class="msg">Could not load current conditions: ${err.message}</p>`;
+  }
+}
+
 async function load() {
   const cfg = { station: $("#station").value, buoy: $("#buoy").value,
                 place: $("#place").value.trim(), start: $("#start").value, end: $("#end").value };
   const host = $("#charts"); host.innerHTML = "";
+  loadWidget(cfg);
   for (const c of CHARTS) {
     if (c.group) {
       const h = document.createElement("h2");
