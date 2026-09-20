@@ -25,3 +25,9 @@ watch/bin/
 *.prg.debug.xml
 *.iq
 watch/bin/*.iq
+
+# Hand-offs are the exception: a tester build has to be reachable from a
+# machine that is not this one, so it is tracked deliberately rather than
+# force-added past the rules above.
+!dist/
+!dist/**
