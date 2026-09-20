@@ -52,7 +52,23 @@ module Fmt {
 
     function temp(c as Numeric?) as String {
         if (c == null) { return DASH; }
-        return one(c) + "°";
+        return one(c) + " °C";
+    }
+
+    //! FMI's buoy names carry a type suffix that says nothing on a watch —
+    //! "Helsinki Suomenlinna aaltopoiju" is just Suomenlinna to a reader.
+    function shortStation(name as String?) as String? {
+        if (name == null) { return null; }
+        var drop = [" aaltopoiju", " aaltopoijut", " poiju"];
+        for (var i = 0; i < drop.size(); i += 1) {
+            var d = drop[i];
+            var n = name.length();
+            var dl = d.length();
+            if (n > dl && name.substring(n - dl, n).equals(d)) {
+                return name.substring(0, n - dl);
+            }
+        }
+        return name;
     }
 
     function one(v as Numeric) as String {

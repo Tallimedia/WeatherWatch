@@ -65,7 +65,15 @@
     <string id="PageSea">Sea</string>
     <string id="PageBuoy">Waves</string>
     <string id="Gust">gust</string>
-    <string id="Water">water</string>
+    <string id="WaterTemp">Water</string>
+    <string id="Period">Period</string>
+    <!-- Glance captions: short enough for half a glance column -->
+    <string id="GLand">Land</string>
+    <string id="GLandWind">Land wind</string>
+    <string id="GSeaWind">Sea wind</string>
+    <string id="GSeaGust">Sea gust</string>
+    <string id="GWave">Waves</string>
+    <string id="GWater">Water</string>
     <string id="Modelled">modelled</string>
     <string id="NoBuoy">No buoy reporting</string>
     <string id="Attribution">Data: Finnish Meteorological Institute</string>

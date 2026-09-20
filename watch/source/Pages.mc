@@ -75,12 +75,12 @@ module Pages {
         var gust = Api.v(d, "gust");
         var dir = Api.v(d, "dir");
 
-        stackStart(dc, 0.255);
-        row(dc, Graphics.FONT_NUMBER_MILD, Fmt.temp(t), Theme.tempColour(t), 0);
-        row(dc, Graphics.FONT_SMALL,
-            Fmt.windValue(ms) + " (" + Fmt.windValue(gust) + ") " + Fmt.windUnitLabel()
-                + "  " + Fmt.compass(dir),
-            Theme.windColour(ms, gust, Config.landWind(), Config.landGust()), 2);
+        stackStart(dc, 0.245);
+        iconRow(dc, :temp, Graphics.FONT_NUMBER_MILD, Fmt.temp(t), Theme.tempColour(t), -2);
+        iconRow(dc, :wind, Graphics.FONT_SMALL,
+                Fmt.windValue(ms) + " (" + Fmt.windValue(gust) + ") " + Fmt.windUnitLabel()
+                    + " " + Fmt.compass(dir),
+                Theme.windColour(ms, gust, Config.landWind(), Config.landGust()), 4);
 
         forecastStrip(dc, _y);
 
@@ -101,8 +101,10 @@ module Pages {
         if (!(times instanceof Array) || times.size() == 0) { return; }
 
         var slots = 4;
-        var span = (w(dc) * 0.80).toNumber();
+        var span = (w(dc) * 0.74).toNumber();
         var x0 = (w(dc) - span) / 2;
+        var ih = dc.getFontHeight(Graphics.FONT_XTINY);
+        Icons.clock(dc, (x0 - ih - 2).toNumber(), top + 1, (ih * 0.7).toNumber(), Theme.FAINT);
         var count = times.size() < slots ? times.size() : slots;
         var lineH = dc.getFontHeight(Graphics.FONT_XTINY);
         for (var i = 0; i < count; i += 1) {
@@ -133,10 +135,11 @@ module Pages {
         var dir = Api.v(m, "stDir");
         var colour = Theme.windColour(ms, gust, Config.seaWind(), Config.seaGust());
 
-        stackStart(dc, 0.255);
-        row(dc, Graphics.FONT_NUMBER_MILD, Fmt.windValue(ms), colour, -4);
+        stackStart(dc, 0.245);
+        iconRow(dc, :wind, Graphics.FONT_NUMBER_MILD,
+                Fmt.windValue(ms) + " " + Fmt.windUnitLabel(), colour, -4);
         row(dc, Graphics.FONT_XTINY,
-            Fmt.windUnitLabel() + "  " + res(Rez.Strings.Gust) + " " + Fmt.windValue(gust),
+            res(Rez.Strings.Gust) + " " + Fmt.windValue(gust) + " " + Fmt.windUnitLabel(),
             Theme.DIM, 6);
 
         // Arrow and compass point share a row, measured so the pair is centred
@@ -151,7 +154,7 @@ module Pages {
         dc.drawText(left + r * 2 + 6, _y, Graphics.FONT_SMALL, label, Graphics.TEXT_JUSTIFY_LEFT);
         _y += dc.getFontHeight(Graphics.FONT_SMALL) + 4;
 
-        row(dc, Graphics.FONT_XTINY, Fmt.temp(Api.v(m, "stTemp")), Theme.DIM, 0);
+        iconRow(dc, :temp, Graphics.FONT_XTINY, Fmt.temp(Api.v(m, "stTemp")), Theme.DIM, 0);
 
         dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
         dc.drawText(w(dc) / 2, (h(dc) * 0.855).toNumber(), Graphics.FONT_XTINY,
@@ -166,7 +169,9 @@ module Pages {
 
         var src = null;
         if (hasWave) {
-            src = (Api.v(m, "wMeas") == true) ? Api.v(m, "wName") : res(Rez.Strings.Modelled);
+            src = (Api.v(m, "wMeas") == true)
+                ? Fmt.shortStation(Api.v(m, "wName"))
+                : res(Rez.Strings.Modelled);
         }
         header(dc, res(Rez.Strings.PageBuoy), src);
 
@@ -179,10 +184,11 @@ module Pages {
         var per = Api.v(m, "wPer");
         var dir = Api.v(m, "wDir");
 
-        stackStart(dc, 0.255);
-        row(dc, Graphics.FONT_NUMBER_MILD, Fmt.metres(hs), Theme.waveColour(hs), -4);
+        stackStart(dc, 0.245);
+        iconRow(dc, :wave, Graphics.FONT_NUMBER_MILD, Fmt.metres(hs), Theme.waveColour(hs), -4);
         row(dc, Graphics.FONT_XTINY,
-            (per == null ? Fmt.DASH : Fmt.one(per)) + " s", Theme.DIM, 6);
+            res(Rez.Strings.Period) + " " + (per == null ? Fmt.DASH : Fmt.one(per)) + " s",
+            Theme.DIM, 6);
 
         var label = Fmt.compass(dir);
         var labelW = dc.getTextWidthInPixels(label, Graphics.FONT_SMALL);
@@ -196,8 +202,8 @@ module Pages {
 
         var water = Api.v(m, "wTemp");
         if (water != null) {
-            row(dc, Graphics.FONT_XTINY, Fmt.temp(water) + " " + res(Rez.Strings.Water),
-                Theme.DIM, 0);
+            iconRow(dc, :temp, Graphics.FONT_XTINY,
+                    res(Rez.Strings.WaterTemp) + " " + Fmt.temp(water), Theme.DIM, 0);
         }
 
         var dist = Api.v(m, "wDist");
@@ -251,6 +257,25 @@ module Pages {
 
     function stackStart(dc as Graphics.Dc, topFraction as Float) as Void {
         _y = (h(dc) * topFraction).toNumber();
+    }
+
+    //! Icon + value on one line, measured and centred as a pair so neither has
+    //! to guess the other's width.
+    function iconRow(dc as Graphics.Dc, kind as Symbol, font as Graphics.FontDefinition,
+                     text as String, colour as Number, gapAfter as Number) as Void {
+        var fh = dc.getFontHeight(font);
+        var size = (fh * 0.62).toNumber();
+        var tw = dc.getTextWidthInPixels(text, font);
+        var gap = 5;
+        var left = ((w(dc) - (size + gap + tw)) / 2).toNumber();
+        var iy = _y + ((fh - size) / 2).toNumber();
+        if (kind == :temp)         { Icons.temp(dc, left, iy, size, Theme.DIM); }
+        else if (kind == :wind)    { Icons.wind(dc, left, iy, size, Theme.DIM); }
+        else if (kind == :wave)    { Icons.wave(dc, left, iy, size, Theme.DIM); }
+        else if (kind == :clock)   { Icons.clock(dc, left, iy, size, Theme.DIM); }
+        dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(left + size + gap, _y, font, text, Graphics.TEXT_JUSTIFY_LEFT);
+        _y += fh + gapAfter;
     }
 
     function row(dc as Graphics.Dc, font as Graphics.FontDefinition, text as String,

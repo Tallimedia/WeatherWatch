@@ -20,36 +20,43 @@ class FIWeatherGlanceView extends WatchUi.GlanceView {
         Api.fetchMarine();
     }
 
-    //! Resolves a configured slot to a label, value and colour.
+    //! Resolves a configured slot to [label, value, colour].
+    //!
+    //! A glance is roughly a third of the screen and one text line tall for
+    //! values, so there is room for a small caption above each of two numbers —
+    //! which is what makes them readable without opening the app.
     hidden function field(which as Number) as Array? {
         var land = Api.land;
         var m = Api.marine;
 
         if (which == 0) {
             var t = Api.v(land, "temp");
-            return [Fmt.temp(t), Theme.tempColour(t)];
+            return [Labels.land(), Fmt.temp(t), Theme.tempColour(t)];
         } else if (which == 1) {
             var ms = Api.v(land, "wind");
             var g = Api.v(land, "gust");
-            return [Fmt.windValue(ms) + " " + Fmt.windUnitLabel(),
+            return [Labels.landWind(),
+                    Fmt.windValue(ms) + " " + Fmt.windUnitLabel(),
                     Theme.windColour(ms, g, Config.landWind(), Config.landGust())];
         } else if (which == 2) {
             var sms = Api.v(m, "stWind");
             var sg = Api.v(m, "stGust");
             // Mean and gust coloured together — splitting them implies a
             // distinction that does not exist (RESEARCH.md §17).
-            return [Fmt.windValue(sms) + " (" + Fmt.windValue(sg) + ")",
+            return [Labels.seaWind(),
+                    Fmt.windValue(sms) + " (" + Fmt.windValue(sg) + ")",
                     Theme.windColour(sms, sg, Config.seaWind(), Config.seaGust())];
         } else if (which == 3) {
             var g2 = Api.v(m, "stGust");
-            return [Fmt.windValue(g2) + " " + Fmt.windUnitLabel(),
+            return [Labels.seaGust(),
+                    Fmt.windValue(g2) + " " + Fmt.windUnitLabel(),
                     Theme.windColour(null, g2, Config.seaWind(), Config.seaGust())];
         } else if (which == 4) {
             var hs = Api.v(m, "wHs");
-            return [Fmt.metres(hs), Theme.waveColour(hs)];
+            return [Labels.wave(), Fmt.metres(hs), Theme.waveColour(hs)];
         } else if (which == 5) {
             var wt = Api.v(m, "wTemp");
-            return [Fmt.temp(wt), Theme.INK];
+            return [Labels.water(), Fmt.temp(wt), Theme.INK];
         }
         return null;
     }
@@ -58,20 +65,27 @@ class FIWeatherGlanceView extends WatchUi.GlanceView {
         dc.setColor(Graphics.COLOR_TRANSPARENT, Graphics.COLOR_BLACK);
         dc.clear();
 
-        var cy = dc.getHeight() / 2;
-        dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(2, cy - dc.getHeight() * 0.34, Graphics.FONT_XTINY, "FIWeather",
-                    Graphics.TEXT_JUSTIFY_LEFT);
-
         var slots = [Config.glance1(), Config.glance2()];
-        var x = 2;
+        var labelH = dc.getFontHeight(Graphics.FONT_XTINY);
+        var valueFont = Graphics.FONT_MEDIUM;
+        var valueH = dc.getFontHeight(valueFont);
+
+        // Two columns, each a caption over a value. Vertically centred as a
+        // block so the pair sits in the glance strip rather than against its top.
+        var blockH = labelH + valueH;
+        var top = ((dc.getHeight() - blockH) / 2).toNumber();
+        var colW = (dc.getWidth() / 2).toNumber();
+
         for (var i = 0; i < slots.size(); i += 1) {
             var f = field(slots[i]);
             if (f == null) { continue; }
-            dc.setColor(f[1] as Number, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(x, cy + dc.getHeight() * 0.04, Graphics.FONT_MEDIUM, f[0] as String,
+            var x = 2 + i * colW;
+            dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(x, top, Graphics.FONT_XTINY, f[0] as String,
                         Graphics.TEXT_JUSTIFY_LEFT);
-            x += dc.getWidth() * 0.42;
+            dc.setColor(f[2] as Number, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(x, top + labelH - 2, valueFont, f[1] as String,
+                        Graphics.TEXT_JUSTIFY_LEFT);
         }
     }
 }
