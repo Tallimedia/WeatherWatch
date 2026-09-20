@@ -67,7 +67,9 @@ class FIWeatherGlanceView extends WatchUi.GlanceView {
 
         var slots = [Config.glance1(), Config.glance2()];
         var labelH = dc.getFontHeight(Graphics.FONT_XTINY);
-        var valueFont = Graphics.FONT_MEDIUM;
+        // FONT_SMALL rather than MEDIUM: the captions need the width more
+        // than the numbers need the size.
+        var valueFont = Graphics.FONT_SMALL;
         var valueH = dc.getFontHeight(valueFont);
 
         // Two columns, each a caption over a value. Vertically centred as a

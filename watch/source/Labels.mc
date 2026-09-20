@@ -24,7 +24,7 @@ module Labels {
         return en;
     }
 
-    function land() as String     { return pick("Land", "Maa", "Land"); }
+    function land() as String     { return pick("Land temp", "Maan lämpö", "Landtemp"); }
     function landWind() as String { return pick("Land wind", "Tuuli maalla", "Vind land"); }
     function seaWind() as String  { return pick("Sea wind", "Merituuli", "Havsvind"); }
     function seaGust() as String  { return pick("Sea gust", "Puuska", "Havsby"); }
