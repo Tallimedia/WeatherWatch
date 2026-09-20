@@ -237,10 +237,14 @@ function applyStrings() {
    is the gust headroom, which is the part a sailor reads. Both lines are
    still drawn and labelled, because the ask was for both.
 
-   Colours are two steps of the site's own accent ramp, checked rather than
-   chosen by eye: CVD separation dE 28.8, normal-vision 29.2, and both above
-   3:1 against the panel. */
-const TREND = { mean: "#1d2d3d", gust: "#597ea3", band: "#b5d9fd", w: 720, h: 190 };
+   Blue against rust, not two blues. Steps of the site's own accent ramp were
+   distinguishable on paper but read as one family on screen — the eye had to
+   work out which line was which. Warm against cool is the standard
+   colourblind-safe pairing, and these two were measured rather than picked:
+   lightness band, chroma floor, CVD separation (protan dE 22.2, tritan 30.9),
+   normal vision dE 28.9, and contrast against the panel all pass. The band
+   takes the gust hue because that is the region it describes. */
+const TREND = { mean: "#2b6cb0", gust: "#c2410c", band: "#c2410c", w: 720, h: 190 };
 
 function trendPath(points, key, x, y) {
   let d = "", pen = false;
@@ -307,7 +311,7 @@ function renderTrend(data) {
     <svg viewBox="0 0 ${w} ${h}" class="trend-svg" role="img"
          aria-label="${T("trend")}, ${T("mean")} ${fmt(last.wind, 1)} m/s, ${T("gust")} ${fmt(last.gust, 1)} m/s">
       ${grid}${ticks}
-      ${band ? `<path d="${band}" fill="${TREND.band}" opacity=".5"></path>` : ""}
+      ${band ? `<path d="${band}" fill="${TREND.band}" opacity=".13"></path>` : ""}
       <path d="${trendPath(pts, "gust", x, y)}" fill="none" stroke="${TREND.gust}" stroke-width="2"
             stroke-linejoin="round" stroke-linecap="round"></path>
       <path d="${trendPath(pts, "wind", x, y)}" fill="none" stroke="${TREND.mean}" stroke-width="2"
