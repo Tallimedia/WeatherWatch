@@ -5,6 +5,7 @@ import Toybox.Time;
 import Toybox.Time.Gregorian;
 
 //! Formatting and unit conversion.
+(:glance)
 module Fmt {
 
     const DASH = "–";

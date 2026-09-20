@@ -12,6 +12,12 @@ import Toybox.WatchUi;
 //! several resolutions (RESEARCH.md §16).
 module Pages {
 
+    //! Resources come back as a Resource type; concatenating one without
+    //! casting compiles but faults at runtime.
+    function res(id as ResourceId) as String {
+        return WatchUi.loadResource(id) as String;
+    }
+
     function w(dc as Graphics.Dc) as Number { return dc.getWidth(); }
     function h(dc as Graphics.Dc) as Number { return dc.getHeight(); }
 
@@ -43,7 +49,7 @@ module Pages {
         if (state == Api.STATE_LOADING) {
             dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
             dc.drawText((w(dc) / 2).toNumber(), (h(dc) / 2).toNumber(), Graphics.FONT_SMALL,
-                        WatchUi.loadResource(Rez.Strings.Loading) as String,
+                        res(Rez.Strings.Loading),
                         Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
             return true;
         }
@@ -54,10 +60,10 @@ module Pages {
 
     function drawLand(dc as Graphics.Dc) as Void {
         var d = Api.land;
-        var name = Api.get(d, "stationname");
-        var km = Api.get(d, "distance");
+        var name = Api.v(d, "name");
+        var km = Api.v(d, "dist");
         var src = name == null ? null : name + " · " + Fmt.dist(km);
-        header(dc, WatchUi.loadResource(Rez.Strings.PageLand) as String, src);
+        header(dc, res(Rez.Strings.PageLand), src);
 
         if (d == null) {
             if (!loading(dc, Api.landState)) { message(dc, Rez.Strings.NoPhone); }
@@ -65,16 +71,16 @@ module Pages {
         }
 
         var cx = w(dc) / 2;
-        var t = Api.get(d, "temperature");
+        var t = Api.v(d, "temp");
         dc.setColor(Theme.tempColour(t), Graphics.COLOR_TRANSPARENT);
         dc.drawText((cx).toNumber(), (h(dc) * 0.30).toNumber(), Graphics.FONT_NUMBER_MEDIUM, Fmt.temp(t),
                     Graphics.TEXT_JUSTIFY_CENTER);
 
         // Wind, with the gust in brackets — the marine convention, and the gust
         // is what the threshold actually compares against (RESEARCH.md §20).
-        var ms = Api.get(d, "windspeedms");
-        var gust = Api.get(d, "windgust");
-        var dir = Api.get(d, "winddirection");
+        var ms = Api.v(d, "wind");
+        var gust = Api.v(d, "gust");
+        var dir = Api.v(d, "dir");
         dc.setColor(Theme.windColour(ms, gust, Config.landWind(), Config.landGust()),
                     Graphics.COLOR_TRANSPARENT);
         var windLine = Fmt.windValue(ms) + " (" + Fmt.windValue(gust) + ") " + Fmt.windUnitLabel();
@@ -89,36 +95,33 @@ module Pages {
         // age for the reading would be wrong for most of it (RESEARCH.md §3).
         dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
         dc.drawText((cx).toNumber(), (h(dc) * 0.86).toNumber(), Graphics.FONT_XTINY,
-                    Fmt.age(Api.atOf(d, "temperature")) + " · " + Fmt.age(Api.atOf(d, "windspeedms")),
+                    Fmt.age(Api.v(d, "atT")) + " · " + Fmt.age(Api.v(d, "atW")),
                     Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    //! Next few forecast steps, 6-hourly (RESEARCH.md §20).
+    //! Next few forecast steps, 6-hourly (RESEARCH.md §20). The backend
+    //! supplies the series; the app stores it as parallel primitive arrays.
     function forecastStrip(dc as Graphics.Dc) as Void {
         var f = Api.forecast;
         if (f == null) { return; }
-        var pts = Api.get(f, "points");
-        if (!(pts instanceof Array) || pts.size() == 0) { return; }
+        var times = Api.v(f, "t");
+        var temps = Api.v(f, "v");
+        if (!(times instanceof Array) || times.size() == 0) { return; }
 
-        var now = Time.now().value();
-        var shown = 0;
         var slots = 4;
         var y = h(dc) * 0.735;
         var span = w(dc) * 0.76;
         var x0 = (w(dc) - span) / 2;
-        for (var i = 0; i < pts.size() && shown < slots; i += 1) {
-            var p = pts[i];
-            if (!(p instanceof Dictionary)) { continue; }
-            var e = Api.get(p, "epochtime");
-            if (!(e instanceof Number) || e < now - 1800) { continue; }
-            var x = x0 + (span / slots) * shown + (span / slots) / 2;
+        var count = times.size() < slots ? times.size() : slots;
+        for (var i = 0; i < count; i += 1) {
+            var x = (x0 + (span / slots) * i + (span / slots) / 2).toNumber();
             dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
-            dc.drawText((x).toNumber(), (y).toNumber(), Graphics.FONT_XTINY, Fmt.clock(e), Graphics.TEXT_JUSTIFY_CENTER);
-            var t = Api.get(p, "temperature");
-            dc.setColor(Theme.tempColour(t), Graphics.COLOR_TRANSPARENT);
-            dc.drawText((x).toNumber(), (y + h(dc) * 0.055).toNumber(), Graphics.FONT_XTINY, Fmt.zero(t),
+            dc.drawText(x, y.toNumber(), Graphics.FONT_XTINY, Fmt.clock(times[i]),
                         Graphics.TEXT_JUSTIFY_CENTER);
-            shown += 1;
+            var t = temps[i];
+            dc.setColor(Theme.tempColour(t), Graphics.COLOR_TRANSPARENT);
+            dc.drawText(x, (y + h(dc) * 0.055).toNumber(), Graphics.FONT_XTINY, Fmt.zero(t),
+                        Graphics.TEXT_JUSTIFY_CENTER);
         }
     }
 
@@ -126,19 +129,18 @@ module Pages {
 
     function drawSea(dc as Graphics.Dc) as Void {
         var m = Api.marine;
-        var st = Api.get(m, "station");
-        var name = Api.get(st, "name");
-        header(dc, WatchUi.loadResource(Rez.Strings.PageSea) as String, name);
+        var name = Api.v(m, "stName");
+        header(dc, res(Rez.Strings.PageSea), name);
 
-        if (st == null) {
+        if (m == null) {
             if (!loading(dc, Api.marineState)) { message(dc, Rez.Strings.NoPhone); }
             return;
         }
 
         var cx = w(dc) / 2;
-        var ms = Api.get(st, "windspeedms");
-        var gust = Api.get(st, "windgust");
-        var dir = Api.get(st, "winddirection");
+        var ms = Api.v(m, "stWind");
+        var gust = Api.v(m, "stGust");
+        var dir = Api.v(m, "stDir");
 
         dc.setColor(Theme.windColour(ms, gust, Config.seaWind(), Config.seaGust()),
                     Graphics.COLOR_TRANSPARENT);
@@ -146,7 +148,7 @@ module Pages {
                     Graphics.TEXT_JUSTIFY_CENTER);
         dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
         dc.drawText((cx).toNumber(), (h(dc) * 0.48).toNumber(), Graphics.FONT_XTINY,
-                    Fmt.windUnitLabel() + "  " + WatchUi.loadResource(Rez.Strings.Gust) + " "
+                    Fmt.windUnitLabel() + "  " + res(Rez.Strings.Gust) + " "
                         + Fmt.windValue(gust),
                     Graphics.TEXT_JUSTIFY_CENTER);
 
@@ -155,13 +157,13 @@ module Pages {
         dc.drawText((cx + h(dc) * 0.10).toNumber(), (h(dc) * 0.595).toNumber(), Graphics.FONT_SMALL, Fmt.compass(dir),
                     Graphics.TEXT_JUSTIFY_LEFT);
 
-        var t = Api.get(st, "temperature");
+        var t = Api.v(m, "stTemp");
         dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
         dc.drawText((cx).toNumber(), (h(dc) * 0.73).toNumber(), Graphics.FONT_XTINY, Fmt.temp(t),
                     Graphics.TEXT_JUSTIFY_CENTER);
 
         dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
-        dc.drawText((cx).toNumber(), (h(dc) * 0.86).toNumber(), Graphics.FONT_XTINY, Fmt.age(Api.atOf(st, "windspeedms")),
+        dc.drawText((cx).toNumber(), (h(dc) * 0.86).toNumber(), Graphics.FONT_XTINY, Fmt.age(Api.v(m, "stAt")),
                     Graphics.TEXT_JUSTIFY_CENTER);
     }
 
@@ -169,52 +171,51 @@ module Pages {
 
     function drawBuoy(dc as Graphics.Dc) as Void {
         var m = Api.marine;
-        var wv = Api.get(m, "waves");
-        var mode = Api.get(m, "mode");
         var cx = w(dc) / 2;
+        var hasWave = Api.v(m, "hasWave") == true;
 
         var src = null;
-        if (wv != null) {
-            var measured = Api.get(wv, "measured");
-            src = (measured == true)
-                ? Api.get(wv, "name")
-                : WatchUi.loadResource(Rez.Strings.Modelled) as String;
+        if (hasWave) {
+            src = (Api.v(m, "wMeas") == true) ? Api.v(m, "wName") : res(Rez.Strings.Modelled);
         }
-        header(dc, WatchUi.loadResource(Rez.Strings.PageBuoy) as String, src);
+        header(dc, res(Rez.Strings.PageBuoy), src);
 
-        if (wv == null) {
+        if (!hasWave) {
             if (!loading(dc, Api.marineState)) { message(dc, Rez.Strings.NoBuoy); }
             return;
         }
 
-        var hs = Api.get(wv, "wave_height_m");
+        var hs = Api.v(m, "wHs");
         dc.setColor(Theme.waveColour(hs), Graphics.COLOR_TRANSPARENT);
         dc.drawText((cx).toNumber(), (h(dc) * 0.28).toNumber(), Graphics.FONT_NUMBER_MEDIUM, Fmt.metres(hs),
                     Graphics.TEXT_JUSTIFY_CENTER);
 
         // Period earns its place: 4 s chop and 8 s swell are different seas at
         // the same height (RESEARCH.md §17).
-        var per = Api.get(wv, "wave_period_s");
+        var per = Api.v(m, "wPer");
         dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
         dc.drawText((cx).toNumber(), (h(dc) * 0.49).toNumber(), Graphics.FONT_SMALL, Fmt.one(per == null ? 0 : per) + " s",
                     Graphics.TEXT_JUSTIFY_CENTER);
 
-        var dir = Api.get(wv, "wave_direction_deg");
+        var dir = Api.v(m, "wDir");
         arrow(dc, cx, h(dc) * 0.635, h(dc) * 0.05, dir);
         dc.setColor(Theme.INK, Graphics.COLOR_TRANSPARENT);
         dc.drawText((cx + h(dc) * 0.09).toNumber(), (h(dc) * 0.615).toNumber(), Graphics.FONT_XTINY, Fmt.compass(dir),
                     Graphics.TEXT_JUSTIFY_LEFT);
 
-        var water = Api.get(wv, "water_temp_c");
+        var water = Api.v(m, "wTemp");
         if (water != null) {
             dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
             dc.drawText((cx).toNumber(), (h(dc) * 0.745).toNumber(), Graphics.FONT_XTINY, Fmt.temp(water) + " ~",
                         Graphics.TEXT_JUSTIFY_CENTER);
         }
 
-        dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
-        dc.drawText((cx).toNumber(), (h(dc) * 0.86).toNumber(), Graphics.FONT_XTINY,
-                    (mode != null ? mode : "") , Graphics.TEXT_JUSTIFY_CENTER);
+        var dist = Api.v(m, "wDist");
+        if (dist != null) {
+            dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
+            dc.drawText((cx).toNumber(), (h(dc) * 0.86).toNumber(), Graphics.FONT_XTINY,
+                        Fmt.dist(dist), Graphics.TEXT_JUSTIFY_CENTER);
+        }
     }
 
     // -------------------------------------------------------------- shared
@@ -246,10 +247,12 @@ module Pages {
         dc.setPenWidth(1);
     }
 
+    function res2(id as ResourceId) as String { return WatchUi.loadResource(id) as String; }
+
     function message(dc as Graphics.Dc, res as ResourceId) as Void {
         dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
         dc.drawText((w(dc) / 2).toNumber(), (h(dc) / 2).toNumber(), Graphics.FONT_XTINY,
-                    WatchUi.loadResource(res) as String,
+                    res2(res),
                     Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 }

@@ -23,33 +23,32 @@ class FIWeatherGlanceView extends WatchUi.GlanceView {
     //! Resolves a configured slot to a label, value and colour.
     hidden function field(which as Number) as Array? {
         var land = Api.land;
-        var st = Api.get(Api.marine, "station");
-        var wv = Api.get(Api.marine, "waves");
+        var m = Api.marine;
 
         if (which == 0) {
-            var t = Api.get(land, "temperature");
+            var t = Api.v(land, "temp");
             return [Fmt.temp(t), Theme.tempColour(t)];
         } else if (which == 1) {
-            var ms = Api.get(land, "windspeedms");
-            var g = Api.get(land, "windgust");
+            var ms = Api.v(land, "wind");
+            var g = Api.v(land, "gust");
             return [Fmt.windValue(ms) + " " + Fmt.windUnitLabel(),
                     Theme.windColour(ms, g, Config.landWind(), Config.landGust())];
         } else if (which == 2) {
-            var sms = Api.get(st, "windspeedms");
-            var sg = Api.get(st, "windgust");
+            var sms = Api.v(m, "stWind");
+            var sg = Api.v(m, "stGust");
             // Mean and gust coloured together — splitting them implies a
             // distinction that does not exist (RESEARCH.md §17).
             return [Fmt.windValue(sms) + " (" + Fmt.windValue(sg) + ")",
                     Theme.windColour(sms, sg, Config.seaWind(), Config.seaGust())];
         } else if (which == 3) {
-            var g2 = Api.get(st, "windgust");
+            var g2 = Api.v(m, "stGust");
             return [Fmt.windValue(g2) + " " + Fmt.windUnitLabel(),
                     Theme.windColour(null, g2, Config.seaWind(), Config.seaGust())];
         } else if (which == 4) {
-            var hs = Api.get(wv, "wave_height_m");
+            var hs = Api.v(m, "wHs");
             return [Fmt.metres(hs), Theme.waveColour(hs)];
         } else if (which == 5) {
-            var wt = Api.get(wv, "water_temp_c");
+            var wt = Api.v(m, "wTemp");
             return [Fmt.temp(wt), Theme.INK];
         }
         return null;

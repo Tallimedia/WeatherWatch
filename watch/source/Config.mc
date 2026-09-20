@@ -4,6 +4,7 @@ import Toybox.Lang;
 //! Settings access, with defaults applied when a property is missing.
 //! Properties are phone-edited (Garmin Connect Mobile) and can be null on a
 //! fresh install before the first sync, so every read is guarded.
+(:glance)
 module Config {
 
     const BASE_URL = "https://weatherapp.tallimedia.com";

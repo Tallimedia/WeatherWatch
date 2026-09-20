@@ -1,33 +1,34 @@
 import Toybox.Application;
 import Toybox.Communications;
 import Toybox.Lang;
-import Toybox.System;
 import Toybox.PersistedContent;
+import Toybox.System;
 import Toybox.Time;
 import Toybox.WatchUi;
 
 //! Backend client.
 //!
-//! Every payload is deliberately small — Connect IQ starts failing around 32 kB
-//! and needs roughly twice the response size in free memory to parse it
-//! (RESEARCH.md §10). The backend does the reshaping so these stay in the
-//! hundreds of bytes.
+//! Responses are **normalised into a flat dictionary of primitives on receipt**
+//! rather than kept as the raw JSON. Two reasons, one of them learned the hard
+//! way: storing a deeply nested response dictionary in Application.Storage does
+//! not round-trip — reading it back faulted with "Illegal Access (Out of
+//! Bounds)" at startup. And a flat shape the app owns means the views never
+//! depend on the server's JSON layout.
 //!
-//! Results are cached in Application.Storage so a page that has loaded once
-//! keeps showing its last reading when the phone is out of range — which for a
-//! marine app is the normal case, not the edge case.
+//! Payloads are small by design; the backend does the reshaping so Connect IQ
+//! never has to parse more than a few hundred bytes (RESEARCH.md §10).
+(:glance)
 module Api {
 
     enum { STATE_IDLE, STATE_LOADING, STATE_OK, STATE_ERROR }
 
-    var land = null;        // /v1/observations + /v1/forecast
-    var forecast = null;
-    var marine = null;
+    var land as Dictionary? = null;
+    var forecast as Dictionary? = null;
+    var marine as Dictionary? = null;
 
     var landState = STATE_IDLE;
     var forecastState = STATE_IDLE;
     var marineState = STATE_IDLE;
-    var lastError = null;
 
     function options() as Dictionary {
         return {
@@ -37,8 +38,8 @@ module Api {
         };
     }
 
-    //! Two-letter language for the backend, so FMI returns weather text already
-    //! localised and the app never translates symbol codes itself.
+    //! FMI returns weather text already localised, so the app never translates
+    //! symbol codes itself (RESEARCH.md §16).
     function lang() as String {
         var l = System.getDeviceSettings().systemLanguage;
         if (l == System.LANGUAGE_FIN) { return "fi"; }
@@ -46,87 +47,134 @@ module Api {
         return "en";
     }
 
-    function cacheKey(name as String) as String { return "cache_" + name; }
+    // ------------------------------------------------------------ helpers
 
-    function remember(name as String, data as Dictionary) as Void {
-        try {
-            Application.Storage.setValue(cacheKey(name), data);
-            Application.Storage.setValue(cacheKey(name) + "_at", Time.now().value());
-        } catch (e) {
-            // Storage is a convenience; never let it break a working screen.
-        }
+    function pick(d, key as String) {
+        if (d instanceof Dictionary && d.hasKey(key)) { return d[key]; }
+        return null;
     }
 
-    function recall(name as String) as Dictionary? {
+    function pickIn(d, outer as String, inner as String) {
+        return pick(pick(d, outer), inner);
+    }
+
+    //! Coerce a JSON value to a Float, or null. Guards against a string or a
+    //! missing key reaching the drawing code.
+    function f(v) as Float? {
+        if (v instanceof Float) { return v; }
+        if (v instanceof Number) { return v.toFloat(); }
+        if (v instanceof Double) { return v.toFloat(); }
+        return null;
+    }
+
+    function n(v) as Number? {
+        if (v instanceof Number) { return v; }
+        if (v instanceof Float || v instanceof Double) { return v.toNumber(); }
+        return null;
+    }
+
+    function s(v) as String? {
+        if (v instanceof String) { return v; }
+        return null;
+    }
+
+    // -------------------------------------------------------------- cache
+
+    //! Offline cache. Keeps the last reading so a page survives the phone
+    //! going out of range — for a marine app that is the normal case, not the
+    //! edge case. Only flat dictionaries of primitives are stored.
+    function save(key as String, flat as Dictionary) as Void {
+        try { Application.Storage.setValue(key, flat); } catch (e) {}
+    }
+
+    function load(key as String) as Dictionary? {
         try {
-            var v = Application.Storage.getValue(cacheKey(name));
+            var v = Application.Storage.getValue(key);
             if (v instanceof Dictionary) { return v; }
         } catch (e) {}
         return null;
     }
 
-    function cachedAt(name as String) as Number? {
-        try {
-            var v = Application.Storage.getValue(cacheKey(name) + "_at");
-            if (v instanceof Number) { return v; }
-        } catch (e) {}
-        return null;
-    }
-
     function restore() as Void {
-        land = recall("land");
-        forecast = recall("forecast");
-        marine = recall("marine");
+        land = load("f_land");
+        forecast = load("f_fc");
+        marine = load("f_marine");
         if (land != null) { landState = STATE_OK; }
         if (forecast != null) { forecastState = STATE_OK; }
         if (marine != null) { marineState = STATE_OK; }
     }
+
+    // --------------------------------------------------------------- land
 
     function fetchLand() as Void {
         landState = STATE_LOADING;
         Communications.makeWebRequest(
             Config.BASE_URL + "/v1/observations",
             { "place" => Config.landPlace() },
-            options(),
-            new Lang.Method(Api, :onLand)
-        );
+            options(), new Lang.Method(Api, :onLand));
     }
 
     function onLand(code as Number,
                     data as Dictionary or String or PersistedContent.Iterator or Null) as Void {
         if (code == 200 && data instanceof Dictionary) {
-            land = data;
+            var flat = {
+                "name"  => s(pick(data, "stationname")),
+                "dist"  => f(pick(data, "distance")),
+                "temp"  => f(pick(data, "temperature")),
+                "wind"  => f(pick(data, "windspeedms")),
+                "gust"  => f(pick(data, "windgust")),
+                "dir"   => f(pick(data, "winddirection")),
+                "atT"   => n(pickIn(data, "at", "temperature")),
+                "atW"   => n(pickIn(data, "at", "windspeedms"))
+            };
+            land = flat;
             landState = STATE_OK;
-            remember("land", data);
+            save("f_land", flat);
         } else {
             landState = STATE_ERROR;
-            lastError = code;
         }
         WatchUi.requestUpdate();
     }
+
+    // ----------------------------------------------------------- forecast
 
     function fetchForecast() as Void {
         forecastState = STATE_LOADING;
         Communications.makeWebRequest(
             Config.BASE_URL + "/v1/forecast",
             { "place" => Config.landPlace(), "hours" => 48, "step" => 360, "lang" => lang() },
-            options(),
-            new Lang.Method(Api, :onForecast)
-        );
+            options(), new Lang.Method(Api, :onForecast));
     }
 
     function onForecast(code as Number,
-                    data as Dictionary or String or PersistedContent.Iterator or Null) as Void {
+                        data as Dictionary or String or PersistedContent.Iterator or Null) as Void {
         if (code == 200 && data instanceof Dictionary) {
-            forecast = data;
+            // Parallel arrays of primitives rather than an array of dictionaries:
+            // same round-trip reason as above.
+            var times = [] as Array<Number>;
+            var temps = [] as Array<Float>;
+            var pts = pick(data, "points");
+            if (pts instanceof Array) {
+                var now = Time.now().value();
+                for (var i = 0; i < pts.size() && times.size() < 4; i += 1) {
+                    var e = n(pick(pts[i], "epochtime"));
+                    var t = f(pick(pts[i], "temperature"));
+                    if (e == null || t == null || e < now - 1800) { continue; }
+                    times.add(e);
+                    temps.add(t);
+                }
+            }
+            var flat = { "t" => times, "v" => temps };
+            forecast = flat;
             forecastState = STATE_OK;
-            remember("forecast", data);
+            save("f_fc", flat);
         } else {
             forecastState = STATE_ERROR;
-            lastError = code;
         }
         WatchUi.requestUpdate();
     }
+
+    // ------------------------------------------------------------- marine
 
     function fetchMarine() as Void {
         marineState = STATE_LOADING;
@@ -134,19 +182,37 @@ module Api {
         var buoy = Config.seaBuoy();
         if (buoy > 0) { params["buoy_fmisid"] = buoy; }
         Communications.makeWebRequest(
-            Config.BASE_URL + "/v1/marine", params, options(), new Lang.Method(Api, :onMarine)
-        );
+            Config.BASE_URL + "/v1/marine", params, options(), new Lang.Method(Api, :onMarine));
     }
 
     function onMarine(code as Number,
-                    data as Dictionary or String or PersistedContent.Iterator or Null) as Void {
+                      data as Dictionary or String or PersistedContent.Iterator or Null) as Void {
         if (code == 200 && data instanceof Dictionary) {
-            marine = data;
+            var st = pick(data, "station");
+            var wv = pick(data, "waves");
+            var measured = pick(wv, "measured");
+            var flat = {
+                "mode"    => s(pick(data, "mode")),
+                "stName"  => s(pick(st, "name")),
+                "stWind"  => f(pick(st, "windspeedms")),
+                "stGust"  => f(pick(st, "windgust")),
+                "stDir"   => f(pick(st, "winddirection")),
+                "stTemp"  => f(pick(st, "temperature")),
+                "stAt"    => n(pickIn(st, "at", "windspeedms")),
+                "hasWave" => wv != null,
+                "wMeas"   => measured == true,
+                "wName"   => s(pick(wv, "name")),
+                "wDist"   => f(pick(wv, "distance_km")),
+                "wHs"     => f(pick(wv, "wave_height_m")),
+                "wPer"    => f(pick(wv, "wave_period_s")),
+                "wDir"    => f(pick(wv, "wave_direction_deg")),
+                "wTemp"   => f(pick(wv, "water_temp_c"))
+            };
+            marine = flat;
             marineState = STATE_OK;
-            remember("marine", data);
+            save("f_marine", flat);
         } else {
             marineState = STATE_ERROR;
-            lastError = code;
         }
         WatchUi.requestUpdate();
     }
@@ -157,23 +223,10 @@ module Api {
         fetchMarine();
     }
 
-    //! Safe nested read: d["a"]["b"] without exploding on a missing key.
-    function get(d as Dictionary?, key as String) {
+    //! Read a normalised field. Everything the views draw goes through here.
+    function v(d as Dictionary?, key as String) {
         if (d == null) { return null; }
         if (!d.hasKey(key)) { return null; }
         return d[key];
-    }
-
-    function getIn(d as Dictionary?, outer as String, inner as String) {
-        var o = get(d, outer);
-        if (o instanceof Dictionary) { return get(o, inner); }
-        return null;
-    }
-
-    //! Per-field measurement time from the `at` map.
-    function atOf(d as Dictionary?, field as String) as Number? {
-        var v = getIn(d, "at", field);
-        if (v instanceof Number) { return v; }
-        return null;
     }
 }

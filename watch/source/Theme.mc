@@ -3,6 +3,7 @@ import Toybox.Lang;
 
 //! Colours. Thresholds drive these, so a breached reading stands out without
 //! the user reading the number (RESEARCH.md §17).
+(:glance)
 module Theme {
     const INK = Graphics.COLOR_WHITE;
     const DIM = Graphics.COLOR_LT_GRAY;
