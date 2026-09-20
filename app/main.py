@@ -12,13 +12,20 @@ with charts off for production.
 from __future__ import annotations
 
 import time
+from datetime import datetime, timedelta
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query
 
 from . import config, stations
 from .cache import cache
-from .fmi import FMIError, timeseries, wave_observations, wfs_timevaluepair
+from .fmi import (
+    FMIError,
+    timeseries,
+    wave_observations,
+    wfs_simple,
+    wfs_timevaluepair,
+)
 from .geo import bearing_deg, compass_8, haversine_km
 
 app = FastAPI(
@@ -429,6 +436,62 @@ if config.ENABLE_CHARTS:
                 row = rows.setdefault(point["time"], {"time": point["time"]})
                 row[parameter] = point["value"]
         return {"rows": [rows[k] for k in sorted(rows)], "attribution": ATTRIBUTION}
+
+    @app.get("/v1/buoy-series")
+    async def buoy_series(
+        fmisid: int = Query(103976),
+        start: str = Query(...),
+        end: str = Query(...),
+    ) -> dict:
+        """Wave-buoy time series for one buoy.
+
+        **Not available through the JSON timeseries endpoint at all** — asking
+        `producer=opendata` for `WaveHs` returns a full set of null rows rather
+        than an error, which is exactly the kind of plausible-looking failure
+        this project keeps running into (RESEARCH.md §4). WFS is the only route.
+
+        `bbox` is ignored by this stored query, so every buoy in Finland comes
+        back and the requested one is selected by position here.
+        """
+        buoy = stations.by_id(fmisid)
+        if buoy is None or buoy not in stations.WAVE_BUOYS:
+            raise HTTPException(status_code=404, detail=f"unknown wave buoy {fmisid}")
+
+        # An unbounded range is genuinely expensive: 1.5 days across all buoys is
+        # already ~3 MB of XML.
+        try:
+            span = datetime.fromisoformat(end.replace("Z", "+00:00")) - datetime.fromisoformat(
+                start.replace("Z", "+00:00")
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="start/end must be ISO times") from exc
+        if span > timedelta(days=31):
+            raise HTTPException(
+                status_code=400,
+                detail="range too long for buoy data (max 31 days) — the WFS response "
+                "grows to tens of megabytes",
+            )
+
+        async def fetch() -> list[dict]:
+            elements = await wfs_simple(
+                "fmi::observations::wave::simple", starttime=start, endtime=end
+            )
+            rows: dict[str, dict] = {}
+            for element in elements:
+                if haversine_km(buoy.lat, buoy.lon, element["lat"], element["lon"]) > 5.0:
+                    continue
+                row = rows.setdefault(element["time"], {"time": element["time"]})
+                row[element["parameter"]] = element["value"]
+            return [rows[key] for key in sorted(rows)]
+
+        try:
+            rows = await cache.aget_or_set(
+                f"buoyseries:{fmisid}:{start}:{end}", config.TTL_MARINE, fetch
+            )
+        except FMIError as exc:
+            raise _fail(exc) from exc
+        return {"buoy": {"fmisid": buoy.fmisid, "name": buoy.name}, "rows": rows,
+                "attribution": ATTRIBUTION}
 
     @app.get("/v1/buoys")
     async def buoy_registry() -> dict:

@@ -21,15 +21,13 @@ const CHARTS = [
 
   { id: "waves", title: "Wave height at the chosen buoy",
     q: "What is a normal wave height here, and what counts as high?",
-    source: (c) => ({ fmisid: c.buoy, producer: "opendata",
-                      params: "WaveHs,WTP", step: 60 }),
+    buoy: true,
     series: [ { key: "WaveHs", label: "Significant height", unit: "m" },
               { key: "WTP",    label: "Period",             unit: "s" } ] },
 
   { id: "wavedir", title: "Wave direction and spread",
     q: "Does WHDD (spread) ever say anything useful, or is ModalWDi enough?",
-    source: (c) => ({ fmisid: c.buoy, producer: "opendata",
-                      params: "ModalWDi,WHDD", step: 60 }),
+    buoy: true,
     series: [ { key: "ModalWDi", label: "Direction (ModalWDi)", unit: "°" },
               { key: "WHDD",     label: "Spread (WHDD)",        unit: "°" } ] },
 
@@ -44,8 +42,7 @@ const CHARTS = [
 
   { id: "water", title: "Sea water temperature",
     q: "Does the buoy's water temperature earn a line on the watch?",
-    source: (c) => ({ fmisid: c.buoy, producer: "opendata",
-                      params: "TWATER", step: 180 }),
+    buoy: true,
     series: [ { key: "TWATER", label: "Water", unit: "°C" } ] },
 
   { id: "ice", title: "Sea ice thickness (winter only)",
@@ -147,7 +144,14 @@ async function load() {
     host.appendChild(fig);
     try {
       let rows;
-      if (c.ice) {
+      if (c.buoy) {
+        // Buoy observations are WFS-only — the JSON timeseries endpoint returns
+        // all-null rows for WaveHs rather than an error (RESEARCH.md §4).
+        const r = await fetch(`/v1/buoy-series?fmisid=${cfg.buoy}` +
+                              `&start=${cfg.start}T00:00:00Z&end=${cfg.end}T00:00:00Z`);
+        if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+        rows = (await r.json()).rows.map((x) => ({ ...x, epochtime: Date.parse(x.time) / 1000 }));
+      } else if (c.ice) {
         // Ice has no JSON producer at all — WFS only (RESEARCH.md §18).
         const r = await fetch(`/v1/ice-series?place=${encodeURIComponent(cfg.place)}` +
                               `&start=${cfg.start}T00:00:00Z&end=${cfg.end}T00:00:00Z`);
