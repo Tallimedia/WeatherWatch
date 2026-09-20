@@ -20,6 +20,44 @@ function symbolInfo(code) {
    and silently wrong by 2-3 hours (RESEARCH.md §2). Display is Europe/Helsinki
    regardless of where the viewer sits — this is Finnish weather, so Finnish
    local time is the meaningful clock, not the browser's. */
+/* Page strings in the three v1 languages. Weather descriptions are NOT here —
+   FMI returns those already localised via `smartsymboltext`, so the app only
+   ever translates its own chrome (RESEARCH.md §16). */
+const STR = {
+  en: { language:"Language", landPlace:"Land place", seaStation:"Sea station", waveBuoy:"Wave buoy",
+        from:"From", to:"To", load:"Load", loading:"Loading…",
+        d3:"Last 3 days", d14:"Last 14 days", d60:"Last 60 days",
+        ice:"Feb 2026 — ice season", storm:"19 Sep — storm",
+        wind:"Wind", gust:"Gust", humidity:"Humidity", pressure:"Pressure",
+        away:"km away", justNow:"just now", minAgo:"min ago", hAgo:"h ago",
+        gLand:"Land", gSea:"Sea station", gBuoy:"Wave buoy", gIce:"Sea ice",
+        noData:"No data in this range — expected for seasonal sensors.",
+        raw:"Raw JSON", latest:"latest", subtitle:"FMI open data, as the backend serves it. For understanding what the values do — not a preview of the watch UI.",
+        foot:"Data: Finnish Meteorological Institute, CC BY 4.0. Buoys are lifted out of the water roughly December–April, so gaps in winter are expected rather than faults. Times are Finnish local time (Europe/Helsinki)." },
+  fi: { language:"Kieli", landPlace:"Paikkakunta", seaStation:"Merihavaintoasema", waveBuoy:"Aaltopoiju",
+        from:"Alkaen", to:"Asti", load:"Hae", loading:"Ladataan…",
+        d3:"3 vrk", d14:"14 vrk", d60:"60 vrk",
+        ice:"Helmikuu 2026 — jääkausi", storm:"19.9. — ukkonen",
+        wind:"Tuuli", gust:"Puuska", humidity:"Kosteus", pressure:"Paine",
+        away:"km päässä", justNow:"juuri nyt", minAgo:"min sitten", hAgo:"h sitten",
+        gLand:"Maa", gSea:"Merihavaintoasema", gBuoy:"Aaltopoiju", gIce:"Merijää",
+        noData:"Ei havaintoja tällä aikavälillä — odotettua kausiluonteisilta antureilta.",
+        raw:"Raakadata (JSON)", latest:"viimeisin", subtitle:"Ilmatieteen laitoksen avointa dataa sellaisena kuin taustapalvelu sen tarjoaa. Arvojen ymmärtämiseen — ei esikatselu kellon käyttöliittymästä.",
+        foot:"Data: Ilmatieteen laitos, CC BY 4.0. Aaltopoijut nostetaan vedestä suunnilleen joulu–huhtikuuksi, joten talven katkot ovat odotettuja eivätkä vikoja. Ajat Suomen aikaa (Europe/Helsinki)." },
+  sv: { language:"Språk", landPlace:"Ort", seaStation:"Havsstation", waveBuoy:"Vågboj",
+        from:"Från", to:"Till", load:"Hämta", loading:"Laddar…",
+        d3:"3 dygn", d14:"14 dygn", d60:"60 dygn",
+        ice:"Februari 2026 — issäsong", storm:"19 sep — åska",
+        wind:"Vind", gust:"By", humidity:"Fuktighet", pressure:"Lufttryck",
+        away:"km bort", justNow:"just nu", minAgo:"min sedan", hAgo:"h sedan",
+        gLand:"Land", gSea:"Havsstation", gBuoy:"Vågboj", gIce:"Havsis",
+        noData:"Inga data i detta intervall — väntat för säsongsgivare.",
+        raw:"Rådata (JSON)", latest:"senaste", subtitle:"Meteorologiska institutets öppna data, som backend levererar dem. För att förstå vad värdena gör — inte en förhandsvisning av klockans gränssnitt.",
+        foot:"Data: Meteorologiska institutet, CC BY 4.0. Vågbojarna tas upp ur vattnet ungefär december–april, så luckor på vintern är väntade och inte fel. Tider i finsk lokaltid (Europe/Helsinki)." },
+};
+let LANG = localStorage.getItem("fiw-lang") || "fi";
+const T = (k) => (STR[LANG] && STR[LANG][k]) || STR.en[k];
+
 const TZ = "Europe/Helsinki";
 const _hhmm = new Intl.DateTimeFormat("en-GB",
   { timeZone: TZ, hour: "2-digit", minute: "2-digit", hour12: false });
@@ -72,7 +110,7 @@ const CHARTS = [
   { id: "symbols", group: null, title: "Weather symbols in this forecast",
     q: "Which smartsymbol codes actually occur — i.e. which icons need drawing?",
     forecast: true, symbols: true,
-    source: (c) => ({ place: c.place, params: "smartsymbol", step: 180 }),
+    source: (c) => ({ place: c.place, params: "smartsymbol,smartsymboltext", step: 180 }),
     series: [ { key: "smartsymbol", label: "Symbol", unit: "" } ] },
 
   { id: "wind", group: "Sea station", title: "Sea wind and gust",
@@ -118,9 +156,48 @@ const CHARTS = [
 
 const COLORS = ["var(--s1)", "var(--s2)", "var(--s3)"];
 
+/* Chart titles and the question each answers, per language. */
+const CHART_TEXT = {
+  landwind: { en:["Land wind and gust","The land threshold default — how much lower is it than at sea?"],
+              fi:["Tuuli ja puuska maalla","Maan raja-arvon oletus — kuinka paljon merta matalampi?"],
+              sv:["Vind och byar på land","Standardgränsen för land — hur mycket lägre än till havs?"] },
+  landrain: { en:["Land rainfall","Does hourly precipitation carry enough signal to show on the watch?"],
+              fi:["Sade maalla","Kertooko tuntisade tarpeeksi, jotta se kannattaa näyttää kellossa?"],
+              sv:["Nederbörd på land","Säger timnederbörden tillräckligt för att visas på klockan?"] },
+  forecast: { en:["Land forecast — next 10 days","What the watch's page 1 draws on. Forward-looking, so it ignores the date range above."],
+              fi:["Ennuste — seuraavat 10 vrk","Kellon sivun 1 lähde. Katsoo eteenpäin, joten yllä oleva aikaväli ei vaikuta."],
+              sv:["Prognos — nästa 10 dygn","Källan för klockans sida 1. Framåtblickande, så datumintervallet ovan gäller inte."] },
+  fcrain:   { en:["Forecast rainfall — next 10 days","How far out does the forecast still show meaningful precipitation?"],
+              fi:["Sade-ennuste — 10 vrk","Kuinka pitkälle ennuste näyttää vielä merkityksellistä sadetta?"],
+              sv:["Nederbördsprognos — 10 dygn","Hur långt fram visar prognosen fortfarande meningsfull nederbörd?"] },
+  symbols:  { en:["Weather symbols in this forecast","Which smartsymbol codes actually occur — i.e. which icons need drawing?"],
+              fi:["Sääsymbolit tässä ennusteessa","Mitkä smartsymbol-koodit oikeasti esiintyvät — eli mitkä kuvakkeet tarvitaan?"],
+              sv:["Vädersymboler i prognosen","Vilka smartsymbol-koder förekommer faktiskt — vilka ikoner behövs?"] },
+  wind:     { en:["Sea wind and gust","How do mean and gust relate — and what gust value should the default threshold be?"],
+              fi:["Tuuli ja puuska merellä","Miten keskituuli ja puuska suhteutuvat — mikä olisi puuskan oletusraja?"],
+              sv:["Vind och byar till havs","Hur förhåller sig medelvind och by — vilket byvärde bör vara standardgräns?"] },
+  landsea:  { en:["Land vs sea air temperature","How far apart are the two stations — do they justify separate thresholds?"],
+              fi:["Ilman lämpötila maalla ja merellä","Kuinka kaukana asemat ovat toisistaan — tarvitaanko erilliset raja-arvot?"],
+              sv:["Lufttemperatur land mot hav","Hur långt isär ligger stationerna — motiverar de skilda gränsvärden?"] },
+  waves:    { en:["Wave height at the chosen buoy","What is a normal wave height here, and what counts as high?"],
+              fi:["Aallonkorkeus valitulla poijulla","Mikä on täällä tavallinen aallonkorkeus, ja mikä on korkea?"],
+              sv:["Våghöjd vid vald boj","Vad är normal våghöjd här, och vad räknas som högt?"] },
+  wavedir:  { en:["Wave direction and spread","Does WHDD (spread) ever say anything useful, or is ModalWDi enough?"],
+              fi:["Aallon suunta ja hajonta","Kertooko WHDD (hajonta) mitään hyödyllistä, vai riittääkö ModalWDi?"],
+              sv:["Vågriktning och spridning","Säger WHDD (spridning) något nyttigt, eller räcker ModalWDi?"] },
+  water:    { en:["Sea water temperature","Does the buoy's water temperature earn a line on the watch?"],
+              fi:["Meriveden lämpötila","Ansaitseeko poijun veden lämpötila rivin kellossa?"],
+              sv:["Havsvattnets temperatur","Förtjänar bojens vattentemperatur en rad på klockan?"] },
+  ice:      { en:["Sea ice thickness (winter only)","How does ice build and decay? Weekly readings — empty outside late Nov–late Apr."],
+              fi:["Merijään paksuus (vain talvella)","Miten jää kasvaa ja sulaa? Viikoittaiset havainnot — tyhjä muulloin kuin marras–huhtikuussa."],
+              sv:["Havsisens tjocklek (endast vinter)","Hur byggs isen upp och bryts ner? Veckovisa mätningar — tomt utanför nov–april."] },
+};
+const chartText = (id) => (CHART_TEXT[id] && (CHART_TEXT[id][LANG] || CHART_TEXT[id].en)) || ["", ""];
+
 async function fetchSeries(args, start, end) {
   const p = new URLSearchParams({ start: start + "T00:00:00Z", end: end + "T00:00:00Z" });
   for (const [k, v] of Object.entries(args)) if (v !== undefined && v !== null) p.set(k, v);
+  p.set("lang", LANG);
   const r = await fetch("/v1/series?" + p);
   if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
   return r.json();
@@ -158,7 +235,7 @@ function draw(fig, rows, series) {
 function drawPanel(fig, rows, series, pts, COLORS) {
   if (!pts.some((p) => p.length)) {
     fig.querySelector(".plot").innerHTML =
-      '<p class="msg">No data in this range — expected for seasonal sensors.</p>';
+      `<p class="msg">${T("noData")}</p>`;
     return;
   }
   const all = pts.flat();
@@ -203,7 +280,7 @@ function drawPanel(fig, rows, series, pts, COLORS) {
     const q = (f) => vals[Math.floor((vals.length - 1) * f)];
     return `<div><span style="color:${COLORS[i]}">${s.label}</span>
       <b>${fmt(latest)} ${s.unit}</b>
-      latest · min ${fmt(vals[0])} · median ${fmt(q(0.5))} · p90 ${fmt(q(0.9))} · max ${fmt(vals[vals.length - 1])}</div>`;
+      ${T("latest")} · min ${fmt(vals[0])} · median ${fmt(q(0.5))} · p90 ${fmt(q(0.9))} · max ${fmt(vals[vals.length - 1])}</div>`;
   }).join("");
 
   const svg = fig.querySelector("svg"), cross = svg.querySelector(".cross");
@@ -224,10 +301,12 @@ function drawPanel(fig, rows, series, pts, COLORS) {
 
 function drawSymbols(fig, rows) {
   const counts = new Map();
+  const fmiText = new Map();   // FMI's own localised description, when present
   for (const r of rows) {
     const code = r.smartsymbol;
     if (code === null || code === undefined) continue;
     counts.set(code, (counts.get(code) || 0) + 1);
+    if (r.smartsymboltext) fmiText.set(code, r.smartsymboltext);
   }
   if (!counts.size) {
     fig.querySelector(".plot").innerHTML = '<p class="msg">No symbols in this range.</p>';
@@ -239,7 +318,7 @@ function drawSymbols(fig, rows) {
   const rowsHtml = sorted.map(([code, n]) => {
     const info = symbolInfo(code);
     const night = code > 100;
-    const label = info ? info.t : null;
+    const label = fmiText.get(code) || (info ? info.t : null);
     if (!label) unmapped.push(code);
     const pct = Math.round((n / total) * 100);
     return `<tr>
@@ -307,28 +386,33 @@ async function loadWidget(cfg) {
   try {
     const [obs, fc] = await Promise.all([
       fetch(`/v1/observations?place=${encodeURIComponent(cfg.place)}`).then((r) => r.json()),
-      fetch(`/v1/forecast?place=${encodeURIComponent(cfg.place)}&hours=24&step=60`).then((r) => r.json()),
+      fetch(`/v1/forecast?place=${encodeURIComponent(cfg.place)}&hours=24&step=60&lang=${LANG}`)
+        .then((r) => r.json()),
     ]);
     const now = Math.floor(Date.now() / 1000);
     const ahead = (fc.points || []).filter((p) => p.epochtime >= now - 1800).slice(0, 12);
     const sym = symbolInfo(ahead.length ? ahead[0].smartsymbol : null);
     const age = obs.age_seconds;
     const ageTxt = age == null ? "" :
-      age < 90 ? "just now" : age < 5400 ? `${Math.round(age / 60)} min ago` : `${Math.round(age / 3600)} h ago`;
+      age < 90 ? T("justNow")
+      : age < 5400 ? `${Math.round(age / 60)} ${T("minAgo")}`
+      : `${Math.round(age / 3600)} ${T("hAgo")}`;
 
     host.innerHTML = `
       <div class="now">
         <div>${icon(sym ? sym.c : "unknown", sym ? sym.night : false, 68)}</div>
         <div>
           <div class="temp">${fmt(obs.temperature, 1)}°C</div>
-          <div class="desc">${sym ? sym.t : "—"}</div>
-          <div class="where">${obs.stationname ?? "—"} · ${fmt(obs.distance, 1)} km away · ${ageTxt}</div>
+          <div class="desc">${ahead.length && ahead[0].smartsymboltext
+              ? ahead[0].smartsymboltext.replace(/^./, (m) => m.toUpperCase())
+              : (sym ? sym.t : "—")}</div>
+          <div class="where">${obs.stationname ?? "—"} · ${fmt(obs.distance, 1)} ${T("away")} · ${ageTxt}</div>
         </div>
         <div class="facts">
-          <div>Wind<b>${fmt(obs.windspeedms, 1)} m/s</b>${obs.windcompass8 ?? ""}</div>
-          <div>Gust<b>${fmt(obs.windgust, 1)} m/s</b></div>
-          <div>Humidity<b>${fmt(obs.humidity, 0)}%</b></div>
-          <div>Pressure<b>${fmt(obs.pressure, 0)} hPa</b></div>
+          <div>${T("wind")}<b>${fmt(obs.windspeedms, 1)} m/s</b>${obs.windcompass8 ?? ""}</div>
+          <div>${T("gust")}<b>${fmt(obs.windgust, 1)} m/s</b></div>
+          <div>${T("humidity")}<b>${fmt(obs.humidity, 0)}%</b></div>
+          <div>${T("pressure")}<b>${fmt(obs.pressure, 0)} hPa</b></div>
         </div>
       </div>
       <div class="today">
@@ -347,6 +431,19 @@ async function loadWidget(cfg) {
   }
 }
 
+
+function applyStrings() {
+  document.documentElement.lang = LANG;
+  const set = (id, k) => { const e = $(id); if (e) e.textContent = T(k); };
+  set("#l-lang", "language"); set("#l-place", "landPlace"); set("#l-station", "seaStation");
+  set("#l-buoy", "waveBuoy"); set("#l-from", "from"); set("#l-to", "to");
+  set("#go", "load"); set("#subtitle", "subtitle"); set("#foot", "foot");
+  const keys = ["d3", "d14", "d60", "ice", "storm"];
+  document.querySelectorAll(".presets button").forEach((b, i) => {
+    if (keys[i]) b.textContent = T(keys[i]);
+  });
+}
+
 async function load() {
   const cfg = { station: $("#station").value, buoy: $("#buoy").value,
                 place: $("#place").value.trim(), start: $("#start").value, end: $("#end").value };
@@ -355,16 +452,18 @@ async function load() {
   for (const c of CHARTS) {
     if (c.group) {
       const h = document.createElement("h2");
-      h.textContent = c.group;
+      h.textContent = T({ Land: "gLand", "Sea station": "gSea",
+                          "Wave buoy": "gBuoy", "Sea ice": "gIce" }[c.group]);
       h.className = "group";
       host.appendChild(h);
     }
     const fig = document.createElement("figure");
-    fig.innerHTML = `<figcaption>${c.title}</figcaption><p class="q">${c.q}</p>
+    const [title, question] = chartText(c.id);
+    fig.innerHTML = `<figcaption>${title}</figcaption><p class="q">${question}</p>
       <div class="legend">${c.series.map((s, i) => `<span><i style="background:${COLORS[i]}"></i>${s.label}</span>`).join("")}</div>
-      <div class="plot"><p class="msg">Loading…</p></div>
+      <div class="plot"><p class="msg">${T("loading")}</p></div>
       <div class="stats"></div>
-      <details><summary>Raw JSON</summary><pre></pre></details>`;
+      <details><summary>${T("raw")}</summary><pre></pre></details>`;
     host.appendChild(fig);
     try {
       let rows;
@@ -414,6 +513,14 @@ async function load() {
   const now = new Date();
   $("#end").value = iso(new Date(now.getTime() + 864e5));
   $("#start").value = iso(new Date(now.getTime() - 3 * 864e5));
+  $("#lang").value = LANG;
+  $("#lang").addEventListener("change", (e) => {
+    LANG = e.target.value;
+    try { localStorage.setItem("fiw-lang", LANG); } catch (_) {}
+    applyStrings();
+    load();
+  });
+  applyStrings();
   $("#go").addEventListener("click", load);
   document.querySelectorAll(".presets button").forEach((b) => b.addEventListener("click", () => {
     if (b.dataset.range) { const [a, z] = b.dataset.range.split(","); $("#start").value = a; $("#end").value = z; }

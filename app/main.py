@@ -41,6 +41,9 @@ ATTRIBUTION = "Finnish Meteorological Institute, CC BY 4.0"
 _FORECAST_PARAMS = [
     "temperature",
     "smartsymbol",
+    # FMI serves the weather description already localised in fi/sv/en, so the
+    # app never has to translate symbol codes itself (RESEARCH.md §16).
+    "smartsymboltext",
     "windspeedms",
     "hourlymaximumgust",
     "winddirection",
@@ -106,6 +109,7 @@ async def forecast(
     lon: float | None = None,
     hours: int = Query(48, ge=3, le=240),
     step: int = Query(180, ge=60, le=1440, description="Minutes between points"),
+    lang: str = Query("en", pattern="^(fi|sv|en)$"),
 ) -> dict:
     """Land forecast for a place or point.
 
@@ -115,10 +119,10 @@ async def forecast(
     """
     if place is None and (lat is None or lon is None):
         place = config.DEFAULT_PLACE
-    key = f"fc:{place}:{lat}:{lon}:{hours}:{step}"
+    key = f"fc:{place}:{lat}:{lon}:{hours}:{step}:{lang}"
 
     async def fetch() -> list[dict]:
-        query: dict[str, Any] = {"timestep": step, "hours": hours}
+        query: dict[str, Any] = {"timestep": step, "hours": hours, "lang": lang}
         if place is not None:
             query["place"] = place
         else:
@@ -382,6 +386,7 @@ if config.ENABLE_CHARTS:
         start: str = Query(..., description="Absolute ISO time, e.g. 2026-02-01T00:00:00Z"),
         end: str = Query(..., description="Absolute ISO time"),
         step: int = Query(60, ge=10, le=10080, description="Minutes"),
+        lang: str = Query("en", pattern="^(fi|sv|en)$"),
     ) -> dict:
         """Arbitrary time series, for exploration only.
 
@@ -392,7 +397,8 @@ if config.ENABLE_CHARTS:
 
         This endpoint is prototype-only and is not sized for the watch.
         """
-        query: dict[str, Any] = {"starttime": start, "endtime": end, "timestep": step}
+        query: dict[str, Any] = {"starttime": start, "endtime": end, "timestep": step,
+                                 "lang": lang}
         if producer:
             query["producer"] = producer
         if fmisid is not None:

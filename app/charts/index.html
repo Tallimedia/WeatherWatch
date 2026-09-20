@@ -113,17 +113,17 @@
 <body>
 <div class="wrap">
   <h1>FIWeatherWatch — data explorer</h1>
-  <p class="sub">
-    FMI open data, as the backend serves it. For understanding what the values do —
-    not a preview of the watch UI.
-  </p>
+  <p class="sub" id="subtitle"></p>
 
   <div class="controls">
-    <div><label for="place">Land place</label><input id="place" value="Helsinki" size="12"></div>
-    <div><label for="station">Sea station</label><select id="station"></select></div>
-    <div><label for="buoy">Wave buoy</label><select id="buoy"></select></div>
-    <div><label for="start">From</label><input id="start" type="date"></div>
-    <div><label for="end">To</label><input id="end" type="date"></div>
+    <div><label for="lang" id="l-lang">Language</label><select id="lang">
+      <option value="fi">Suomi</option><option value="sv">Svenska</option><option value="en">English</option>
+    </select></div>
+    <div><label for="place" id="l-place">Land place</label><input id="place" value="Helsinki" size="12"></div>
+    <div><label for="station" id="l-station">Sea station</label><select id="station"></select></div>
+    <div><label for="buoy" id="l-buoy">Wave buoy</label><select id="buoy"></select></div>
+    <div><label for="start" id="l-from">From</label><input id="start" type="date"></div>
+    <div><label for="end" id="l-to">To</label><input id="end" type="date"></div>
     <div><button id="go">Load</button></div>
   </div>
 
@@ -139,11 +139,7 @@
 
   <div id="charts"></div>
 
-  <p class="foot">
-    Data: Finnish Meteorological Institute, CC BY 4.0.
-    Buoys are lifted out of the water roughly December–April, so gaps in winter are
-    expected rather than faults. Times are Finnish local time (Europe/Helsinki).
-  </p>
+  <p class="foot" id="foot"></p>
 </div>
 <div class="tip" id="tip"></div>
 <script src="/charts/app.js"></script>
