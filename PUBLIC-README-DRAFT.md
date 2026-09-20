@@ -102,5 +102,13 @@ separate simulator profile.
 
 ## Licence
 
-Code: see [`LICENSE`](LICENSE).
-Weather data: © Finnish Meteorological Institute, CC BY 4.0.
+**Code** — [PolyForm Noncommercial 1.0.0](LICENSE). Use it, change it, share it
+for any noncommercial purpose; selling it is reserved.
+
+**Weather data** — © Finnish Meteorological Institute, licensed
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The two are separate:
+FMI's licence permits commercial use of the *data*, and nothing here restricts
+that. The noncommercial terms cover this project's own code only.
+
+Attribution to FMI is required wherever the data is shown, which is why it
+appears on the watch's About page as well as here.
