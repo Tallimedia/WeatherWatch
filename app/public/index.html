@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FIWeatherWatch</title>
+<meta name="description" content="Finnish weather, sea conditions and wave data on your Garmin watch. Official Finnish Meteorological Institute data.">
+<style>
+  :root {
+    color-scheme: light;
+    --plane:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+    --line:#e1e0d9; --s1:#2a78d6; --s2:#eb6834; --s4:#eda100;
+    --cloud:#c3c2b7; --cloud-2:#a9a89f;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --plane:#0d0d0d; --surface:#1a1a19; --ink:#fff; --ink-2:#c3c2b7; --muted:#898781;
+    --line:#2c2c2a; --s1:#3987e5; --s2:#d95926; --s4:#c98500;
+    --cloud:#52514e; --cloud-2:#6b6a64;
+  } }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--plane);color:var(--ink);padding:0 16px 64px;
+       font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+  .wrap{max-width:760px;margin:0 auto}
+  header{padding:44px 0 26px}
+  h1{font-size:2rem;margin:0 0 6px;letter-spacing:-0.02em}
+  .tag{color:var(--ink-2);margin:0;font-size:1.05rem}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+        padding:18px;margin-bottom:16px}
+  .pick{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:16px}
+  label{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;
+        color:var(--muted);margin-bottom:3px}
+  select,input{font:inherit;padding:7px 10px;border-radius:8px;border:1px solid var(--line);
+               background:var(--surface);color:var(--ink)}
+  .now{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+  .temp{font-size:3rem;font-weight:650;letter-spacing:-.02em;line-height:1;
+        font-variant-numeric:tabular-nums}
+  .desc{color:var(--ink-2);margin-top:3px}
+  .where{color:var(--muted);font-size:.8rem;margin-top:4px}
+  .facts{display:flex;gap:20px;flex-wrap:wrap;margin-left:auto;font-size:.82rem;color:var(--ink-2)}
+  .facts b{display:block;color:var(--ink);font-size:1.1rem;font-weight:600;
+           font-variant-numeric:tabular-nums}
+  .facts .at{display:block;color:var(--muted);font-size:.7rem;font-variant-numeric:tabular-nums}
+  .today{display:flex;gap:4px;margin-top:18px;padding-top:15px;border-top:1px solid var(--line);
+         overflow-x:auto}
+  .today .h{flex:1 0 60px;text-align:center;font-size:.78rem;color:var(--ink-2)}
+  .today .h .t{color:var(--muted);font-size:.72rem}
+  .today .h .v{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}
+  .today .h .w{color:var(--muted);font-size:.7rem}
+  h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);
+     margin:26px 0 10px;font-weight:600}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:16px}
+  .grid div span{font-size:.8rem;color:var(--ink-2)}
+  .grid div b{display:block;font-size:1.35rem;font-weight:650;font-variant-numeric:tabular-nums}
+  .grid div .at{display:block;color:var(--muted);font-size:.7rem}
+  .note{color:var(--muted);font-size:.8rem;margin-top:12px}
+  ul{padding-left:20px;color:var(--ink-2)} li{margin:5px 0}
+  footer{border-top:1px solid var(--line);margin-top:34px;padding-top:16px;
+         color:var(--muted);font-size:.8rem}
+  a{color:var(--s1)}
+  .msg{color:var(--muted);font-size:.9rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>FIWeatherWatch</h1>
+    <p class="tag">Finnish weather, sea conditions and wave data on your Garmin watch —
+       straight from the Finnish Meteorological Institute.</p>
+  </header>
+
+  <div class="pick">
+    <div><label for="place">Place</label><input id="place" value="Helsinki" size="14"></div>
+    <div><label for="station">Sea station</label><select id="station"></select></div>
+    <div><label for="buoy">Wave buoy</label><select id="buoy"></select></div>
+  </div>
+
+  <div class="card" id="widget"><p class="msg">Loading…</p></div>
+
+  <h2>At sea</h2>
+  <div class="card" id="marine"><p class="msg">Loading…</p></div>
+
+  <h2>What the app shows</h2>
+  <div class="card">
+    <ul>
+      <li>Current conditions and a 10-day forecast for your place, with the reporting
+          station named and its distance shown.</li>
+      <li>Wind and gusts from the Finnish marine station you choose — Harmaja, Utö,
+          Kalbådagrund and 20 others.</li>
+      <li>Wave height, period, direction and sea water temperature from FMI's wave buoys.</li>
+      <li>Your own wind, gust and wave limits, so the number turns red when it matters
+          to you.</li>
+      <li>Finnish, Swedish and English.</li>
+    </ul>
+    <p class="note">Wave buoys are lifted out of the water roughly December–April, so wave
+       readings are seasonal. Everything above is live on this page — it is the same data
+       the watch receives.</p>
+  </div>
+
+  <footer>
+    Weather data: <a href="https://en.ilmatieteenlaitos.fi/open-data">Finnish Meteorological
+    Institute</a> open data, licensed
+    <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.
+    FIWeatherWatch is an independent project and is not affiliated with or endorsed by FMI
+    or Garmin. Times shown in Finnish local time.
+  </footer>
+</div>
+<script src="/web/common.js"></script>
+<script src="/public/site.js"></script>
+</body>
+</html>

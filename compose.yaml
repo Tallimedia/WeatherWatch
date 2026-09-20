@@ -13,3 +13,4 @@ services:
       # Charts are the internal prototype only (RESEARCH.md §19).
       # Production leaves this unset/false.
       ENABLE_CHARTS: "${ENABLE_CHARTS:-false}"
+      ENABLE_PUBLIC: "${ENABLE_PUBLIC:-false}"

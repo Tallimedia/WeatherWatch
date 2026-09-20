@@ -387,13 +387,39 @@ async def glance(
 # Enabled only on the internal deployment (RESEARCH.md §19). Production runs the
 # same image with ENABLE_CHARTS unset, so none of this is routed there.
 
-if config.ENABLE_CHARTS:
+# --- Web front ends ---------------------------------------------------------
+# Two distinct sites, each behind its own flag (RESEARCH.md §19):
+#   ENABLE_PUBLIC   the public weather page — what the watch shows, live
+#   ENABLE_CHARTS   the internal research explorer — LAN-only, never public
+# A deploy with neither flag set is an API and nothing else.
+
+if config.ENABLE_PUBLIC or config.ENABLE_CHARTS:
     from pathlib import Path
 
     from fastapi.responses import FileResponse
     from fastapi.staticfiles import StaticFiles
 
-    _CHARTS_DIR = Path(__file__).parent / "charts"
+    _HERE = Path(__file__).parent
+
+    @app.get("/v1/stations")
+    async def stations_list() -> dict:
+        """Marine stations and wave buoys, for the pickers on both pages."""
+        return {
+            "marine_stations": [
+                {"fmisid": s.fmisid, "name": s.name, "lat": s.lat, "lon": s.lon}
+                for s in stations.MARINE_STATIONS
+            ],
+            "wave_buoys": [
+                {"fmisid": s.fmisid, "name": s.name, "lat": s.lat, "lon": s.lon}
+                for s in stations.WAVE_BUOYS
+            ],
+        }
+
+    app.mount("/web", StaticFiles(directory=_HERE / "web"), name="web")
+
+
+if config.ENABLE_CHARTS:
+
 
     @app.get("/v1/series")
     async def series(
@@ -437,6 +463,7 @@ if config.ENABLE_CHARTS:
             raise _fail(exc) from exc
         return {"params": wanted, "rows": rows, "attribution": ATTRIBUTION}
 
+
     @app.get("/v1/ice-series")
     async def ice_series(
         place: str = Query("Helsinki"),
@@ -462,6 +489,7 @@ if config.ENABLE_CHARTS:
                 row = rows.setdefault(point["time"], {"time": point["time"]})
                 row[parameter] = point["value"]
         return {"rows": [rows[k] for k in sorted(rows)], "attribution": ATTRIBUTION}
+
 
     @app.get("/v1/buoy-series")
     async def buoy_series(
@@ -519,22 +547,22 @@ if config.ENABLE_CHARTS:
         return {"buoy": {"fmisid": buoy.fmisid, "name": buoy.name}, "rows": rows,
                 "attribution": ATTRIBUTION}
 
-    @app.get("/v1/buoys")
-    async def buoy_registry() -> dict:
-        """The buoy and marine-station lists, so the page can build its pickers."""
-        return {
-            "marine_stations": [
-                {"fmisid": s.fmisid, "name": s.name, "lat": s.lat, "lon": s.lon}
-                for s in stations.MARINE_STATIONS
-            ],
-            "wave_buoys": [
-                {"fmisid": s.fmisid, "name": s.name, "lat": s.lat, "lon": s.lon}
-                for s in stations.WAVE_BUOYS
-            ],
-        }
+
+
+    app.mount("/charts", StaticFiles(directory=_HERE / "charts", html=True), name="charts")
+
+
+if config.ENABLE_PUBLIC:
 
     @app.get("/")
-    async def charts_index() -> FileResponse:
-        return FileResponse(_CHARTS_DIR / "index.html")
+    async def public_index() -> FileResponse:
+        return FileResponse(_HERE / "public" / "index.html")
 
-    app.mount("/charts", StaticFiles(directory=_CHARTS_DIR, html=True), name="charts")
+    app.mount("/public", StaticFiles(directory=_HERE / "public", html=True), name="public")
+
+
+elif config.ENABLE_CHARTS:
+
+    @app.get("/")
+    async def charts_root() -> FileResponse:
+        return FileResponse(_HERE / "charts" / "index.html")
