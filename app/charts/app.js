@@ -16,6 +16,21 @@ function symbolInfo(code) {
   return null;
 }
 
+/* Data layer is epoch/UTC everywhere, because FMI's bare `time` field is local
+   and silently wrong by 2-3 hours (RESEARCH.md §2). Display is Europe/Helsinki
+   regardless of where the viewer sits — this is Finnish weather, so Finnish
+   local time is the meaningful clock, not the browser's. */
+const TZ = "Europe/Helsinki";
+const _hhmm = new Intl.DateTimeFormat("en-GB",
+  { timeZone: TZ, hour: "2-digit", minute: "2-digit", hour12: false });
+const _hour = new Intl.DateTimeFormat("en-GB",
+  { timeZone: TZ, hour: "2-digit", hour12: false });
+const _daytime = new Intl.DateTimeFormat("en-GB",
+  { timeZone: TZ, day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false });
+const localHour = (epoch) => _hour.format(new Date(epoch * 1000));
+const localTime = (epoch) => _hhmm.format(new Date(epoch * 1000));
+const localStamp = (epoch) => _daytime.format(new Date(epoch * 1000));
+
 const $ = (s) => document.querySelector(s);
 const tip = $("#tip");
 const PAD = { l: 46, r: 14, t: 10, b: 26 };
@@ -163,7 +178,7 @@ function drawPanel(fig, rows, series, pts, COLORS) {
   const lx = [];
   for (let i = 0; i <= 3; i++) {
     const t = t0 + ((t1 - t0) * i) / 3;
-    lx.push(`<text x="${x(t)}" y="${H - 8}" text-anchor="middle" fill="var(--muted)" font-size="11">${new Date(t * 1000).toISOString().slice(5, 16).replace("T", " ")}</text>`);
+    lx.push(`<text x="${x(t)}" y="${H - 8}" text-anchor="middle" fill="var(--muted)" font-size="11">${localStamp(t)}</text>`);
   }
   const paths = pts.map((p, i) =>
     p.length
@@ -197,7 +212,7 @@ function drawPanel(fig, rows, series, pts, COLORS) {
     const t = t0 + ((e.clientX - box.left) / box.width * W - PAD.l) / (W - PAD.l - PAD.r) * (t1 - t0);
     cross.setAttribute("x1", x(t)); cross.setAttribute("x2", x(t)); cross.setAttribute("opacity", "1");
     const near = pts.map((p) => p.length ? p.reduce((a, b) => Math.abs(b.t - t) < Math.abs(a.t - t) ? b : a) : null);
-    tip.innerHTML = `${new Date((near.find(Boolean) || {}).t * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC<br>` +
+    tip.innerHTML = `${localStamp((near.find(Boolean) || {}).t)}<br>` +
       series.map((s, i) => near[i] ? `<span style="color:${COLORS[i]}">■</span> ${s.label} <b>${fmt(near[i].v)}</b> ${s.unit}` : "").filter(Boolean).join("<br>");
     tip.style.left = Math.min(e.clientX + 14, innerWidth - 190) + "px";
     tip.style.top = e.clientY - 10 + "px"; tip.style.opacity = "1";
@@ -319,9 +334,8 @@ async function loadWidget(cfg) {
       <div class="today">
         ${ahead.map((p) => {
           const i = symbolInfo(p.smartsymbol);
-          const d = new Date(p.epochtime * 1000);
           return `<div class="h" title="${i ? i.t : ""}">
-            <div class="t">${String(d.getUTCHours()).padStart(2, "0")}Z</div>
+            <div class="t">${localHour(p.epochtime)}</div>
             ${icon(i ? i.c : "unknown", i ? i.night : false, 30)}
             <div class="v">${fmt(p.temperature, 0)}°</div>
             <div class="w">${fmt(p.windspeedms, 0)}<span style="opacity:.6">/${fmt(p.hourlymaximumgust, 0)}</span></div>
