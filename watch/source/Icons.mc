@@ -71,29 +71,45 @@ module Icons {
     //! wide, shallow shape and needs the room; the layout has to know that or
     //! the icon runs under the text beside it.
     function widthFactor(kind as Symbol) as Float {
-        if (kind == :wave) { return 1.45; }
+        if (kind == :wave) { return 1.25; }
         return 1.0;
     }
 
-    //! Waves: one thick band, crest-trough-crest across the width.
-    //! Earlier versions failed in instructive ways — two arcs side by side read
-    //! as something else entirely, two stacked arcs read as hills, and a
-    //! narrow sine folded into chevrons. A single wide band is unambiguous at
-    //! 12 px and has no second line to collide with.
+    //! Wave height: a rippled surface with an arrow reaching up to it.
+    //!
+    //! This says *height of the water*, where a bare ripple only says water —
+    //! which matters on a page whose headline number is significant wave
+    //! height. Drawn with a narrow stroke; the thick-bar version of the same
+    //! shape loses its gaps at this size and turns into a blob.
+    //!
+    //! Earlier attempts, kept on record: two arcs side by side read as
+    //! something else entirely, two stacked arcs read as hills, and a narrow
+    //! sine in a square box folded into chevrons for want of horizontal room.
     function wave(dc as Graphics.Dc, x as Number, y as Number, s as Number, colour as Number) as Void {
         dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
-        var pen = (s * 0.30).toNumber();
-        if (pen < 3) { pen = 3; }
+        var pen = (s * 0.13).toNumber();
+        if (pen < 2) { pen = 2; }
         dc.setPenWidth(pen);
-        ripple(dc, x, y + s / 2, (s * widthFactor(:wave)).toNumber());
+
+        var width = (s * widthFactor(:wave)).toNumber();
+        ripple(dc, x, y + (s * 0.26).toNumber(), width);
+
+        // Arrow rising toward the surface.
+        var cx = x + width / 2;
+        var tipY = y + (s * 0.50).toNumber();
+        var baseY = y + s;
+        var wing = (s * 0.24).toNumber();
+        dc.drawLine(cx, baseY, cx, tipY);
+        dc.drawLine(cx - wing, tipY + wing, cx, tipY);
+        dc.drawLine(cx + wing, tipY + wing, cx, tipY);
         dc.setPenWidth(1);
     }
 
     //! One sine period across the width, trough first so it leads with water
     //! rather than with a hill.
     function ripple(dc as Graphics.Dc, x as Number, midY as Number, s as Number) as Void {
-        var amp = (s * 0.19).toFloat();
-        if (amp < 2) { amp = 2; }
+        var amp = (s * 0.13).toFloat();
+        if (amp < 1.5) { amp = 1.5; }
         var steps = 16;   // enough segments that the curve reads as curved
         var prevX = x;
         var prevY = midY + amp;   // start in a trough
