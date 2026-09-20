@@ -434,6 +434,63 @@ async def marine(
     }
 
 
+@app.get("/v1/marine-series")
+async def marine_series(
+    fmisid: int = Query(config.DEFAULT_SEA_FMISID, description="Marine station id"),
+    hours: int = Query(12, ge=1, le=48),
+) -> dict:
+    """Recent wind at a marine station: mean and gust, for a trend line.
+
+    The point of this endpoint is the shape, not the numbers — a rising 12
+    hours reads very differently from a falling one at the same current speed.
+    /v1/marine deliberately returns only the latest reading because that is all
+    the watch can hold; this exists for the web page, which has room.
+
+    Sampled every 20 minutes rather than every reading: Harmaja republishes
+    wind once a minute, which is 720 points for a line a few hundred pixels
+    wide, and the extra resolution is invisible.
+    """
+    station = stations.by_id(fmisid)
+    if station is None or station not in stations.MARINE_STATIONS:
+        raise HTTPException(status_code=404, detail=f"unknown marine station {fmisid}")
+
+    async def fetch() -> list[dict]:
+        return await timeseries(
+            ["windspeedms", "windgust"],
+            producer="opendata",
+            fmisid=fmisid,
+            starttime=f"-{hours}h",
+            timestep=20,
+        )
+
+    try:
+        rows, retrieved = await cache.aget_or_set_entry(
+            f"marineseries:{fmisid}:{hours}", config.TTL_OBSERVATIONS, fetch
+        )
+    except FMIError as exc:
+        raise _fail(exc) from exc
+
+    # Rows with neither value are gaps in the record, not zeroes — dropping
+    # them keeps a sensor outage from being drawn as a lull.
+    points = [
+        {
+            "t": int(r["epochtime"]),
+            "wind": r.get("windspeedms"),
+            "gust": r.get("windgust"),
+        }
+        for r in rows
+        if r.get("epochtime") is not None
+        and (r.get("windspeedms") is not None or r.get("windgust") is not None)
+    ]
+    return {
+        "station": {"fmisid": station.fmisid, "name": station.name},
+        "hours": hours,
+        "points": points,
+        "retrieved": retrieved,
+        "attribution": ATTRIBUTION,
+    }
+
+
 @app.get("/v1/glance")
 async def glance(
     place: str = Query(config.DEFAULT_PLACE, max_length=config.MAX_PLACE_LEN),

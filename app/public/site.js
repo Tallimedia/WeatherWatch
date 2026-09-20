@@ -24,7 +24,7 @@ STR = {
     footNote:"FIWeatherWatch on itsenäinen projekti, ei Ilmatieteen laitoksen eikä Garminin tukema. Ajat Suomen aikaa. Kehitysvaiheessa — jaettu palautetta varten.",
     unavailable:"Sää ei ole hetkellisesti saatavilla", noPlace:"Paikkakunnalle ei löytynyt havaintoasemaa", tryNearby:"Kokeile lähikaupunkia.",
     noBuoy:"ei havaitsevaa poijua", modelled:"WAM-malli — ei mitattu", away:"km päässä",
-    rain:"Sade", rainNone:"ei sadetta", justNow:"juuri nyt", minAgo:"min sitten", hAgo:"h sitten", retrieved:"Haettu", loading:"Ladataan…",
+    trend:"Tuuli, 12 viime tuntia", mean:"Keskituuli", noTrend:"Ei tuulihistoriaa saatavilla", rain:"Sade", rainNone:"ei sadetta", justNow:"juuri nyt", minAgo:"min sitten", hAgo:"h sitten", retrieved:"Haettu", loading:"Ladataan…",
   },
   sv: {
     heroA:"Finlands väder,", heroB:"på land och till havs.",
@@ -49,7 +49,7 @@ STR = {
     footNote:"FIWeatherWatch är ett fristående projekt, utan koppling till Meteorologiska institutet eller Garmin. Tider i finsk lokaltid. Under utveckling — delad för återkoppling.",
     unavailable:"Vädret är tillfälligt otillgängligt", noPlace:"Ingen väderstation hittades för", tryNearby:"Prova en närliggande ort.",
     noBuoy:"ingen aktiv boj", modelled:"WAM-modell — inte uppmätt", away:"km bort",
-    rain:"Nederbörd", rainNone:"inget regn", justNow:"just nu", minAgo:"min sedan", hAgo:"h sedan", retrieved:"Hämtad", loading:"Laddar…",
+    trend:"Vind, senaste 12 timmarna", mean:"Medelvind", noTrend:"Ingen vindhistorik tillgänglig", rain:"Nederbörd", rainNone:"inget regn", justNow:"just nu", minAgo:"min sedan", hAgo:"h sedan", retrieved:"Hämtad", loading:"Laddar…",
   },
   en: {
     heroA:"Finnish weather,", heroB:"land and sea.",
@@ -74,7 +74,7 @@ STR = {
     footNote:"FIWeatherWatch is an independent project, not affiliated with or endorsed by the Finnish Meteorological Institute or Garmin. Times in Finnish local time. In development — shared for feedback.",
     unavailable:"Weather is briefly unavailable", noPlace:"No weather station found for", tryNearby:"Try a nearby town.",
     noBuoy:"no buoy reporting", modelled:"WAM model — not measured", away:"km away",
-    rain:"Rain", rainNone:"no rain", justNow:"just now", minAgo:"min ago", hAgo:"h ago", retrieved:"Retrieved", loading:"Loading…",
+    trend:"Wind, last 12 hours", mean:"Mean", noTrend:"No wind history available", rain:"Rain", rainNone:"no rain", justNow:"just now", minAgo:"min ago", hAgo:"h ago", retrieved:"Retrieved", loading:"Loading…",
   },
 };
 function storedLang() { try { return localStorage.getItem("fiw-lang"); } catch (_) { return null; } }
@@ -228,9 +228,150 @@ function applyStrings() {
   if (b && b.options.length) b.options[0].textContent = T("nearest");
 }
 
+/* Wind trend: mean and gust over the last 12 hours, from the same station
+   record as the sea box above — same producer, same fmisid, same two
+   parameters, just more rows.
+
+   Mean and gust are not two independent categories; the gust is the upper
+   envelope of the same wind. So the band between them is filled: its height
+   is the gust headroom, which is the part a sailor reads. Both lines are
+   still drawn and labelled, because the ask was for both.
+
+   Colours are two steps of the site's own accent ramp, checked rather than
+   chosen by eye: CVD separation dE 28.8, normal-vision 29.2, and both above
+   3:1 against the panel. */
+const TREND = { mean: "#1d2d3d", gust: "#597ea3", band: "#b5d9fd", w: 720, h: 190 };
+
+function trendPath(points, key, x, y) {
+  let d = "", pen = false;
+  for (const p of points) {
+    const v = p[key];
+    if (v == null) { pen = false; continue; }   // a gap stays a gap
+    d += `${pen ? "L" : "M"}${x(p.t).toFixed(1)} ${y(v).toFixed(1)} `;
+    pen = true;
+  }
+  return d.trim();
+}
+
+function renderTrend(data) {
+  const pts = (data.points || []).filter((p) => p.wind != null || p.gust != null);
+  if (pts.length < 2) return `<p class="msg">${T("noTrend")}</p>`;
+
+  const { w, h } = TREND;
+  const pad = { t: 16, r: 54, b: 26, l: 34 };
+  const t0 = pts[0].t, t1 = pts[pts.length - 1].t;
+  const peak = Math.max(...pts.map((p) => Math.max(p.gust ?? 0, p.wind ?? 0)));
+  // Round the top up to a whole number of m/s so the gridlines are readable
+  // values rather than whatever the maximum happened to be.
+  const top = Math.max(4, Math.ceil(peak + 0.5));
+  const x = (t) => pad.l + ((t - t0) / Math.max(1, t1 - t0)) * (w - pad.l - pad.r);
+  const y = (v) => pad.t + (1 - v / top) * (h - pad.t - pad.b);
+
+  // Band between mean and gust, closed back along the mean.
+  const withBoth = pts.filter((p) => p.wind != null && p.gust != null);
+  const band = withBoth.length > 1
+    ? "M" + withBoth.map((p) => `${x(p.t).toFixed(1)} ${y(p.gust).toFixed(1)}`).join(" L")
+      + " L" + withBoth.slice().reverse().map((p) => `${x(p.t).toFixed(1)} ${y(p.wind).toFixed(1)}`).join(" L") + " Z"
+    : "";
+
+  const step = top <= 8 ? 2 : top <= 16 ? 4 : 5;
+  let grid = "";
+  for (let v = 0; v <= top; v += step) {
+    grid += `<line x1="${pad.l}" y1="${y(v).toFixed(1)}" x2="${w - pad.r}" y2="${y(v).toFixed(1)}"
+               stroke="var(--color-divider)" stroke-width="1"></line>
+             <text x="${pad.l - 6}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end"
+               font-size="11" fill="var(--color-neutral-600)">${v}</text>`;
+  }
+
+  // Hour marks every three hours, on the hour.
+  let ticks = "";
+  for (const p of pts) {
+    const d = new Date(p.t * 1000);
+    if (d.getMinutes() !== 0 || d.getHours() % 3 !== 0) continue;
+    ticks += `<text x="${x(p.t).toFixed(1)}" y="${h - 8}" text-anchor="middle"
+                font-size="11" fill="var(--color-neutral-600)">${String(d.getHours()).padStart(2, "0")}</text>`;
+  }
+
+  const last = pts[pts.length - 1];
+  const endLabel = (v, colour, dy) => v == null ? "" :
+    `<text x="${w - pad.r + 6}" y="${(y(v) + dy).toFixed(1)}" font-size="12" font-weight="600"
+       fill="${colour}" font-variant-numeric="tabular-nums">${v.toFixed(1)}</text>`;
+
+  return `
+    <div class="trend-head">
+      <span class="trend-title">${T("trend")}</span>
+      <span class="trend-key"><i style="background:${TREND.mean}"></i>${T("mean")}</span>
+      <span class="trend-key"><i style="background:${TREND.gust}"></i>${T("gust")}</span>
+      <span class="trend-read" id="trend-read"></span>
+    </div>
+    <svg viewBox="0 0 ${w} ${h}" class="trend-svg" role="img"
+         aria-label="${T("trend")}, ${T("mean")} ${fmt(last.wind, 1)} m/s, ${T("gust")} ${fmt(last.gust, 1)} m/s">
+      ${grid}${ticks}
+      ${band ? `<path d="${band}" fill="${TREND.band}" opacity=".5"></path>` : ""}
+      <path d="${trendPath(pts, "gust", x, y)}" fill="none" stroke="${TREND.gust}" stroke-width="2"
+            stroke-linejoin="round" stroke-linecap="round"></path>
+      <path d="${trendPath(pts, "wind", x, y)}" fill="none" stroke="${TREND.mean}" stroke-width="2"
+            stroke-linejoin="round" stroke-linecap="round"></path>
+      ${endLabel(last.gust, TREND.gust, -6)}${endLabel(last.wind, TREND.mean, 14)}
+      <line id="trend-cross" x1="0" y1="${pad.t}" x2="0" y2="${h - pad.b}"
+            stroke="var(--color-neutral-600)" stroke-width="1" opacity="0"></line>
+      <rect x="${pad.l}" y="0" width="${w - pad.l - pad.r}" height="${h}" fill="transparent"
+            id="trend-hit"></rect>
+    </svg>
+    <p class="note">${data.station.name} · ${T("footData")} ${data.attribution}</p>`;
+}
+
+async function loadMarineTrend(fmisid) {
+  const host = $("#marine-trend");
+  if (!host) return;
+  try {
+    const data = await jget(`/v1/marine-series?fmisid=${fmisid}&hours=12`);
+    host.innerHTML = renderTrend(data);
+    wireTrendHover(host, data);
+  } catch (err) {
+    host.innerHTML = `<p class="msg">${T("noTrend")}</p>`;
+  }
+}
+
+/* Hover readout. An SVG line chart with no way to interrogate a point makes
+   the reader guess at values between the gridlines. */
+function wireTrendHover(host, data) {
+  const svg = host.querySelector(".trend-svg");
+  const hit = host.querySelector("#trend-hit");
+  const cross = host.querySelector("#trend-cross");
+  const read = host.querySelector("#trend-read");
+  if (!svg || !hit || !read) return;
+  const pts = (data.points || []).filter((p) => p.wind != null || p.gust != null);
+  const t0 = pts[0].t, t1 = pts[pts.length - 1].t;
+  const { w } = TREND, pad = { l: 34, r: 54 };
+
+  function at(evt) {
+    const box = svg.getBoundingClientRect();
+    const sx = ((evt.clientX - box.left) / box.width) * w;      // client px -> viewBox units
+    const frac = (sx - pad.l) / (w - pad.l - pad.r);
+    const target = t0 + frac * (t1 - t0);
+    let best = pts[0];
+    for (const p of pts) if (Math.abs(p.t - target) < Math.abs(best.t - target)) best = p;
+    return best;
+  }
+  function show(evt) {
+    const p = at(evt);
+    const px = pad.l + ((p.t - t0) / Math.max(1, t1 - t0)) * (w - pad.l - pad.r);
+    cross.setAttribute("x1", px); cross.setAttribute("x2", px);
+    cross.setAttribute("opacity", ".35");
+    read.textContent = `${localHour(p.t)} · ${T("mean")} ${fmt(p.wind, 1)} · ${T("gust")} ${fmt(p.gust, 1)} m/s`;
+  }
+  function hide() { cross.setAttribute("opacity", "0"); read.textContent = ""; }
+  hit.addEventListener("mousemove", show);
+  hit.addEventListener("mouseleave", hide);
+  hit.addEventListener("touchmove", (e) => { show(e.touches[0]); }, { passive: true });
+  hit.addEventListener("touchend", hide);
+}
+
 function refresh() {
   loadNow($("#place").value.trim() || "Helsinki");
   loadMarine($("#station").value, $("#buoy").value);
+  loadMarineTrend($("#station").value);
 }
 
 (async function init() {
