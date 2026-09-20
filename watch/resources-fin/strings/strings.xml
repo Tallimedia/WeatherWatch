@@ -1,0 +1,80 @@
+<strings>
+    <string id="AppName">FIWeatherWatch</string>
+
+    <!-- Setting groups -->
+    <string id="GroupLand">Maa</string>
+    <string id="GroupSea">Meri</string>
+    <string id="GroupDisplay">Näyttö</string>
+    <string id="GroupUnits">Yksiköt</string>
+
+    <!-- Land -->
+    <string id="SetLandPlace">Paikka</string>
+    <string id="SetLandPlaceDesc">Kunta tai kaupunki. Mikä tahansa suomalainen paikannimi käy.</string>
+    <string id="SetLandWind">Tuuliraja (m/s)</string>
+    <string id="SetLandWindDesc">Tätä kovempi tuuli korostetaan. Puuskaraja on +3 m/s.</string>
+    <string id="SetLandCold">Kylmä alle (°C)</string>
+    <string id="SetLandColdDesc">Tätä kylmempi lämpötila näytetään sinisenä.</string>
+    <string id="SetLandHot">Kuuma yli (°C)</string>
+    <string id="SetLandHotDesc">Tätä lämpimämpi lämpötila näytetään punaisena.</string>
+
+    <!-- Sea -->
+    <string id="SetSeaStation">Merisääasema</string>
+    <string id="SetSeaStationDesc">Suomalainen merisääasema.</string>
+    <string id="SetSeaBuoy">Aaltopoiju</string>
+    <string id="SetSeaBuoyDesc">Jätä Automaattinen-asetukseen, jolloin käytetään lähintä mittaavaa poijua.</string>
+    <string id="SetSeaWind">Tuuliraja (m/s)</string>
+    <string id="SetSeaWindDesc">Tätä kovempi tuuli korostetaan. Puuskaraja on +5 m/s.</string>
+    <string id="SetSeaWave">Aallonkorkeuden raja (m)</string>
+    <string id="SetSeaWaveDesc">Tätä suurempi merkitsevä aallonkorkeus korostetaan.</string>
+
+    <!-- Display -->
+    <string id="SetPageOrder">Maa vai meri ensin</string>
+    <string id="SetPageOrderDesc">Mille sivulle sovellus avautuu.</string>
+    <string id="OrderLand">Maa ensin</string>
+    <string id="OrderSea">Meri ensin</string>
+    <string id="SetGlance1">Vilkaisun tieto 1</string>
+    <string id="SetGlance2">Vilkaisun tieto 2</string>
+
+    <!-- Glance field choices -->
+    <string id="FieldLandTemp">Lämpötila maalla</string>
+    <string id="FieldLandWind">Tuuli maalla</string>
+    <string id="FieldSeaWind">Merituuli + puuska</string>
+    <string id="FieldSeaGust">Puuska merellä</string>
+    <string id="FieldWave">Aallonkorkeus</string>
+    <string id="FieldWater">Veden lämpötila</string>
+    <string id="FieldNone">Ei mitään</string>
+
+    <!-- Units -->
+    <string id="SetWindUnit">Tuuli</string>
+    <string id="SetDistUnit">Etäisyys</string>
+    <string id="UnitMs">m/s</string>
+    <string id="UnitKn">solmua</string>
+    <string id="UnitBft">Beaufort</string>
+    <string id="UnitKm">km</string>
+    <string id="UnitNm">meripeninkulmaa</string>
+
+    <!-- Automatic buoy -->
+    <string id="BuoyAuto">Automaattinen (lähin)</string>
+
+    <!-- In-app -->
+    <string id="Loading">Ladataan…</string>
+    <string id="NoPhone">Ei yhteyttä</string>
+    <string id="NoPlace">Paikkaa ei löydy</string>
+    <string id="Offline">Viimeisin lukema</string>
+    <string id="PageLand">Maa</string>
+    <string id="PageSea">Meri</string>
+    <string id="PageBuoy">Aallot</string>
+    <string id="Gust">puuska</string>
+    <string id="WaterTemp">Vesi</string>
+    <string id="Period">Jakso</string>
+    <!-- Glance captions: short enough for half a glance column -->
+    <string id="GLand">Maa</string>
+    <string id="GLandWind">Tuuli maalla</string>
+    <string id="GSeaWind">Merituuli</string>
+    <string id="GSeaGust">Puuska</string>
+    <string id="GWave">Aallot</string>
+    <string id="GWater">Vesi</string>
+    <string id="Modelled">mallinnettu</string>
+    <string id="NoBuoy">Ei poijutietoa</string>
+    <string id="Attribution">Lähde: Ilmatieteen laitos</string>
+</strings>

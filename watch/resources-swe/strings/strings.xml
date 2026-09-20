@@ -1,0 +1,80 @@
+<strings>
+    <string id="AppName">FIWeatherWatch</string>
+
+    <!-- Setting groups -->
+    <string id="GroupLand">Land</string>
+    <string id="GroupSea">Hav</string>
+    <string id="GroupDisplay">Visning</string>
+    <string id="GroupUnits">Enheter</string>
+
+    <!-- Land -->
+    <string id="SetLandPlace">Ort</string>
+    <string id="SetLandPlaceDesc">Kommun eller stad. Vilket finskt ortnamn som helst fungerar.</string>
+    <string id="SetLandWind">Vindgräns (m/s)</string>
+    <string id="SetLandWindDesc">Vind över detta framhävs. Bygränsen är +3 m/s.</string>
+    <string id="SetLandCold">Kallt under (°C)</string>
+    <string id="SetLandColdDesc">Temperatur under detta visas i blått.</string>
+    <string id="SetLandHot">Varmt över (°C)</string>
+    <string id="SetLandHotDesc">Temperatur över detta visas i rött.</string>
+
+    <!-- Sea -->
+    <string id="SetSeaStation">Sjöväderstation</string>
+    <string id="SetSeaStationDesc">Finsk sjöväderstation.</string>
+    <string id="SetSeaBuoy">Vågboj</string>
+    <string id="SetSeaBuoyDesc">Lämna på Automatisk för att använda närmaste boj som rapporterar.</string>
+    <string id="SetSeaWind">Vindgräns (m/s)</string>
+    <string id="SetSeaWindDesc">Vind över detta framhävs. Bygränsen är +5 m/s.</string>
+    <string id="SetSeaWave">Våghöjdsgräns (m)</string>
+    <string id="SetSeaWaveDesc">Signifikant våghöjd över detta framhävs.</string>
+
+    <!-- Display -->
+    <string id="SetPageOrder">Land eller hav först</string>
+    <string id="SetPageOrderDesc">Vilken sida appen öppnas på.</string>
+    <string id="OrderLand">Land först</string>
+    <string id="OrderSea">Hav först</string>
+    <string id="SetGlance1">Överblicksdata 1</string>
+    <string id="SetGlance2">Överblicksdata 2</string>
+
+    <!-- Glance field choices -->
+    <string id="FieldLandTemp">Temperatur på land</string>
+    <string id="FieldLandWind">Vind på land</string>
+    <string id="FieldSeaWind">Havsvind + by</string>
+    <string id="FieldSeaGust">By till havs</string>
+    <string id="FieldWave">Våghöjd</string>
+    <string id="FieldWater">Vattentemperatur</string>
+    <string id="FieldNone">Ingen</string>
+
+    <!-- Units -->
+    <string id="SetWindUnit">Vind</string>
+    <string id="SetDistUnit">Avstånd</string>
+    <string id="UnitMs">m/s</string>
+    <string id="UnitKn">knop</string>
+    <string id="UnitBft">Beaufort</string>
+    <string id="UnitKm">km</string>
+    <string id="UnitNm">nautiska mil</string>
+
+    <!-- Automatic buoy -->
+    <string id="BuoyAuto">Automatisk (närmaste)</string>
+
+    <!-- In-app -->
+    <string id="Loading">Laddar…</string>
+    <string id="NoPhone">Ingen anslutning</string>
+    <string id="NoPlace">Orten hittades inte</string>
+    <string id="Offline">Senaste avläsning</string>
+    <string id="PageLand">Land</string>
+    <string id="PageSea">Hav</string>
+    <string id="PageBuoy">Vågor</string>
+    <string id="Gust">by</string>
+    <string id="WaterTemp">Vatten</string>
+    <string id="Period">Period</string>
+    <!-- Glance captions: short enough for half a glance column -->
+    <string id="GLand">Land</string>
+    <string id="GLandWind">Vind land</string>
+    <string id="GSeaWind">Havsvind</string>
+    <string id="GSeaGust">By</string>
+    <string id="GWave">Vågor</string>
+    <string id="GWater">Vatten</string>
+    <string id="Modelled">modellerad</string>
+    <string id="NoBuoy">Ingen bojdata</string>
+    <string id="Attribution">Källa: Meteorologiska institutet</string>
+</strings>
