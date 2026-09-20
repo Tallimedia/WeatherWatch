@@ -1,0 +1,121 @@
+<settings>
+    <group id="gLand" title="@Strings.GroupLand">
+        <setting propertyKey="@Properties.landPlace" title="@Strings.SetLandPlace"
+                 prompt="@Strings.SetLandPlaceDesc">
+            <settingConfig type="alphaNumeric" maxLength="40"/>
+        </setting>
+        <setting propertyKey="@Properties.landWind" title="@Strings.SetLandWind"
+                 prompt="@Strings.SetLandWindDesc">
+            <settingConfig type="numeric" min="0" max="40"/>
+        </setting>
+        <setting propertyKey="@Properties.landCold" title="@Strings.SetLandCold"
+                 prompt="@Strings.SetLandColdDesc">
+            <settingConfig type="numeric" min="-40" max="15"/>
+        </setting>
+        <setting propertyKey="@Properties.landHot" title="@Strings.SetLandHot"
+                 prompt="@Strings.SetLandHotDesc">
+            <settingConfig type="numeric" min="5" max="45"/>
+        </setting>
+    </group>
+
+    <group id="gSea" title="@Strings.GroupSea">
+        <setting propertyKey="@Properties.seaStation" title="@Strings.SetSeaStation"
+                 prompt="@Strings.SetSeaStationDesc">
+            <settingConfig type="list">
+                <listEntry value="100996">Helsinki Harmaja</listEntry>
+                <listEntry value="101022">Porvoo Kalbådagrund</listEntry>
+                <listEntry value="101023">Porvoo Emäsalo</listEntry>
+                <listEntry value="101030">Kotka Rankki</listEntry>
+                <listEntry value="101039">Loviisa Orrengrund</listEntry>
+                <listEntry value="100932">Hanko Russarö</listEntry>
+                <listEntry value="100965">Raasepori Jussarö</listEntry>
+                <listEntry value="100908">Parainen Utö</listEntry>
+                <listEntry value="100921">Kökar Bogskär</listEntry>
+                <listEntry value="100928">Kumlinge kirkonkylä</listEntry>
+                <listEntry value="134252">Föglö Degerby</listEntry>
+                <listEntry value="100919">Hammarland Märket</listEntry>
+                <listEntry value="101059">Kustavi Isokari</listEntry>
+                <listEntry value="101061">Rauma Kylmäpihlaja</listEntry>
+                <listEntry value="101268">Kristiinankaupunki Majakka</listEntry>
+                <listEntry value="101464">Mustasaari Valassaaret</listEntry>
+                <listEntry value="101661">Kokkola Tankar</listEntry>
+                <listEntry value="101673">Kalajoki Ulkokalla</listEntry>
+                <listEntry value="101775">Raahe Nahkiainen</listEntry>
+                <listEntry value="101784">Hailuoto Marjaniemi</listEntry>
+                <listEntry value="101783">Kemi I majakka</listEntry>
+                <listEntry value="101003">Helsinki Vuosaari satama</listEntry>
+            </settingConfig>
+        </setting>
+        <setting propertyKey="@Properties.seaBuoy" title="@Strings.SetSeaBuoy"
+                 prompt="@Strings.SetSeaBuoyDesc">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.BuoyAuto</listEntry>
+                <listEntry value="103976">Helsinki Suomenlinna</listEntry>
+                <listEntry value="134221">Suomenlahti</listEntry>
+                <listEntry value="108495">Loviisa Orrengrund</listEntry>
+                <listEntry value="134220">Pohjois-Itämeri</listEntry>
+                <listEntry value="134246">Selkämeri</listEntry>
+                <listEntry value="104600">Pori Kaijakari</listEntry>
+                <listEntry value="137228">Perämeri</listEntry>
+                <listEntry value="103808">Kalajoki Maakalla</listEntry>
+                <listEntry value="103807">Oulu Santapankki</listEntry>
+            </settingConfig>
+        </setting>
+        <setting propertyKey="@Properties.seaWind" title="@Strings.SetSeaWind"
+                 prompt="@Strings.SetSeaWindDesc">
+            <settingConfig type="numeric" min="0" max="40"/>
+        </setting>
+        <setting propertyKey="@Properties.seaWave" title="@Strings.SetSeaWave"
+                 prompt="@Strings.SetSeaWaveDesc">
+            <settingConfig type="numeric" min="0" max="10"/>
+        </setting>
+    </group>
+
+    <group id="gDisplay" title="@Strings.GroupDisplay">
+        <setting propertyKey="@Properties.pageOrder" title="@Strings.SetPageOrder"
+                 prompt="@Strings.SetPageOrderDesc">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.OrderLand</listEntry>
+                <listEntry value="1">@Strings.OrderSea</listEntry>
+            </settingConfig>
+        </setting>
+        <setting propertyKey="@Properties.glance1" title="@Strings.SetGlance1">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.FieldLandTemp</listEntry>
+                <listEntry value="1">@Strings.FieldLandWind</listEntry>
+                <listEntry value="2">@Strings.FieldSeaWind</listEntry>
+                <listEntry value="3">@Strings.FieldSeaGust</listEntry>
+                <listEntry value="4">@Strings.FieldWave</listEntry>
+                <listEntry value="5">@Strings.FieldWater</listEntry>
+                <listEntry value="6">@Strings.FieldNone</listEntry>
+            </settingConfig>
+        </setting>
+        <setting propertyKey="@Properties.glance2" title="@Strings.SetGlance2">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.FieldLandTemp</listEntry>
+                <listEntry value="1">@Strings.FieldLandWind</listEntry>
+                <listEntry value="2">@Strings.FieldSeaWind</listEntry>
+                <listEntry value="3">@Strings.FieldSeaGust</listEntry>
+                <listEntry value="4">@Strings.FieldWave</listEntry>
+                <listEntry value="5">@Strings.FieldWater</listEntry>
+                <listEntry value="6">@Strings.FieldNone</listEntry>
+            </settingConfig>
+        </setting>
+    </group>
+
+    <group id="gUnits" title="@Strings.GroupUnits">
+        <setting propertyKey="@Properties.windUnit" title="@Strings.SetWindUnit">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.UnitMs</listEntry>
+                <listEntry value="1">@Strings.UnitKn</listEntry>
+                <listEntry value="2">@Strings.UnitBft</listEntry>
+            </settingConfig>
+        </setting>
+        <setting propertyKey="@Properties.distUnit" title="@Strings.SetDistUnit">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.UnitKm</listEntry>
+                <listEntry value="1">@Strings.UnitNm</listEntry>
+            </settingConfig>
+        </setting>
+    </group>
+</settings>

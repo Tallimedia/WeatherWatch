@@ -1,0 +1,20 @@
+<properties>
+    <!-- Defaults are the Helsinki set, verified working end to end
+         (RESEARCH.md §16, §20). The app is useful before anything is changed. -->
+    <property id="landPlace" type="string">Helsinki</property>
+    <property id="landWind" type="number">5</property>
+    <property id="landCold" type="number">0</property>
+    <property id="landHot" type="number">25</property>
+
+    <property id="seaStation" type="number">100996</property>
+    <property id="seaBuoy" type="number">0</property>
+    <property id="seaWind" type="number">10</property>
+    <property id="seaWave" type="number">1</property>
+
+    <property id="pageOrder" type="number">0</property>
+    <property id="glance1" type="number">0</property>
+    <property id="glance2" type="number">2</property>
+
+    <property id="windUnit" type="number">0</property>
+    <property id="distUnit" type="number">0</property>
+</properties>

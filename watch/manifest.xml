@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
+    <iq:application
+        id="a7c41e2b9d364f158e0b73a2c65d9f04"
+        type="widget"
+        name="@Strings.AppName"
+        entry="FIWeatherWatchApp"
+        launcherIcon="@Drawables.LauncherIcon"
+        minApiLevel="3.4.0">
+
+        <iq:products>
+            <!-- Development target. quatix 8 is API-identical to fenix 8 and is
+                 not a separate simulator profile; the full VolvoWatch product
+                 list gets copied in before release (RESEARCH.md §16). -->
+            <iq:product id="fenix847mm"/>
+            <iq:product id="fenix843mm"/>
+            <iq:product id="fenix8solar51mm"/>
+        </iq:products>
+
+        <iq:permissions>
+            <iq:uses-permission id="Communications"/>
+        </iq:permissions>
+
+        <iq:languages>
+            <iq:language>eng</iq:language>
+            <iq:language>fin</iq:language>
+            <iq:language>swe</iq:language>
+        </iq:languages>
+
+        <iq:barrels/>
+    </iq:application>
+</iq:manifest>

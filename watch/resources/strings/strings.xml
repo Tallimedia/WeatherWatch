@@ -1,0 +1,71 @@
+<strings>
+    <string id="AppName">FIWeatherWatch</string>
+
+    <!-- Setting groups -->
+    <string id="GroupLand">Land</string>
+    <string id="GroupSea">Sea</string>
+    <string id="GroupDisplay">Display</string>
+    <string id="GroupUnits">Units</string>
+
+    <!-- Land -->
+    <string id="SetLandPlace">Place</string>
+    <string id="SetLandPlaceDesc">Town or city. Any Finnish place name works.</string>
+    <string id="SetLandWind">Wind limit (m/s)</string>
+    <string id="SetLandWindDesc">Wind above this stands out. Gust limit follows at +3 m/s.</string>
+    <string id="SetLandCold">Cold below (°C)</string>
+    <string id="SetLandColdDesc">Temperature below this is shown in blue.</string>
+    <string id="SetLandHot">Hot above (°C)</string>
+    <string id="SetLandHotDesc">Temperature above this is shown in red.</string>
+
+    <!-- Sea -->
+    <string id="SetSeaStation">Sea station</string>
+    <string id="SetSeaStationDesc">Finnish marine weather station.</string>
+    <string id="SetSeaBuoy">Wave buoy</string>
+    <string id="SetSeaBuoyDesc">Leave on Automatic to use the nearest reporting buoy.</string>
+    <string id="SetSeaWind">Wind limit (m/s)</string>
+    <string id="SetSeaWindDesc">Wind above this stands out. Gust limit follows at +5 m/s.</string>
+    <string id="SetSeaWave">Wave height limit (m)</string>
+    <string id="SetSeaWaveDesc">Significant wave height above this stands out.</string>
+
+    <!-- Display -->
+    <string id="SetPageOrder">Land or Sea preferred</string>
+    <string id="SetPageOrderDesc">Which page the app opens on.</string>
+    <string id="OrderLand">Land first</string>
+    <string id="OrderSea">Sea first</string>
+    <string id="SetGlance1">Glance data 1</string>
+    <string id="SetGlance2">Glance data 2</string>
+
+    <!-- Glance field choices -->
+    <string id="FieldLandTemp">Land temperature</string>
+    <string id="FieldLandWind">Land wind</string>
+    <string id="FieldSeaWind">Sea wind + gust</string>
+    <string id="FieldSeaGust">Sea gust</string>
+    <string id="FieldWave">Wave height</string>
+    <string id="FieldWater">Water temperature</string>
+    <string id="FieldNone">None</string>
+
+    <!-- Units -->
+    <string id="SetWindUnit">Wind</string>
+    <string id="SetDistUnit">Distance</string>
+    <string id="UnitMs">m/s</string>
+    <string id="UnitKn">knots</string>
+    <string id="UnitBft">Beaufort</string>
+    <string id="UnitKm">km</string>
+    <string id="UnitNm">nautical miles</string>
+
+    <!-- Automatic buoy -->
+    <string id="BuoyAuto">Automatic (nearest)</string>
+
+    <!-- In-app -->
+    <string id="Loading">Loading…</string>
+    <string id="NoPhone">No connection</string>
+    <string id="NoPlace">Place not found</string>
+    <string id="Offline">Showing last reading</string>
+    <string id="PageLand">Land</string>
+    <string id="PageSea">Sea</string>
+    <string id="PageBuoy">Waves</string>
+    <string id="Gust">gust</string>
+    <string id="Modelled">modelled</string>
+    <string id="NoBuoy">No buoy reporting</string>
+    <string id="Attribution">Data: Finnish Meteorological Institute</string>
+</strings>
