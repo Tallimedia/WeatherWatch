@@ -5,7 +5,7 @@
         type="widget"
         name="@Strings.AppName"
         entry="FIWeatherWatchApp"
-        version="0.1.0"
+        version="0.1.1"
         launcherIcon="@Drawables.LauncherIcon"
         minApiLevel="3.4.0">
 
