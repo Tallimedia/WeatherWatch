@@ -87,8 +87,11 @@ module Icons {
     //! sine in a square box folded into chevrons for want of horizontal room.
     function wave(dc as Graphics.Dc, x as Number, y as Number, s as Number, colour as Number) as Void {
         dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
-        var pen = (s * 0.13).toNumber();
-        if (pen < 2) { pen = 2; }
+        // Thinner than the other glyphs on purpose: this one carries two
+        // shapes in the same box, so a heavier stroke closes the gap between
+        // them and they merge back into a blob.
+        var pen = (s * 0.09).toNumber();
+        if (pen < 1) { pen = 1; }
         dc.setPenWidth(pen);
 
         var width = (s * widthFactor(:wave)).toNumber();
