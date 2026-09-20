@@ -20,6 +20,7 @@ function symbolInfo(code) {
    and silently wrong by 2-3 hours (RESEARCH.md §2). Display is Europe/Helsinki
    regardless of where the viewer sits — this is Finnish weather, so Finnish
    local time is the meaningful clock, not the browser's. */
+
 /* Page strings in the three v1 languages. Weather descriptions are NOT here —
    FMI returns those already localised via `smartsymboltext`, so the app only
    ever translates its own chrome (RESEARCH.md §16). */
@@ -55,7 +56,12 @@ const STR = {
         raw:"Rådata (JSON)", latest:"senaste", subtitle:"Meteorologiska institutets öppna data, som backend levererar dem. För att förstå vad värdena gör — inte en förhandsvisning av klockans gränssnitt.",
         foot:"Data: Meteorologiska institutet, CC BY 4.0. Vågbojarna tas upp ur vattnet ungefär december–april, så luckor på vintern är väntade och inte fel. Tider i finsk lokaltid (Europe/Helsinki)." },
 };
-let LANG = localStorage.getItem("fiw-lang") || "fi";
+/* localStorage throws in private browsing and with site data blocked, so the
+   language preference is a convenience that must never break the page. */
+function storedLang() {
+  try { return localStorage.getItem("fiw-lang"); } catch (_) { return null; }
+}
+let LANG = storedLang() || "fi";
 const T = (k) => (STR[LANG] && STR[LANG][k]) || STR.en[k];
 
 const TZ = "Europe/Helsinki";
@@ -68,6 +74,32 @@ const _daytime = new Intl.DateTimeFormat("en-GB",
 const localHour = (epoch) => _hour.format(new Date(epoch * 1000));
 const localTime = (epoch) => _hhmm.format(new Date(epoch * 1000));
 const localStamp = (epoch) => _daytime.format(new Date(epoch * 1000));
+
+/* Rainfall reads as a daily total on the watch, not mm/h (§20), so hourly rows
+   are summed per Finnish calendar day before plotting. */
+const _day = new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" });
+function toDaily(rows, key) {
+  const sums = new Map();
+  for (const r of rows) {
+    if (r[key] === null || r[key] === undefined) continue;
+    const d = _day.format(new Date(r.epochtime * 1000));
+    const cur = sums.get(d) || { epochtime: null, v: 0 };
+    cur.v += r[key];
+    if (cur.epochtime === null) cur.epochtime = r.epochtime;
+    sums.set(d, cur);
+  }
+  return [...sums.values()].map((x) => ({ epochtime: x.epochtime, [key]: Math.round(x.v * 10) / 10 }));
+}
+
+/* Default thresholds from §20 — drawn as a reference line so the chart shows how
+   often the limit is actually crossed, which is the point of choosing one. */
+const THRESHOLDS = {
+  windspeedms: { land: 5, sea: 8 },
+  windgust:    { land: 8, sea: 11 },
+  WaveHs:      { any: 0.5 },
+  temperature: { cold: 0, hot: 25 },
+};
+
 
 const $ = (s) => document.querySelector(s);
 const tip = $("#tip");
@@ -88,9 +120,10 @@ const CHARTS = [
 
   { id: "landrain", group: null, title: "Land rainfall",
     q: "Does hourly precipitation carry enough signal to show on the watch?",
+    daily: true,
     source: (c) => ({ place: c.place, producer: "opendata",
                       params: "precipitation1h", step: 60 }),
-    series: [ { key: "precipitation1h", label: "Rain", unit: "mm/h" } ] },
+    series: [ { key: "precipitation1h", label: "Rain", unit: "mm/day" } ] },
 
   { id: "forecast", group: null, title: "Land forecast — next 10 days",
     q: "What the watch's page 1 draws on. Forward-looking, so it ignores the date range above.",
@@ -104,8 +137,9 @@ const CHARTS = [
   { id: "fcrain", group: null, title: "Forecast rainfall — next 10 days",
     q: "How far out does the forecast still show meaningful precipitation?",
     forecast: true,
-    source: (c) => ({ place: c.place, params: "precipitation1h", step: 360 }),
-    series: [ { key: "precipitation1h", label: "Rain", unit: "mm/h" } ] },
+    daily: true,
+    source: (c) => ({ place: c.place, params: "precipitation1h", step: 60 }),
+    series: [ { key: "precipitation1h", label: "Rain", unit: "mm/day" } ] },
 
   { id: "symbols", group: null, title: "Weather symbols in this forecast",
     q: "Which smartsymbol codes actually occur — i.e. which icons need drawing?",
@@ -119,15 +153,6 @@ const CHARTS = [
                       params: "windspeedms,windgust", step: 60 }),
     series: [ { key: "windspeedms", label: "Mean wind", unit: "m/s" },
               { key: "windgust",    label: "Gust",      unit: "m/s" } ] },
-
-  { id: "landsea", group: null, title: "Land vs sea air temperature",
-    q: "How far apart are the two stations — do they justify separate thresholds?",
-    source: (c) => ({ fmisid: c.station, producer: "opendata",
-                      params: "temperature", step: 60 }),
-    extra:  (c) => ({ place: c.place, producer: "opendata",
-                      params: "temperature", step: 60 }),
-    series: [ { key: "temperature",  label: "Sea station", unit: "°C" },
-              { key: "temperature2", label: "Land place",  unit: "°C" } ] },
 
   { id: "waves", group: "Wave buoy", title: "Wave height at the chosen buoy",
     q: "What is a normal wave height here, and what counts as high?",
@@ -214,7 +239,7 @@ function sharesAxis(series, pts) {
   return lo > 0 && hi / lo < 3;
 }
 
-function draw(fig, rows, series) {
+function draw(fig, rows, series, chartId) {
   const pts = series.map((s) =>
     rows.map((r) => ({ t: r.epochtime, v: r[s.key] })).filter((d) => d.v !== null && d.v !== undefined)
   );
@@ -225,14 +250,14 @@ function draw(fig, rows, series) {
       const panel = document.createElement("div");
       panel.innerHTML = '<div class="plot"></div><div class="stats"></div>';
       host.appendChild(panel);
-      drawPanel(panel, rows, [s], [pts[i]], [COLORS[i]]);
+      drawPanel(panel, rows, [s], [pts[i]], [COLORS[i]], chartId);
     });
     return;
   }
-  drawPanel(fig, rows, series, pts, COLORS);
+  drawPanel(fig, rows, series, pts, COLORS, chartId);
 }
 
-function drawPanel(fig, rows, series, pts, COLORS) {
+function drawPanel(fig, rows, series, pts, COLORS, chartId) {
   if (!pts.some((p) => p.length)) {
     fig.querySelector(".plot").innerHTML =
       `<p class="msg">${T("noData")}</p>`;
@@ -257,6 +282,29 @@ function drawPanel(fig, rows, series, pts, COLORS) {
     const t = t0 + ((t1 - t0) * i) / 3;
     lx.push(`<text x="${x(t)}" y="${H - 8}" text-anchor="middle" fill="var(--muted)" font-size="11">${localStamp(t)}</text>`);
   }
+  // Threshold reference lines (§20): a limit is only useful if you can see how
+  // often it is actually crossed.
+  const marks = [];
+  series.forEach((s, i) => {
+    const t = THRESHOLDS[s.key];
+    if (!t) return;
+    const isSea = chartId === "wind" || chartId === "waves";
+    const levels = s.key === "temperature"
+      ? [["cold", t.cold, "var(--s1)"], ["hot", t.hot, "var(--s2)"]]
+      : [[null, t.any ?? (isSea ? t.sea : t.land), COLORS[i]]];
+    for (const [tag, level, colour] of levels) {
+      if (level === undefined || level < v0 || level > v1) continue;
+      const yy = y(level);
+      const vals = pts[i].map((d) => d.v);
+      const over = vals.filter((v) => v > level).length;
+      const share = vals.length ? Math.round((over / vals.length) * 100) : 0;
+      marks.push(`<line x1="${PAD.l}" y1="${yy}" x2="${W - PAD.r}" y2="${yy}"
+          stroke="${colour}" stroke-width="1.5" stroke-dasharray="5 4" opacity="0.75"/>
+        <text x="${W - PAD.r - 4}" y="${yy - 5}" text-anchor="end" fill="${colour}"
+          font-size="10.5">${tag ? tag + " " : ""}${level}${s.unit ? " " + s.unit : ""} · ${tag === "cold" ? 100 - share : share}% ${tag === "cold" ? "below" : "above"}</text>`);
+    }
+  });
+
   const paths = pts.map((p, i) =>
     p.length
       ? `<path d="${p.map((d, j) => (j ? "L" : "M") + x(d.t) + " " + y(d.v)).join(" ")}" fill="none" stroke="${COLORS[i]}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`
@@ -264,7 +312,7 @@ function drawPanel(fig, rows, series, pts, COLORS) {
   );
   fig.querySelector(".plot").innerHTML = `
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${series.map((s) => s.label).join(", ")}">
-      ${gy.join("")}${ly.join("")}${lx.join("")}
+      ${gy.join("")}${ly.join("")}${lx.join("")}${marks.join("")}
       <line x1="${PAD.l}" y1="${H - PAD.b}" x2="${W - PAD.r}" y2="${H - PAD.b}" stroke="var(--axis)" stroke-width="1"/>
       ${paths.join("")}
       <rect x="${PAD.l}" y="${PAD.t}" width="${W - PAD.l - PAD.r}" height="${H - PAD.t - PAD.b}" fill="transparent" class="hit"/>
@@ -496,8 +544,9 @@ async function load() {
         rows = rows.map((r) => ({ ...r, temperature2: byTime.get(r.epochtime) ?? null }));
       }
       }
+      if (c.daily) rows = toDaily(rows, c.series[0].key);
       fig.querySelector("pre").textContent = JSON.stringify(rows.slice(0, 40), null, 1);
-      if (c.symbols) drawSymbols(fig, rows); else draw(fig, rows, c.series);
+      if (c.symbols) drawSymbols(fig, rows); else draw(fig, rows, c.series, c.id);
     } catch (err) {
       fig.querySelector(".plot").innerHTML = `<p class="msg">${err.message}</p>`;
     }
