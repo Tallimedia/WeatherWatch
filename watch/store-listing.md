@@ -74,6 +74,13 @@ setting to find.
 UNITS
 Wind in m/s, knots or Beaufort. Distance in kilometres or nautical miles.
 
+COVERAGE
+Finland only. The data comes from the Finnish Meteorological Institute's own
+network, so the places, coastal stations and wave buoys are Finnish ones. If you
+sail the Gulf of Finland, the Archipelago Sea, the Bothnian Sea or the Åland
+waters, that is exactly the area this covers — but it will not show you the
+weather at home in Stockholm, Tallinn or Kiel.
+
 WHAT IT NEEDS
 A phone connection or WiFi. No account, no sign-in, nothing to configure beyond
 your own place and station. Settings are edited in Garmin Connect Mobile.
@@ -100,6 +107,18 @@ First public release.
 ```
 
 ---
+
+## Availability
+
+Nordics, Baltics and Germany: Finland, Sweden, Norway, Denmark, Iceland, Estonia,
+Latvia, Lithuania, Germany.
+
+**Availability and coverage are different things, and the listing has to say so.**
+The restriction is about who can install the app; the data is Finnish wherever
+you are. A German buyer cruising the Baltic is exactly the intended reader — a
+German buyer wanting German weather is not, and would leave a one-star review
+saying the app does not work. The COVERAGE paragraph above exists for that
+reason and should not be cut for length.
 
 ## Artwork
 
