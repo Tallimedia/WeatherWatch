@@ -1,21 +1,26 @@
-# Hand-off builds
+# Releases and hand-off builds
 
-Tester builds, tracked here so they can be fetched from a machine that is not
-the one that built them. Everything else under `watch/bin/` stays ignored.
+**Everything shippable lives here.** Not the Desktop, not a temp folder — one
+place, so there is never a question of which file is the current one.
 
-| File | For | Build | Defaults |
-|---|---|---|---|
-| `FIWeatherWatch-Peter-v0.1.4.zip` | Peter | v0.1.4, `fenix847mm` | Karjaa · Hanko Russarö · Suomenlahti buoy |
+Named by version, so the same rule applies as to the build outputs in
+`watch/bin/`: if you cannot tell two files apart by their names, one of them
+will eventually be sideloaded by mistake.
 
-The zip contains the `.prg`, its settings JSON and sideload instructions written
-for the tester rather than for us.
+| File | What |
+|---|---|
+| `FIWeatherWatch-v0.1.6.prg` | sideload — copy to `GARMIN/APPS/` |
+| `FIWeatherWatch-v0.1.6-settings.json` | its settings — copy to `GARMIN/APPS/SETTINGS/` |
+| `FIWeatherWatch-v0.1.6.iq` | store upload (Beta release) |
+| `FIWeatherWatch-v0.1.6-WHATS-NEW.txt` | what changed and what to test |
+| `FIWeatherWatch-Peter-v0.1.4.zip` | Peter's tester build — Karjaa / Hanko Russarö / Suomenlahti |
 
-`fenix847mm` covers quatix 8 as well — the two are API-identical and quatix has
-no separate simulator profile.
+`.prg` files are built for `fenix847mm`, which covers quatix 8 — the two are
+API-identical and quatix has no separate simulator profile.
 
-## Making another one
+## Per-tester builds
 
-Defaults are compiled in, so a per-tester build means editing
+Defaults are compiled in, so a build for someone else means editing
 `watch/resources/settings/properties.xml`, building, and **putting it back**:
 
 ```bash

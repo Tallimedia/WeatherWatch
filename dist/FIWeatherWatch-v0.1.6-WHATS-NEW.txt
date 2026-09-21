@@ -1,0 +1,47 @@
+FIWeatherWatch v0.1.6 — for testing
+===================================
+
+SIDELOAD
+  fiweatherwatch.prg            -> GARMIN/APPS/
+  fiweatherwatch-settings.json  -> GARMIN/APPS/SETTINGS/
+
+Or upload fiweatherwatch-0.1.6.iq to the store as a Beta release.
+
+Check the footer reads "v0.1.6" before testing anything below.
+
+
+WHAT TO LOOK AT
+---------------
+1. SEA STATION LIST  (Connect Mobile -> Settings -> Sea)
+   54 stations now, was 22. Coastal first, then 14 inland lakes.
+   Five old entries are gone because they were broken, not because
+   they were surplus:
+     - "Helsinki Vuosaari satama" was returning HARMAJA's readings
+     - "Föglö Degerby" is actually Lumparland Långnäs
+     - Jussarö, Bogskär, Kristiinankaupunki Majakka report no wind
+   New ones worth trying: Kirkkonummi Mäkiluoto, Inkoo Bågaskär,
+   Sipoo Itätoukki, Lemland Nyhamn.
+
+2. AN INLAND LAKE  e.g. Tampere Siilinkari, Puumala, Lappeenranta
+   Wind should work normally. The waves page should say
+   "Ei poijua alueella" — not "ei havaitsevaa poijua", which means
+   a buoy exists but is quiet. You can still pick a buoy by hand if
+   you want one.
+
+3. PRESS SELECT on any page
+   The footer should change to "Päivitetään…" and the download icon
+   should brighten, then go back to the age and version. Previously
+   Select refreshed silently and looked like it did nothing.
+
+4. THE GLANCE
+   Now refreshes at most every 5 minutes instead of on every scroll
+   past it. Open the app, then check the glance — it should still
+   show the fresh numbers, because it reads what the app fetched
+   even when its own refresh is throttled.
+
+
+KNOWN / NOT DONE
+----------------
+* The 14 lake stations are my picks from coordinates. If any is not
+  really on boatable water, say so and it goes.
+* The About page has never been screenshotted.

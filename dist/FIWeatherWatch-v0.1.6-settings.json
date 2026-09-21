@@ -1,0 +1,733 @@
+{
+  "settings" : [ {
+    "group" : {
+      "id" : "gLand",
+      "title" : "GroupLand",
+      "description" : null,
+      "enableWhenTrue" : null,
+      "entries" : [ {
+        "key" : "landPlace",
+        "valueType" : "string",
+        "defaultValue" : "Helsinki",
+        "configTitle" : "SetLandPlace",
+        "configPrompt" : "SetLandPlaceDesc",
+        "configType" : "alphaNumeric",
+        "configError" : null,
+        "configHelpUrl" : null,
+        "configReadonly" : false,
+        "configRequired" : false,
+        "configOptions" : null,
+        "configMin" : null,
+        "configMax" : null,
+        "configMaxLength" : 40
+      }, {
+        "key" : "landWind",
+        "valueType" : "number",
+        "defaultValue" : 5,
+        "configTitle" : "SetLandWind",
+        "configPrompt" : "SetLandWindDesc",
+        "configType" : "numeric",
+        "configError" : null,
+        "configHelpUrl" : null,
+        "configReadonly" : false,
+        "configRequired" : false,
+        "configOptions" : null,
+        "configMin" : 0,
+        "configMax" : 40,
+        "configMaxLength" : null
+      }, {
+        "key" : "landCold",
+        "valueType" : "number",
+        "defaultValue" : 0,
+        "configTitle" : "SetLandCold",
+        "configPrompt" : "SetLandColdDesc",
+        "configType" : "numeric",
+        "configError" : null,
+        "configHelpUrl" : null,
+        "configReadonly" : false,
+        "configRequired" : false,
+        "configOptions" : null,
+        "configMin" : -40,
+        "configMax" : 15,
+        "configMaxLength" : null
+      }, {
+        "key" : "landHot",
+        "valueType" : "number",
+        "defaultValue" : 25,
+        "configTitle" : "SetLandHot",
+        "configPrompt" : "SetLandHotDesc",
+        "configType" : "numeric",
+        "configError" : null,
+        "configHelpUrl" : null,
+        "configReadonly" : false,
+        "configRequired" : false,
+        "configOptions" : null,
+        "configMin" : 5,
+        "configMax" : 45,
+        "configMaxLength" : null
+      } ]
+    }
+  }, {
+    "group" : {
+      "id" : "gSea",
+      "title" : "GroupSea",
+      "description" : null,
+      "enableWhenTrue" : null,
+      "entries" : [ {
+        "key" : "seaStation",
+        "valueType" : "number",
+        "defaultValue" : 100996,
+        "configTitle" : "SetSeaStation",
+        "configPrompt" : "SetSeaStationDesc",
+        "configType" : "list",
+        "configError" : null,
+        "configHelpUrl" : null,
+        "configReadonly" : false,
+        "configRequired" : false,
+        "configOptions" : [ {
+          "display" : "$literal0$",
+          "value" : 101783
+        }, {
+          "display" : "$literal1$",
+          "value" : 101846
+        }, {
+          "display" : "$literal2$",
+          "value" : 101784
+        }, {
+          "display" : "$literal3$",
+          "value" : 101794
+        }, {
+          "display" : "$literal4$",
+          "value" : 101785
+        }, {
+          "display" : "$literal5$",
+          "value" : 101775
+        }, {
+          "display" : "$literal6$",
+          "value" : 101673
+        }, {
+          "display" : "$literal7$",
+          "value" : 101661
+        }, {
+          "display" : "$literal8$",
+          "value" : 101675
+        }, {
+          "display" : "$literal9$",
+          "value" : 101660
+        }, {
+          "display" : "$literal10$",
+          "value" : 101464
+        }, {
+          "display" : "$literal11$",
+          "value" : 101481
+        }, {
+          "display" : "$literal12$",
+          "value" : 101479
+        }, {
+          "display" : "$literal13$",
+          "value" : 101267
+        }, {
+          "display" : "$literal14$",
+          "value" : 101061
+        }, {
+          "display" : "$literal15$",
+          "value" : 101059
+        }, {
+          "display" : "$literal16$",
+          "value" : 100947
+        }, {
+          "display" : "$literal17$",
+          "value" : 100945
+        }, {
+          "display" : "$literal18$",
+          "value" : 100924
+        }, {
+          "display" : "$literal19$",
+          "value" : 100908
+        }, {
+          "display" : "$literal20$",
+          "value" : 100932
+        }, {
+          "display" : "$literal21$",
+          "value" : 100946
+        }, {
+          "display" : "$literal22$",
+          "value" : 100969
+        }, {
+          "display" : "$literal23$",
+          "value" : 108020
+        }, {
+          "display" : "$literal24$",
+          "value" : 100997
+        }, {
+          "display" : "$literal25$",
+          "value" : 100996
+        }, {
+          "display" : "$literal26$",
+          "value" : 105392
+        }, {
+          "display" : "$literal27$",
+          "value" : 101023
+        }, {
+          "display" : "$literal28$",
+          "value" : 101022
+        }, {
+          "display" : "$literal29$",
+          "value" : 100683
+        }, {
+          "display" : "$literal30$",
+          "value" : 101039
+        }, {
+          "display" : "$literal31$",
+          "value" : 101030
+        }, {
+          "display" : "$literal32$",
+          "value" : 101231
+        }, {
+          "display" : "$literal33$",
+          "value" : 100919
+        }, {
+          "display" : "$literal34$",
+          "value" : 100928
+        }, {
+          "display" : "$literal35$",
+          "value" : 100917
+        }, {
+          "display" : "$literal36$",
+          "value" : 151048
+        }, {
+          "display" : "$literal37$",
+          "value" : 151029
+        }, {
+          "display" : "$literal38$",
+          "value" : 107383
+        }, {
+          "display" : "$literal39$",
+          "value" : 100909
+        }, {
+          "display" : "$literal40$",
+          "value" : 101628
+        }, {
+          "display" : "$literal41$",
+          "value" : 101436
+        }, {
+          "display" : "$literal42$",
+          "value" : 101421
+        }, {
+          "display" : "$literal43$",
+          "value" : 101580
+        }, {
+          "display" : "$literal44$",
+          "value" : 101311
+        }, {
+          "display" : "$literal45$",
+          "value" : 101362
+        }, {
+          "display" : "$literal46$",
+          "value" : 150168
+        }, {
+          "display" : "$literal47$",
+          "value" : 101252
+        }, {
+          "display" : "$literal48$",
+          "value" : 101537
+        }, {
+          "display" : "$literal49$",
+          "value" : 101572
+        }, {
+          "display" : "$literal50$",
+          "value" : 101756
+        }, {
+          "display" : "$literal51$",
+          "value" : 101636
+        }, {
+          "display" : "$literal52$",
+          "value" : 101254
+        }, {
+          "display" : "$literal53$",
+          "value" : 101705
+        } ],
+        "configMin" : null,
+        "configMax" : null,
+        "configMaxLength" : null
+      }, {
+        "key" : "seaBuoy",
+        "valueType" : "number",
+        "defaultValue" : 0,
+        "configTitle" : "SetSeaBuoy",
+        "configPrompt" : "SetSeaBuoyDesc",
+        "configType" : "list",
+        "configError" : null,
+        "configHelpUrl" : null,
+        "configReadonly" : false,
+        "configRequired" : false,
+        "configOptions" : [ {
+          "display" : "BuoyAuto",
+          "value" : 0
+        }, {
+          "display" : "$literal54$",
+          "value" : 103976
+        }, {
+          "display" : "$literal55$",
+          "value" : 134221
+        }, {
+          "display" : "$literal30$",
+          "value" : 108495
+        }, {
+          "display" : "$literal56$",
+          "value" : 134220
+        }, {
+          "display" : "$literal57$",
+          "value" : 134246
+        }, {
+          "display" : "$literal58$",
+          "value" : 104600
+        }, {
+          "display" : "$literal59$",
+          "value" : 137228
+        }, {
+          "display" : "$literal60$",
+          "value" : 103808
+        }, {
+          "display" : "$literal61$",
+          "value" : 103807
+        } ],
+        "configMin" : null,
+        "configMax" : null,
+        "configMaxLength" : null
+      }, {
+        "key" : "seaWind",
+        "valueType" : "number",
+        "defaultValue" : 10,
+        "configTitle" : "SetSeaWind",
+        "configPrompt" : "SetSeaWindDesc",
+        "configType" : "numeric",
+        "configError" : null,
+        "configHelpUrl" : null,
+        "configReadonly" : false,
+        "configRequired" : false,
+        "configOptions" : null,
+        "configMin" : 0,
+        "configMax" : 40,
+        "configMaxLength" : null
+      }, {
+        "key" : "seaWave",
+        "valueType" : "number",
+        "defaultValue" : 1,
+        "configTitle" : "SetSeaWave",
+        "configPrompt" : "SetSeaWaveDesc",
+        "configType" : "numeric",
+        "configError" : null,
+        "configHelpUrl" : null,
+        "configReadonly" : false,
+        "configRequired" : false,
+        "configOptions" : null,
+        "configMin" : 0,
+        "configMax" : 10,
+        "configMaxLength" : null
+      } ]
+    }
+  }, {
+    "group" : {
+      "id" : "gDisplay",
+      "title" : "GroupDisplay",
+      "description" : null,
+      "enableWhenTrue" : null,
+      "entries" : [ {
+        "key" : "pageOrder",
+        "valueType" : "number",
+        "defaultValue" : 0,
+        "configTitle" : "SetPageOrder",
+        "configPrompt" : "SetPageOrderDesc",
+        "configType" : "list",
+        "configError" : null,
+        "configHelpUrl" : null,
+        "configReadonly" : false,
+        "configRequired" : false,
+        "configOptions" : [ {
+          "display" : "OrderLand",
+          "value" : 0
+        }, {
+          "display" : "OrderSea",
+          "value" : 1
+        } ],
+        "configMin" : null,
+        "configMax" : null,
+        "configMaxLength" : null
+      }, {
+        "key" : "glance1",
+        "valueType" : "number",
+        "defaultValue" : 0,
+        "configTitle" : "SetGlance1",
+        "configPrompt" : null,
+        "configType" : "list",
+        "configError" : null,
+        "configHelpUrl" : null,
+        "configReadonly" : false,
+        "configRequired" : false,
+        "configOptions" : [ {
+          "display" : "FieldLandTemp",
+          "value" : 0
+        }, {
+          "display" : "FieldLandWind",
+          "value" : 1
+        }, {
+          "display" : "FieldSeaWind",
+          "value" : 2
+        }, {
+          "display" : "FieldSeaGust",
+          "value" : 3
+        }, {
+          "display" : "FieldWave",
+          "value" : 4
+        }, {
+          "display" : "FieldWater",
+          "value" : 5
+        }, {
+          "display" : "FieldNone",
+          "value" : 6
+        } ],
+        "configMin" : null,
+        "configMax" : null,
+        "configMaxLength" : null
+      }, {
+        "key" : "glance2",
+        "valueType" : "number",
+        "defaultValue" : 2,
+        "configTitle" : "SetGlance2",
+        "configPrompt" : null,
+        "configType" : "list",
+        "configError" : null,
+        "configHelpUrl" : null,
+        "configReadonly" : false,
+        "configRequired" : false,
+        "configOptions" : [ {
+          "display" : "FieldLandTemp",
+          "value" : 0
+        }, {
+          "display" : "FieldLandWind",
+          "value" : 1
+        }, {
+          "display" : "FieldSeaWind",
+          "value" : 2
+        }, {
+          "display" : "FieldSeaGust",
+          "value" : 3
+        }, {
+          "display" : "FieldWave",
+          "value" : 4
+        }, {
+          "display" : "FieldWater",
+          "value" : 5
+        }, {
+          "display" : "FieldNone",
+          "value" : 6
+        } ],
+        "configMin" : null,
+        "configMax" : null,
+        "configMaxLength" : null
+      } ]
+    }
+  }, {
+    "group" : {
+      "id" : "gUnits",
+      "title" : "GroupUnits",
+      "description" : null,
+      "enableWhenTrue" : null,
+      "entries" : [ {
+        "key" : "windUnit",
+        "valueType" : "number",
+        "defaultValue" : 0,
+        "configTitle" : "SetWindUnit",
+        "configPrompt" : null,
+        "configType" : "list",
+        "configError" : null,
+        "configHelpUrl" : null,
+        "configReadonly" : false,
+        "configRequired" : false,
+        "configOptions" : [ {
+          "display" : "UnitMs",
+          "value" : 0
+        }, {
+          "display" : "UnitKn",
+          "value" : 1
+        }, {
+          "display" : "UnitBft",
+          "value" : 2
+        } ],
+        "configMin" : null,
+        "configMax" : null,
+        "configMaxLength" : null
+      }, {
+        "key" : "distUnit",
+        "valueType" : "number",
+        "defaultValue" : 0,
+        "configTitle" : "SetDistUnit",
+        "configPrompt" : null,
+        "configType" : "list",
+        "configError" : null,
+        "configHelpUrl" : null,
+        "configReadonly" : false,
+        "configRequired" : false,
+        "configOptions" : [ {
+          "display" : "UnitKm",
+          "value" : 0
+        }, {
+          "display" : "UnitNm",
+          "value" : 1
+        } ],
+        "configMin" : null,
+        "configMax" : null,
+        "configMaxLength" : null
+      } ]
+    }
+  } ],
+  "supportsLiveValidation" : false,
+  "languages" : {
+    "swe" : {
+      "SetSeaWind" : "Vindgräns (m/s)",
+      "SetSeaWaveDesc" : "Signifikant våghöjd över detta framhävs.",
+      "SetDistUnit" : "Avstånd",
+      "SetPageOrder" : "Land eller hav först",
+      "SetSeaBuoy" : "Vågboj",
+      "NoPlace" : "Orten hittades inte",
+      "SetSeaWave" : "Våghöjdsgräns (m)",
+      "FieldSeaWind" : "Havsvind + by",
+      "BuoyAuto" : "Automatisk (närmaste)",
+      "Modelled" : "modellerad",
+      "FieldLandWind" : "Vind på land",
+      "SetPageOrderDesc" : "Vilken sida appen öppnas på.",
+      "UnitMs" : "m/s",
+      "FieldSeaGust" : "By till havs",
+      "NoPhone" : "Ingen anslutning",
+      "SetSeaStationDesc" : "Finsk sjöväderstation.",
+      "SetLandPlaceDesc" : "Kommun eller stad. Vilket finskt ortnamn som helst fungerar.",
+      "Offline" : "Senaste avläsning",
+      "Period" : "Period",
+      "PageLand" : "Land",
+      "NoBuoy" : "Ingen bojdata",
+      "SetLandHotDesc" : "Temperatur över detta visas i rött.",
+      "OrderSea" : "Hav först",
+      "OrderLand" : "Land först",
+      "NoBuoyArea" : "Ingen boj i området",
+      "Attribution" : "Källa: Meteorologiska institutet",
+      "FieldWave" : "Våghöjd",
+      "SetLandHot" : "Varmt över (°C)",
+      "SetSeaStation" : "Sjöväderstation",
+      "PageBuoy" : "Vågor",
+      "WaterTemp" : "Vatten",
+      "UnitBft" : "Beaufort",
+      "UnitNm" : "nautiska mil",
+      "FieldLandTemp" : "Temperatur på land",
+      "Gust" : "by",
+      "AppName" : "FIWeatherWatch",
+      "SetLandPlace" : "Ort",
+      "SetGlance1" : "Överblicksdata 1",
+      "SetGlance2" : "Överblicksdata 2",
+      "Loading" : "Laddar…",
+      "SetLandWindDesc" : "Vind över detta framhävs. Bygränsen är +3 m/s.",
+      "SetSeaBuoyDesc" : "Lämna på Automatisk för att använda närmaste boj som rapporterar.",
+      "SetLandCold" : "Kallt under (°C)",
+      "SetLandWind" : "Vindgräns (m/s)",
+      "GroupLand" : "Land",
+      "GroupUnits" : "Enheter",
+      "SetLandColdDesc" : "Temperatur under detta visas i blått.",
+      "Refreshing" : "Uppdaterar…",
+      "FieldWater" : "Vattentemperatur",
+      "FieldNone" : "Ingen",
+      "UnitKn" : "knop",
+      "PageAbout" : "Om appen",
+      "UnitKm" : "km",
+      "PageSea" : "Hav",
+      "SetSeaWindDesc" : "Vind över detta framhävs. Bygränsen är +5 m/s.",
+      "GroupSea" : "Hav",
+      "SetWindUnit" : "Vind",
+      "NoData" : "Tjänsten svarar inte",
+      "GroupDisplay" : "Visning"
+    },
+    "fin" : {
+      "SetSeaWind" : "Tuuliraja (m/s)",
+      "SetSeaWaveDesc" : "Tätä suurempi merkitsevä aallonkorkeus korostetaan.",
+      "SetDistUnit" : "Etäisyys",
+      "SetPageOrder" : "Maa vai meri ensin",
+      "SetSeaBuoy" : "Aaltopoiju",
+      "NoPlace" : "Paikkaa ei löydy",
+      "SetSeaWave" : "Aallonkorkeuden raja (m)",
+      "FieldSeaWind" : "Merituuli + puuska",
+      "BuoyAuto" : "Automaattinen (lähin)",
+      "Modelled" : "mallinnettu",
+      "FieldLandWind" : "Tuuli maalla",
+      "SetPageOrderDesc" : "Mille sivulle sovellus avautuu.",
+      "UnitMs" : "m/s",
+      "FieldSeaGust" : "Puuska merellä",
+      "NoPhone" : "Ei yhteyttä",
+      "SetSeaStationDesc" : "Suomalainen merisääasema.",
+      "SetLandPlaceDesc" : "Kunta tai kaupunki. Mikä tahansa suomalainen paikannimi käy.",
+      "Offline" : "Viimeisin lukema",
+      "Period" : "Jakso",
+      "PageLand" : "Maa",
+      "NoBuoy" : "Ei poijutietoa",
+      "SetLandHotDesc" : "Tätä lämpimämpi lämpötila näytetään punaisena.",
+      "OrderSea" : "Meri ensin",
+      "OrderLand" : "Maa ensin",
+      "NoBuoyArea" : "Ei poijua alueella",
+      "Attribution" : "Lähde: Ilmatieteen laitos",
+      "FieldWave" : "Aallonkorkeus",
+      "SetLandHot" : "Kuuma yli (°C)",
+      "SetSeaStation" : "Merisääasema",
+      "PageBuoy" : "Aallot",
+      "WaterTemp" : "Vesi",
+      "UnitBft" : "Beaufort",
+      "UnitNm" : "meripeninkulmaa",
+      "FieldLandTemp" : "Lämpötila maalla",
+      "Gust" : "puuska",
+      "AppName" : "FIWeatherWatch",
+      "SetLandPlace" : "Paikka",
+      "SetGlance1" : "Vilkaisun tieto 1",
+      "SetGlance2" : "Vilkaisun tieto 2",
+      "Loading" : "Ladataan…",
+      "SetLandWindDesc" : "Tätä kovempi tuuli korostetaan. Puuskaraja on +3 m/s.",
+      "SetSeaBuoyDesc" : "Jätä Automaattinen-asetukseen, jolloin käytetään lähintä mittaavaa poijua.",
+      "SetLandCold" : "Kylmä alle (°C)",
+      "SetLandWind" : "Tuuliraja (m/s)",
+      "GroupLand" : "Maa",
+      "GroupUnits" : "Yksiköt",
+      "SetLandColdDesc" : "Tätä kylmempi lämpötila näytetään sinisenä.",
+      "Refreshing" : "Päivitetään…",
+      "FieldWater" : "Veden lämpötila",
+      "FieldNone" : "Ei mitään",
+      "UnitKn" : "solmua",
+      "PageAbout" : "Tietoja",
+      "UnitKm" : "km",
+      "PageSea" : "Meri",
+      "SetSeaWindDesc" : "Tätä kovempi tuuli korostetaan. Puuskaraja on +5 m/s.",
+      "GroupSea" : "Meri",
+      "SetWindUnit" : "Tuuli",
+      "NoData" : "Palvelu ei vastaa",
+      "GroupDisplay" : "Näyttö"
+    },
+    "valyrian" : {
+      "SetSeaWind" : "Wind limit (m/s)",
+      "SetSeaWaveDesc" : "Significant wave height above this stands out.",
+      "SetSeaWave" : "Wave height limit (m)",
+      "FieldSeaWind" : "Sea wind + gust",
+      "$literal48$" : "Viitasaari Haapaniemi",
+      "$literal24$" : "Kirkkonummi Mäkiluoto",
+      "$literal36$" : "Lumparland Långnäs satama",
+      "$literal4$" : "Raahe Lapaluoto satama",
+      "$literal40$" : "Liperi Tuiskavanluoto",
+      "$literal52$" : "Parikkala Koitsanlahti",
+      "$literal12$" : "Korsnäs Bredskäret",
+      "UnitMs" : "m/s",
+      "FieldSeaGust" : "Sea gust",
+      "NoPhone" : "No connection",
+      "Offline" : "Showing last reading",
+      "PageLand" : "Land",
+      "OrderSea" : "Sea first",
+      "OrderLand" : "Land first",
+      "NoBuoyArea" : "No buoy in this area",
+      "FieldWave" : "Wave height",
+      "$literal59$" : "Perämeri",
+      "$literal3$" : "Oulu Vihreäsaari satama",
+      "$literal35$" : "Jomala Jomalaby",
+      "$literal47$" : "Lappeenranta Hiekkapakka",
+      "SetLandHot" : "Hot above (°C)",
+      "$literal19$" : "Parainen Utö",
+      "$literal51$" : "Lieksa Lampela",
+      "$literal11$" : "Maalahti Strömmingsbådan",
+      "$literal23$" : "Inkoo Jakobramsjö",
+      "UnitBft" : "Beaufort",
+      "FieldLandTemp" : "Land temperature",
+      "$literal26$" : "Sipoo Itätoukki",
+      "$literal38$" : "Maarianhamina Lotsberget",
+      "SetLandPlace" : "Place",
+      "$literal14$" : "Rauma Kylmäpihlaja",
+      "Loading" : "Loading…",
+      "$literal6$" : "Kalajoki Ulkokalla",
+      "$literal30$" : "Loviisa Orrengrund",
+      "$literal42$" : "Varkaus Kosulanniemi",
+      "SetLandCold" : "Cold below (°C)",
+      "$literal54$" : "Helsinki Suomenlinna",
+      "SetLandWind" : "Wind limit (m/s)",
+      "SetLandColdDesc" : "Temperature below this is shown in blue.",
+      "UnitKn" : "knots",
+      "PageAbout" : "About",
+      "UnitKm" : "km",
+      "$literal37$" : "Maarianhamina Länsisatama",
+      "$literal49$" : "Kuopio Maaninka",
+      "$literal13$" : "Pori Tahkoluoto satama",
+      "PageSea" : "Sea",
+      "$literal25$" : "Helsinki Harmaja",
+      "$literal5$" : "Raahe Nahkiainen",
+      "GroupSea" : "Sea",
+      "$literal41$" : "Rantasalmi Rukkasluoto",
+      "SetWindUnit" : "Wind",
+      "NoData" : "Service unavailable",
+      "$literal53$" : "Pyhäjärvi Ojakylä",
+      "SetDistUnit" : "Distance",
+      "SetPageOrder" : "Land or Sea preferred",
+      "SetSeaBuoy" : "Wave buoy",
+      "NoPlace" : "Place not found",
+      "$literal0$" : "Kemi I majakka",
+      "$literal16$" : "Turku Rajakari",
+      "BuoyAuto" : "Automatic (nearest)",
+      "Modelled" : "modelled",
+      "$literal28$" : "Porvoo Kalbådagrund",
+      "$literal8$" : "Kokkola Santahaka",
+      "FieldLandWind" : "Land wind",
+      "$literal60$" : "Kalajoki Maakalla",
+      "$literal44$" : "Tampere Siilinkari",
+      "$literal56$" : "Pohjois-Itämeri",
+      "$literal20$" : "Hanko Russarö",
+      "$literal32$" : "Virolahti Koivuniemi",
+      "SetPageOrderDesc" : "Which page the app opens on.",
+      "SetSeaStationDesc" : "Finnish marine weather station.",
+      "SetLandPlaceDesc" : "Town or city. Any Finnish place name works.",
+      "Period" : "Period",
+      "NoBuoy" : "No buoy reporting",
+      "SetLandHotDesc" : "Temperature above this is shown in red.",
+      "Attribution" : "Data: Finnish Meteorological Institute",
+      "$literal15$" : "Kustavi Isokari",
+      "$literal27$" : "Porvoo Emäsalo",
+      "$literal7$" : "Kokkola Tankar",
+      "$literal39$" : "Lemland Nyhamn",
+      "$literal55$" : "Suomenlahti",
+      "$literal31$" : "Kotka Rankki",
+      "SetSeaStation" : "Sea station",
+      "$literal43$" : "Kuopio Ritoniemi",
+      "PageBuoy" : "Waves",
+      "WaterTemp" : "Water",
+      "UnitNm" : "nautical miles",
+      "Gust" : "gust",
+      "AppName" : "FIWeatherWatch",
+      "$literal46$" : "Puumala kirkonkylä",
+      "SetGlance1" : "Glance data 1",
+      "$literal2$" : "Hailuoto Marjaniemi",
+      "$literal58$" : "Pori Kaijakari",
+      "SetGlance2" : "Glance data 2",
+      "$literal18$" : "Parainen Fagerholm",
+      "SetLandWindDesc" : "Wind above this stands out. Gust limit follows at +3 m/s.",
+      "SetSeaBuoyDesc" : "Leave on Automatic to use the nearest reporting buoy.",
+      "$literal50$" : "Sotkamo Kuolaniemi",
+      "$literal22$" : "Inkoo Bågaskär",
+      "$literal34$" : "Kumlinge kirkonkylä",
+      "$literal10$" : "Mustasaari Valassaaret",
+      "GroupLand" : "Land",
+      "GroupUnits" : "Units",
+      "Refreshing" : "Refreshing…",
+      "FieldWater" : "Water temperature",
+      "FieldNone" : "None",
+      "$literal1$" : "Kemi Ajos",
+      "$literal57$" : "Selkämeri",
+      "$literal17$" : "Kemiönsaari Vänö",
+      "SetSeaWindDesc" : "Wind above this stands out. Gust limit follows at +5 m/s.",
+      "$literal29$" : "Porvoo Kilpilahti satama",
+      "$literal9$" : "Pietarsaari Kallan",
+      "$literal61$" : "Oulu Santapankki",
+      "$literal33$" : "Hammarland Märket",
+      "$literal45$" : "Luhanka Judinsalo",
+      "GroupDisplay" : "Display",
+      "$literal21$" : "Hanko Tulliniemi"
+    }
+  }
+}
