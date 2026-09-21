@@ -293,7 +293,12 @@ function applyStrings() {
   // The live data lives only under the weather hostname, and the app pitch
   // only under the app one. Each page hides the other's half rather than
   // being a separate template.
-  const hide = WEATHER_ONLY ? ["#app", "#screens", "#nav-app", "#tag-dev"] : ["#live"];
+  // The data view is two sections, land and sea. Hiding only the first left
+  // the sea half on the app page, stuck at "Loading…" forever because that
+  // page deliberately does not fetch.
+  const hide = WEATHER_ONLY
+    ? ["#app", "#screens", "#nav-app", "#tag-dev"]
+    : ["#live", "#live-sea"];
   for (const id of hide) {
     const e = $(id);
     if (e) e.style.display = "none";
