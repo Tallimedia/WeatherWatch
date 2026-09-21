@@ -27,6 +27,7 @@ MAPPING = {
     "15.png": "settings-sea.png",      # station, buoy, wind and wave limits
     "14.png": "settings-display.png",  # page order, glance slots
     "13.png": "settings-units.png",    # wind, distance
+    "18.png": "settings-buoy.png",     # the wave buoy list, open
 }
 
 STATUS_BAR_PX = 145   # measured: clock band ends at 100, gap to 145

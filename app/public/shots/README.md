@@ -11,6 +11,7 @@ The four the Setup section looks for:
     settings-sea.png      Sea: station, buoy, wind limit, wave limit
     settings-display.png  Display: page order, glance slots
     settings-units.png    Units: wind, distance
+    settings-buoy.png     Wave buoy list, open
 
 Regenerate them from phone screenshots with:
 
