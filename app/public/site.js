@@ -322,6 +322,36 @@ function renderCta() {
    should get the weather, not a watch app above it. */
 const WEATHER_ONLY = document.body.dataset.site === "weather";
 
+/* Click-to-enlarge for the settings thumbnails.
+   A thumbnail that 404s removes itself, and the column goes with the last one:
+   the images live outside the repo until they are dropped in, and an empty
+   grid of broken-image icons is worse than no column at all. */
+function wireThumbnails() {
+  const box = document.getElementById("setup-shots");
+  const lb = document.getElementById("lightbox");
+  const lbImg = document.getElementById("lb-img");
+  if (!box || !lb || !lbImg) { return; }
+
+  const close = () => { lb.hidden = true; lbImg.removeAttribute("src"); };
+  lb.addEventListener("click", close);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { close(); } });
+
+  const thumbs = box.querySelectorAll(".thumb");
+  let alive = thumbs.length;
+  for (const t of thumbs) {
+    const img = t.querySelector("img");
+    img.addEventListener("error", () => {
+      t.remove();
+      alive -= 1;
+      if (alive <= 0) { box.remove(); }
+    });
+    t.addEventListener("click", () => {
+      lbImg.src = t.dataset.src;
+      lb.hidden = false;
+    });
+  }
+}
+
 function applyStrings() {
   document.documentElement.lang = LANG;
   // Declared before anything uses it. It used to sit further down, after the
@@ -595,6 +625,7 @@ function refresh() {
     }
   }
 
+  wireThumbnails();
   refresh();
   setInterval(refresh, 300000);   // matches the observation cache TTL
 })();
