@@ -503,33 +503,55 @@ function refresh() {
 }
 
 (async function init() {
+  // The language control is wired first, before any network call or any
+  // element that might not be on this page. It used to come last, after the
+  // station pickers — and once those were stripped from the app page, the
+  // picker setup threw on a null element and the listener was never attached,
+  // so changing the language silently did nothing.
+  const lang = $("#lang");
+  if (lang) {
+    lang.value = LANG;
+    lang.addEventListener("change", (e) => {
+      LANG = e.target.value;
+      try { localStorage.setItem("fiw-lang", LANG); } catch (_) {}
+      applyStrings();
+      refresh();
+    });
+  }
+  applyStrings();
+
   try {
     const meta = await jget("/v1/app");
     STORE_URL = meta.store_url || null;
     if (meta.weather_url) WEATHER_URL = meta.weather_url;
     if (meta.app_url) APP_URL = meta.app_url;
+    renderCta();
   } catch (_) { STORE_URL = null; }
-  const reg = await jget("/v1/stations");
-  // Grouped: coast and lakes are both "sea stations" here, but a reader
-  // scanning 54 names wants to know which water they are looking at.
-  const opt = (s) =>
-    `<option value="${s.fmisid}"${s.fmisid === 100996 ? " selected" : ""}>${s.name}</option>`;
-  $("#station").innerHTML =
-    `<optgroup label="${T("coast")}">${reg.marine_stations.map(opt).join("")}</optgroup>` +
-    `<optgroup label="${T("lakes")}">${(reg.lake_stations || []).map(opt).join("")}</optgroup>`;
-  $("#buoy").innerHTML = `<option value="">${T("nearest")}</option>` + reg.wave_buoys
-    .map((s) => `<option value="${s.fmisid}">${s.name}</option>`).join("");
-  for (const id of ["#place", "#station", "#buoy"]) {
-    $(id).addEventListener("change", refresh);
+
+  // Only the weather page has the pickers, and only it needs the station list.
+  const stationSel = $("#station");
+  if (stationSel) {
+    try {
+      const reg = await jget("/v1/stations");
+      // Grouped: coast and lakes are both "sea stations" here, but a reader
+      // scanning 54 names wants to know which water they are looking at.
+      const opt = (s) =>
+        `<option value="${s.fmisid}"${s.fmisid === 100996 ? " selected" : ""}>${s.name}</option>`;
+      stationSel.innerHTML =
+        `<optgroup label="${T("coast")}">${reg.marine_stations.map(opt).join("")}</optgroup>` +
+        `<optgroup label="${T("lakes")}">${(reg.lake_stations || []).map(opt).join("")}</optgroup>`;
+      const buoy = $("#buoy");
+      if (buoy) {
+        buoy.innerHTML = `<option value="">${T("nearest")}</option>` + reg.wave_buoys
+          .map((s) => `<option value="${s.fmisid}">${s.name}</option>`).join("");
+      }
+    } catch (_) { /* the panels show their own error */ }
+    for (const id of ["#place", "#station", "#buoy"]) {
+      const e = $(id);
+      if (e) e.addEventListener("change", refresh);
+    }
   }
-  $("#lang").value = LANG;
-  $("#lang").addEventListener("change", (e) => {
-    LANG = e.target.value;
-    try { localStorage.setItem("fiw-lang", LANG); } catch (_) {}
-    applyStrings();
-    refresh();
-  });
-  applyStrings();
+
   refresh();
   setInterval(refresh, 300000);   // matches the observation cache TTL
 })();
