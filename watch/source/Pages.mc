@@ -153,7 +153,8 @@ module Pages {
         var dir = Api.v(d, "dir");
 
         stackStart(dc, 0.245);
-        iconRow(dc, :temp, Graphics.FONT_NUMBER_MILD, Fmt.temp(t), Theme.tempColour(t), -2);
+        iconRowUnit(dc, :temp, Graphics.FONT_NUMBER_MILD, Fmt.tempValue(t), "°C",
+                    Theme.tempColour(t), -2);
         iconRow(dc, :wind, Graphics.FONT_SMALL,
                 Fmt.windValue(ms) + " (" + Fmt.windValue(gust) + ") " + Fmt.windUnitLabel()
                     + " " + Fmt.compass(dir),
@@ -211,8 +212,8 @@ module Pages {
         var colour = Theme.windColour(ms, gust, Config.seaWind(), Config.seaGust());
 
         stackStart(dc, 0.245);
-        iconRow(dc, :wind, Graphics.FONT_NUMBER_MILD,
-                Fmt.windValue(ms) + " " + Fmt.windUnitLabel(), colour, -4);
+        iconRowUnit(dc, :wind, Graphics.FONT_NUMBER_MILD, Fmt.windValue(ms),
+                    Fmt.windUnitLabel(), colour, -4);
         row(dc, Graphics.FONT_XTINY,
             res(Rez.Strings.Gust) + " " + Fmt.windValue(gust) + " " + Fmt.windUnitLabel(),
             Theme.DIM, 6);
@@ -275,7 +276,8 @@ module Pages {
         var dir = Api.v(m, "wDir");
 
         stackStart(dc, 0.245);
-        iconRow(dc, :wave, Graphics.FONT_NUMBER_MILD, Fmt.metres(hs), Theme.waveColour(hs), -4);
+        iconRowUnit(dc, :wave, Graphics.FONT_NUMBER_MILD, Fmt.metresValue(hs), "m",
+                    Theme.waveColour(hs), -4);
         row(dc, Graphics.FONT_XTINY,
             res(Rez.Strings.Period) + " " + (per == null ? Fmt.DASH : Fmt.one(per)) + " s",
             Theme.DIM, 6);
@@ -363,6 +365,41 @@ module Pages {
         else if (kind == :clock)   { Icons.clock(dc, left, iy, size, Theme.DIM); }
         dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
         dc.drawText(left + drawnW + gap, _y, font, text, Graphics.TEXT_JUSTIFY_LEFT);
+        _y += fh + gapAfter;
+    }
+
+    //! Icon, a big number, and its unit in a font that has letters.
+    //!
+    //! Garmin's FONT_NUMBER_* faces carry digits and punctuation but, on many
+    //! devices, no letters — the Forerunner 255s drew "13.4 °C" as "13.4 °"
+    //! plus an empty box, and "2.2 m/s" as "2.2 □/□". The fenix 8 happens to
+    //! have the glyphs, which is why this survived every test until someone
+    //! looked at a small screen. Nothing in a number font may contain letters.
+    function iconRowUnit(dc as Graphics.Dc, kind as Symbol, numFont as Graphics.FontDefinition,
+                         value as String, unit as String, colour as Number,
+                         gapAfter as Number) as Void {
+        var unitFont = Graphics.FONT_SMALL;
+        var fh = dc.getFontHeight(numFont);
+        var uh = dc.getFontHeight(unitFont);
+        var size = (fh * 0.62).toNumber();
+        var drawnW = (size * Icons.widthFactor(kind)).toNumber();
+        var vw = dc.getTextWidthInPixels(value, numFont);
+        var uw = dc.getTextWidthInPixels(unit, unitFont);
+        var gap = 5;
+        var unitGap = 3;
+
+        var total = drawnW + gap + vw + unitGap + uw;
+        var left = ((w(dc) - total) / 2).toNumber();
+        var iy = _y + ((fh - size) / 2).toNumber();
+        if (kind == :temp)      { Icons.temp(dc, left, iy, size, Theme.DIM); }
+        else if (kind == :wind) { Icons.wind(dc, left, iy, size, Theme.DIM); }
+        else if (kind == :wave) { Icons.wave(dc, left, iy, size, Theme.DIM); }
+
+        dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(left + drawnW + gap, _y, numFont, value, Graphics.TEXT_JUSTIFY_LEFT);
+        // Sit the unit on the number's baseline rather than its box top.
+        dc.drawText(left + drawnW + gap + vw + unitGap, _y + (fh - uh), unitFont, unit,
+                    Graphics.TEXT_JUSTIFY_LEFT);
         _y += fh + gapAfter;
     }
 

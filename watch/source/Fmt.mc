@@ -55,6 +55,22 @@ module Fmt {
         return one(c) + " °C";
     }
 
+    //! Bare number, for rows that draw the unit in a separate font.
+    //!
+    //! Garmin's FONT_NUMBER_* faces are digits-and-punctuation on many
+    //! devices — the Forerunner 255s renders "13.4 °C" as "13.4 °" followed by
+    //! an empty box, because it has no letter glyphs at all. So anything drawn
+    //! in a number font must contain no letters.
+    function tempValue(c as Numeric?) as String {
+        if (c == null) { return DASH; }
+        return one(c);
+    }
+
+    function metresValue(v as Numeric?) as String {
+        if (v == null) { return DASH; }
+        return v.format("%.1f");
+    }
+
     //! FMI's buoy names carry a type suffix that says nothing on a watch —
     //! "Helsinki Suomenlinna aaltopoiju" is just Suomenlinna to a reader.
     function shortStation(name as String?) as String? {

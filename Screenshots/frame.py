@@ -31,16 +31,24 @@ OUT = HERE / "framed"
 DEVICE = "fenix847mm"
 SDK_DEVICES = Path.home() / "Library/Application Support/Garmin/ConnectIQ/Devices"
 
+# A capture is framed in the device it was taken on: a 218x218 shot dropped
+# into a fenix 8 bezel would be upscaled to 454 and look soft, and would also
+# be a lie about which watch it came from. Matched on the capture's own size.
+DEVICE_BY_SIZE = {
+    (454, 454): "fenix847mm",
+    (218, 218): "fr255s",
+}
+
 # Raw captures go in; framed ones come out. Anything already framed is skipped
 # so a second run does not nest a watch inside a watch.
 SKIP = {"framed"}
 
 
-def geometry() -> tuple[Image.Image, tuple[int, int, int, int]]:
-    skin_path = SDK_DEVICES / DEVICE / f"{DEVICE}.png"
-    sim_path = SDK_DEVICES / DEVICE / "simulator.json"
+def geometry(device: str = DEVICE) -> tuple[Image.Image, tuple[int, int, int, int]]:
+    skin_path = SDK_DEVICES / device / f"{device}.png"
+    sim_path = SDK_DEVICES / device / "simulator.json"
     if not skin_path.exists() or not sim_path.exists():
-        raise SystemExit(f"SDK device files not found for {DEVICE} — is the SDK installed?")
+        raise SystemExit(f"SDK device files not found for {device} — is the SDK installed?")
     loc = json.loads(sim_path.read_text())["display"]["location"]
     return Image.open(skin_path).convert("RGBA"), (
         loc["x"], loc["y"], loc["width"], loc["height"],
@@ -90,7 +98,7 @@ def frame(src: Path, skin: Image.Image, rect: tuple[int, int, int, int]) -> Path
 
 
 def main() -> None:
-    skin, rect = geometry()
+    cache: dict[str, tuple] = {}
     names = sys.argv[1:]
     if names:
         sources = [HERE / n for n in names]
@@ -99,10 +107,18 @@ def main() -> None:
     if not sources:
         raise SystemExit("no captures found")
     for src in sources:
+        size_of = Image.open(src).size
+        device = DEVICE_BY_SIZE.get(size_of)
+        if device is None:
+            print(f"{src.name:20} skipped — no device skin for {size_of[0]}x{size_of[1]}")
+            continue
+        if device not in cache:
+            cache[device] = geometry(device)
+        skin, rect = cache[device]
         out = frame(src, skin, rect)
         size = out.stat().st_size
         flag = "" if size <= STORE_MAX_BYTES else "  OVER STORE LIMIT"
-        print(f"{src.name:14} -> {out.relative_to(HERE)}  {size:>7,} B{flag}")
+        print(f"{src.name:20} -> {out.relative_to(HERE)}  {size:>7,} B  [{device}]{flag}")
 
 
 if __name__ == "__main__":
