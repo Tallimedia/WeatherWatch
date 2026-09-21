@@ -27,6 +27,7 @@ h1{font-size:34px;margin:0 0 6px;letter-spacing:-.01em}
 h2{font-size:20px;margin:0 0 4px}
 .note{color:var(--faint);font-size:14px;margin:0 0 20px;max-width:40rem}
 .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 24px}
+.lbl{color:var(--dim);font-size:14px}
 select,button{background:#101729;color:var(--fg);border:1px solid var(--line);
   border-radius:8px;padding:8px 12px;font:inherit;font-size:14px;cursor:pointer}
 button.on{border-color:var(--accent);color:var(--accent)}
@@ -49,12 +50,23 @@ button.on{border-color:var(--accent);color:var(--accent)}
 .row .s{font-size:20px;color:var(--car-dim);line-height:1.35}
 .row .ic{flex:0 0 auto}
 .warnc{color:var(--warn)} .cautionc{color:var(--caution)} .dimc{color:var(--car-dim)}
-/* GridTemplate: tiles, image over label. Six is the usual host limit. */
+/* GridTemplate: tiles, image over label. A GridItem is an image, a title and
+   exactly one text line — no second line is available. */
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:10px 18px}
+.grid2{grid-template-columns:repeat(2,1fr);padding:18px}
 .cell{padding:16px 8px;text-align:center}
 .cell .h{font-size:20px;color:var(--car-dim)}
 .cell .v{font-size:28px;margin-top:2px}
+.cell .v.big{font-size:42px;margin-top:8px}
 .cell .p{font-size:18px;color:var(--car-accent);margin-top:2px}
+.cell .p.dim{color:var(--car-dim)}
+.rt{color:var(--car-dim);display:block;margin:0 auto}
+.row .rt{margin:2px 0 0}
+/* MessageTemplate: one icon, one block of text, centred. */
+.mcard{padding:56px 46px;text-align:center}
+.mcard img{width:64px;height:64px;border-radius:12px}
+.mcard .mtitle{font-size:28px;margin:18px 0 14px}
+.mcard .mtext{font-size:19px;color:var(--car-dim);line-height:1.45;margin:0 0 14px}
 .msg{padding:40px 26px;color:var(--car-dim);font-size:22px}
 footer{margin-top:44px;color:var(--faint);font-size:13px;max-width:44rem}
 footer a{color:var(--accent);margin-right:14px}
@@ -71,23 +83,34 @@ footer a{color:var(--accent);margin-right:14px}
   <h2>Design preview</h2>
   <p class="note">A mockup of an unreleased app, drawn at half size — the real screen is
     800 × 1280. It shows <strong>live data</strong> from the same backend the app uses, and
-    is deliberately limited to what Android's car templates can actually render: rows and
-    grid tiles, capped at about six, no custom layout.</p>
+    is deliberately limited to what Android's car templates can actually render, checked
+    against the shipped <code>androidx.car.app 1.7.0</code>: a row is an icon, a title and
+    at most <strong>two</strong> secondary lines; a grid tile is an image, a title and
+    <strong>one</strong> line; six items is the safe budget while moving; and a tab holds
+    a single template, so rows and tiles only mix via the still-experimental
+    <code>SectionedItemTemplate</code>.</p>
 
   <div class="controls">
-    <button id="t-road" class="on">Road</button>
-    <button id="t-weather">Weather</button>
+    <button id="t-road">Road</button>
+    <button id="t-weather" class="on">Weather</button>
     <button id="t-about">About</button>
     <select id="place"></select>
     <span id="status" style="color:var(--faint);font-size:13px"></span>
   </div>
 
+  <div class="controls">
+    <span class="lbl">Weather tab, “Now”:</span>
+    <button id="n-rows" class="on">Stacked rows</button>
+    <button id="n-tiles">Side&nbsp;by&nbsp;side tiles</button>
+  </div>
+  <p class="note" id="nowhint"></p>
+
   <div class="stage">
     <div class="frame">
       <div class="hdr"><img src="/demo/static/icon.png" alt=""><span>Road Weather</span></div>
       <div class="tabs">
-        <div class="tab sel" id="tab-road"><span class="gl"></span>Road</div>
-        <div class="tab" id="tab-weather"><span class="gl"></span>Weather</div>
+        <div class="tab" id="tab-road"><span class="gl"></span>Road</div>
+        <div class="tab sel" id="tab-weather"><span class="gl"></span>Weather</div>
         <div class="tab" id="tab-about"><span class="gl"></span>About</div>
       </div>
       <div id="screen"><p class="msg">Loading…</p></div>
