@@ -342,6 +342,13 @@ function applyStrings() {
     const nav = $("#nav-live");
     if (nav) { nav.href = WEATHER_URL; nav.textContent = T("navLiveWeather"); }
   }
+  // Number the sections in document order, like VolvoWatch. Computed rather
+  // than written into the markup because the two sites serve different
+  // sections — hardcoded numbers would skip on whichever page lacks one.
+  const nums = document.querySelectorAll(".sec-num");
+  for (let i = 0; i < nums.length; i += 1) {
+    nums[i].textContent = String(i + 1).padStart(2, "0");
+  }
   renderCta();
   for (const i of [1,2,3,4]) { set(`#c${i}t`,`c${i}t`); set(`#c${i}`,`c${i}`); }
   for (const i of [1,2,3])   { set(`#d${i}t`,`d${i}t`); set(`#d${i}`,`d${i}`); }

@@ -141,7 +141,7 @@
   <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,0.85fr);gap:48px;align-items:center">
     <div>
       <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:18px">
-        <span class="sec-num">01</span>
+        <span class="sec-num"></span>
         <h2 style="font-size:40px;margin:0" id="h-app">On your wrist</h2>
         <span class="sec-rule"></span>
       </div>
@@ -164,7 +164,7 @@
 <section id="screens" style="background:var(--color-accent-900);color:#f5f8fd;padding:64px 0;margin-top:56px">
   <div style="max-width:1240px;margin:0 auto;padding:0 32px">
     <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:32px">
-      <span class="sec-num" style="color:var(--color-accent-300)">02</span>
+      <span class="sec-num" style="color:var(--color-accent-300)"></span>
       <h2 style="font-size:40px;margin:0;color:#f5f8fd" id="h-screens">Every screen</h2>
       <span style="flex:1;height:1px;background:color-mix(in srgb,#f5f8fd 26%,transparent)"></span>
     </div>
@@ -184,7 +184,11 @@
 </section>
 
 <section id="live" class="wrap" style="padding:56px 32px 0">
-  <h2 style="font-size:40px;margin:0 0 6px" id="h-land">On land</h2>
+  <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:18px">
+    <span class="sec-num"></span>
+    <h2 style="font-size:40px;margin:0" id="h-land">On land</h2>
+    <span class="sec-rule"></span>
+  </div>
   <p style="color:var(--color-neutral-700);margin:0 0 22px">
     <span id="sub-land"></span></p>
   <div class="pick">
@@ -194,7 +198,11 @@
 </section>
 
 <section id="live-sea" class="wrap" style="padding:48px 32px 56px">
-  <h2 style="font-size:40px;margin:0 0 6px" id="h-sea">At sea</h2>
+  <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:18px">
+    <span class="sec-num"></span>
+    <h2 style="font-size:40px;margin:0" id="h-sea">At sea</h2>
+    <span class="sec-rule"></span>
+  </div>
   <p style="color:var(--color-neutral-700);margin:0 0 22px">
     <span id="sub-sea"></span></p>
   <div class="pick">
@@ -207,7 +215,11 @@
 
 <section id="what" style="background:var(--color-accent-900);color:#f5f8fd;padding:64px 0">
   <div class="wrap">
-    <h2 style="font-size:40px;margin:0 0 26px;color:#f5f8fd" id="h-what">What the watch shows</h2>
+  <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:18px">
+    <span class="sec-num" style="color:var(--color-accent-300)"></span>
+    <h2 style="font-size:40px;margin:0;color:#f5f8fd" id="h-what">What the watch shows</h2>
+    <span style="flex:1;height:1px;background:color-mix(in srgb,#f5f8fd 26%,transparent)"></span>
+  </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:30px">
       <div><h3 id="c1t" style="font-family:var(--font-heading);font-size:21px;margin:0 0 6px">Land</h3>
         <p style="margin:0;color:#c9d7e8" id="c1">Current temperature, wind and gusts, plus a
@@ -226,7 +238,11 @@
 </section>
 
 <section id="data" class="wrap" style="padding:56px 32px">
-  <h2 style="font-size:40px;margin:0 0 6px" id="h-data">About the data</h2>
+  <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:18px">
+    <span class="sec-num"></span>
+    <h2 style="font-size:40px;margin:0" id="h-data">About the data</h2>
+    <span class="sec-rule"></span>
+  </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:30px;margin-top:22px">
     <div><h3 id="d1t" style="font-family:var(--font-heading);font-size:20px;margin:0 0 6px">Wind is a 10-minute mean</h3>
       <p style="margin:0;color:var(--color-neutral-700)" id="d1">The meteorological standard, and
