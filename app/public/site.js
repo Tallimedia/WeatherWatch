@@ -33,7 +33,7 @@ STR = {
     soon:"Tulossa Connect IQ -kauppaan", getIt:"Hae Connect IQ -kaupasta",
     seeLive:"Katso säätiedot livenä sääsivultamme",
     devices:"Suomeksi, ruotsiksi ja englanniksi. Toimii 70 Garmin-mallissa.",
-    capSea:"Meri", capWaves:"Aallot", capGlance:"Vilkaisu", capSmall:"Forerunner 255s",
+    hScreens:"Jokainen näyttö", capLand:"Maa", capSea:"Meri", capWaves:"Aallot", capGlance:"Vilkaisu", capAbout:"Tietoja", capSmall:"Forerunner 255s",
     privacy:"Tietosuoja", terms:"Käyttöehdot",
     coast:"Rannikko", lakes:"Sisävedet", trend:"Tuuli, 12 viime tuntia", mean:"Keskituuli", noTrend:"Ei tuulihistoriaa saatavilla", rain:"Sade", rainNone:"ei sadetta", justNow:"juuri nyt", minAgo:"min sitten", hAgo:"h sitten", retrieved:"Haettu", loading:"Ladataan…",
   },
@@ -69,7 +69,7 @@ STR = {
     soon:"Kommer till Connect IQ Store", getIt:"Hämta från Connect IQ Store",
     seeLive:"Se väderdata live på vår vädersida",
     devices:"På finska, svenska och engelska. Fungerar på 70 Garmin-modeller.",
-    capSea:"Hav", capWaves:"Vågor", capGlance:"Överblick", capSmall:"Forerunner 255s",
+    hScreens:"Varje skärm", capLand:"Land", capSea:"Hav", capWaves:"Vågor", capGlance:"Överblick", capAbout:"Om appen", capSmall:"Forerunner 255s",
     privacy:"Integritet", terms:"Villkor",
     coast:"Kusten", lakes:"Insjöar", trend:"Vind, senaste 12 timmarna", mean:"Medelvind", noTrend:"Ingen vindhistorik tillgänglig", rain:"Nederbörd", rainNone:"inget regn", justNow:"just nu", minAgo:"min sedan", hAgo:"h sedan", retrieved:"Hämtad", loading:"Laddar…",
   },
@@ -105,7 +105,7 @@ STR = {
     soon:"Coming to the Connect IQ Store", getIt:"Get it on the Connect IQ Store",
     seeLive:"View weather data live from our weather page",
     devices:"In Finnish, Swedish and English. Runs on 70 Garmin models.",
-    capSea:"Sea", capWaves:"Waves", capGlance:"Glance", capSmall:"Forerunner 255s",
+    hScreens:"Every screen", capLand:"Land", capSea:"Sea", capWaves:"Waves", capGlance:"Glance", capAbout:"About", capSmall:"Forerunner 255s",
     privacy:"Privacy", terms:"Terms",
     coast:"Coast", lakes:"Inland lakes", trend:"Wind, last 12 hours", mean:"Mean", noTrend:"No wind history available", rain:"Rain", rainNone:"no rain", justNow:"just now", minAgo:"min ago", hAgo:"h ago", retrieved:"Retrieved", loading:"Loading…",
   },
@@ -254,7 +254,22 @@ function dirLabel(degreesFrom) {
 let STORE_URL = null;
 let WEATHER_URL = "https://weather.tallimedia.com";
 
+function renderNavCta() {
+  const host = $("#nav-cta");
+  if (!host) return;
+  host.innerHTML = STORE_URL
+    ? `<a class="btn btn-primary blueprint" href="${STORE_URL}"
+         style="color:var(--color-bg);text-transform:uppercase;letter-spacing:0.06em">${T("getIt")}
+         <i class="corner tl"></i><i class="corner tr"></i>
+         <i class="corner bl"></i><i class="corner br"></i></a>`
+    : `<a class="btn blueprint" href="${WEATHER_URL}"
+         style="text-transform:uppercase;letter-spacing:0.06em">${T("navWeather")}
+         <i class="corner tl"></i><i class="corner tr"></i>
+         <i class="corner bl"></i><i class="corner br"></i></a>`;
+}
+
 function renderCta() {
+  renderNavCta();
   const host = $("#app-cta");
   if (!host) return;
   const live = `<a class="cta ${STORE_URL ? "cta-quiet" : "cta-primary"}"
@@ -273,7 +288,7 @@ function applyStrings() {
   // The live data lives only under the weather hostname, and the app pitch
   // only under the app one. Each page hides the other's half rather than
   // being a separate template.
-  const hide = WEATHER_ONLY ? ["#app", "#nav-app"] : ["#live"];
+  const hide = WEATHER_ONLY ? ["#app", "#screens", "#nav-app"] : ["#live"];
   for (const id of hide) {
     const e = $(id);
     if (e) e.style.display = "none";
@@ -294,8 +309,9 @@ function applyStrings() {
   set("#h-what","whatTitle"); set("#h-data","dataTitle"); set("#foot-note","footNote");
   set("#nav-app","navApp"); set("#h-app","hApp"); set("#app-lede","appLede");
   set("#app-devices","devices");
-  set("#cap-sea","capSea"); set("#cap-waves","capWaves");
-  set("#cap-glance","capGlance"); set("#cap-small","capSmall");
+  set("#h-screens","hScreens");
+  set("#cap-land","capLand"); set("#cap-sea","capSea"); set("#cap-waves","capWaves");
+  set("#cap-glance","capGlance"); set("#cap-about","capAbout");
   set("#foot-privacy","privacy"); set("#foot-terms","terms");
   const pts = $("#app-points");
   if (pts) pts.innerHTML = ["p1","p2","p3","p4"].map((k) => `<li>${T(k)}</li>`).join("");
