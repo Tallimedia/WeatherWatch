@@ -47,5 +47,9 @@ ENABLE_CHARTS = _flag("ENABLE_CHARTS", False)
 ENABLE_PUBLIC = _flag("ENABLE_PUBLIC", False)
 
 # Defaults match the app's shipped settings: Helsinki / Harmaja / Suomenlinna.
+# Connect IQ store URL. Unset until the app is published — the page then says
+# "coming to the store" rather than offering a link that goes nowhere.
+STORE_URL = os.getenv("STORE_URL", "")
+
 DEFAULT_PLACE = os.getenv("DEFAULT_PLACE", "Helsinki")
 DEFAULT_SEA_FMISID = int(os.getenv("DEFAULT_SEA_FMISID", "100996"))  # Helsinki Harmaja

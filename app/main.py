@@ -16,9 +16,9 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import Any, AsyncIterator
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 
-from . import config, stations
+from . import config, legal, stations
 from .cache import cache
 from .fmi import (
     FMIError,
@@ -582,11 +582,61 @@ if config.ENABLE_PUBLIC or config.ENABLE_CHARTS:
 
     ASSET_V = _asset_version()
 
-    def _page(name: str) -> HTMLResponse:
+    def _page(name: str, site: str = "app") -> HTMLResponse:
         html = (_HERE / name / "index.html").read_text(encoding="utf-8")
         html = re.sub(r'((?:src|href)="/[^"]+?\.(?:js|css))"', r'\1?v=' + ASSET_V + '"', html)
+        # One template, two sites. weather.tallimedia.com is the weather page:
+        # live Finnish weather for anyone who wants it, standing on its own
+        # merits. weatherapp.tallimedia.com is the watch app, with the same
+        # data below the pitch. A second copy of the page would just be a
+        # second thing to keep correct.
+        if site != "app":
+            html = html.replace("<body>", f'<body data-site="{site}">', 1)
         # The HTML must never be cached, or it keeps pointing at an old version.
         return HTMLResponse(html, headers={"Cache-Control": "no-cache, must-revalidate"})
+
+    #: Hostnames that serve the weather page, without the app pitch above it.
+    WEATHER_HOSTS = {"weather.tallimedia.com"}
+
+    # The legal pages the store listing has to link to. Rendered from the
+    # repo's own Markdown, so the published policy and the committed one can
+    # never drift apart.
+    _LEGAL_CSS = (
+        "max-width:44rem;margin:0 auto;padding:56px 24px 96px;"
+        "font:16px/1.65 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;"
+        "color:#1d1f20;background:#f2f2f3"
+    )
+
+    def _legal_page(name: str) -> HTMLResponse:
+        try:
+            title, body = legal.document(name)
+        except FileNotFoundError:
+            raise HTTPException(status_code=404, detail="not found")
+        return HTMLResponse(
+            f"<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">"
+            f"<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
+            f"<title>{title}</title>"
+            f"<style>body{{{_LEGAL_CSS}}}h1{{font-size:28px;margin:0 0 4px}}"
+            f"h2{{font-size:18px;margin:32px 0 8px}}a{{color:#416180}}"
+            f"em{{color:#6b6e70}}li{{margin:4px 0}}"
+            f".back{{display:inline-block;margin-bottom:28px;color:#416180;"
+            f"text-decoration:none;font-size:14px}}</style></head><body>"
+            f"<a class=\"back\" href=\"/\">&larr; FIWeatherWatch</a>{body}</body></html>",
+            headers={"Cache-Control": "no-cache, must-revalidate"},
+        )
+
+    @app.get("/privacy")
+    async def privacy() -> HTMLResponse:
+        return _legal_page("PRIVACY")
+
+    @app.get("/terms")
+    async def terms() -> HTMLResponse:
+        return _legal_page("TERMS")
+
+    @app.get("/v1/app")
+    async def app_meta() -> dict:
+        """What the landing page needs to know about the app itself."""
+        return {"store_url": config.STORE_URL, "version": app.version}
 
     @app.get("/v1/stations")
     async def stations_list() -> dict:
@@ -752,8 +802,9 @@ if config.ENABLE_CHARTS:
 if config.ENABLE_PUBLIC:
 
     @app.get("/")
-    async def public_index() -> HTMLResponse:
-        return _page("public")
+    async def public_index(request: Request) -> HTMLResponse:
+        host = (request.headers.get("host") or "").split(":")[0].lower()
+        return _page("public", "weather" if host in WEATHER_HOSTS else "app")
 
     app.mount("/public", StaticFiles(directory=_HERE / "public", html=True), name="public")
 

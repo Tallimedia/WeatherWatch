@@ -53,6 +53,15 @@
   .trend-read { margin-left: auto; font-size: 12px; color: var(--color-neutral-700);
                 font-variant-numeric: tabular-nums; min-height: 1em; }
   .trend-svg { width: 100%; height: auto; display: block; touch-action: pan-y; }
+  .shot-cap { font-size: 12px; color: var(--color-neutral-600); margin-top: 8px; }
+  .cta { display: inline-block; padding: 11px 20px; border-radius: 10px;
+         font-family: var(--font-heading); font-weight: 600; font-size: 15px;
+         text-decoration: none; }
+  .cta-primary { background: var(--color-accent-800); color: #fff; }
+  .cta-quiet { border: 1px solid var(--color-neutral-300); color: var(--color-text); }
+  @media (max-width: 760px) {
+    #app > div:first-child { grid-template-columns: 1fr; }
+  }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 22px; }
   .grid span { font-size: 13px; color: var(--color-neutral-700); }
   .grid b { display: block; font-family: var(--font-heading); font-size: 30px;
@@ -81,6 +90,7 @@
   <span style="color:var(--color-neutral-500)">/</span>
   <span style="font-family:var(--font-heading);font-weight:600;font-size:18px">FIWeatherWatch</span>
   <span style="margin-left:auto;display:flex;gap:18px;flex-wrap:wrap;align-items:center">
+    <a href="#app" id="nav-app">The app</a>
     <a href="#live" id="nav-live">Live data</a>
     <a href="#what" id="nav-what">What it shows</a>
     <a href="#data" id="nav-data">Data</a>
@@ -104,6 +114,41 @@
       <span id="lede"></span></p>
   </div>
 </header>
+
+<section id="app" class="wrap" style="padding:56px 32px 0">
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,0.85fr);gap:48px;align-items:center">
+    <div>
+      <h2 style="font-size:40px;margin:0 0 14px" id="h-app">On your wrist</h2>
+      <p style="font-size:17px;color:var(--color-neutral-800);margin:0 0 20px;max-width:46ch;text-wrap:pretty">
+        <span id="app-lede"></span></p>
+      <ul id="app-points" style="margin:0 0 26px;padding-left:20px;color:var(--color-neutral-800);
+          font-size:16px;line-height:1.7"></ul>
+      <div id="app-cta" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center"></div>
+      <p style="margin:18px 0 0;font-size:13px;color:var(--color-neutral-600)">
+        <span id="app-devices"></span></p>
+    </div>
+    <figure style="margin:0">
+      <img src="/public/shots/pg1.png" alt="FIWeatherWatch land page on a Garmin fenix"
+           style="width:100%;max-width:340px;display:block;margin:0 auto">
+    </figure>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:20px;
+      margin:40px 0 8px">
+    <figure style="margin:0;text-align:center">
+      <img src="/public/shots/pg2.png" alt="Sea page" style="width:100%">
+      <figcaption class="shot-cap" id="cap-sea"></figcaption></figure>
+    <figure style="margin:0;text-align:center">
+      <img src="/public/shots/pg3.png" alt="Waves page" style="width:100%">
+      <figcaption class="shot-cap" id="cap-waves"></figcaption></figure>
+    <figure style="margin:0;text-align:center">
+      <img src="/public/shots/glance.png" alt="Glance" style="width:100%">
+      <figcaption class="shot-cap" id="cap-glance"></figcaption></figure>
+    <figure style="margin:0;text-align:center">
+      <img src="/public/shots/pg1-small.png" alt="On a Forerunner 255s" style="width:100%">
+      <figcaption class="shot-cap" id="cap-small"></figcaption></figure>
+  </div>
+</section>
 
 <section id="live" class="wrap" style="padding:56px 32px 0">
   <h2 style="font-size:40px;margin:0 0 6px" id="h-land">On land</h2>
@@ -172,6 +217,9 @@
       <a href="https://en.ilmatieteenlaitos.fi/open-data">Finnish Meteorological Institute</a>
       open data, licensed
       <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.</p>
+    <p style="margin:0 0 10px;font-size:14px">
+      <a href="/privacy" id="foot-privacy">Privacy</a> ·
+      <a href="/terms" id="foot-terms">Terms</a></p>
     <p style="margin:0;color:var(--color-neutral-600);font-size:13px">
       <span id="foot-note"></span></p>
   </div>

@@ -24,6 +24,17 @@ STR = {
     footNote:"FIWeatherWatch on itsenäinen projekti, ei Ilmatieteen laitoksen eikä Garminin tukema. Ajat Suomen aikaa. Kehitysvaiheessa — jaettu palautetta varten.",
     unavailable:"Sää ei ole hetkellisesti saatavilla", noPlace:"Paikkakunnalle ei löytynyt havaintoasemaa", tryNearby:"Kokeile lähikaupunkia.",
     noBuoy:"ei havaitsevaa poijua", noBuoyArea:"Ei poijua alueella", modelled:"WAM-malli — ei mitattu", away:"km päässä",
+    navApp:"Sovellus", hApp:"Ranteessasi",
+    appLede:"Sama data kellossasi — maasään ennuste, merituuli rannikkoasemilta ja aaltotiedot Ilmatieteen laitoksen poijuilta. Ei tiliä, ei kirjautumista.",
+    p1:"Maa: lämpötila, tuuli ja puuskat lähimmältä asemalta, ennuste loppupäivälle",
+    p2:"Meri: tuuli ja puuskat 40 rannikkoasemalta ja 14 sisävesiasemalta",
+    p3:"Aallot: korkeus, jakso, suunta ja veden lämpötila",
+    p4:"Omat rajasi tuulelle, puuskalle ja aallonkorkeudelle",
+    soon:"Tulossa Connect IQ -kauppaan", getIt:"Hae Connect IQ -kaupasta",
+    seeLive:"Katso data livenä",
+    devices:"Suomeksi, ruotsiksi ja englanniksi. Toimii 70 Garmin-mallissa.",
+    capSea:"Meri", capWaves:"Aallot", capGlance:"Vilkaisu", capSmall:"Forerunner 255s",
+    privacy:"Tietosuoja", terms:"Käyttöehdot",
     coast:"Rannikko", lakes:"Sisävedet", trend:"Tuuli, 12 viime tuntia", mean:"Keskituuli", noTrend:"Ei tuulihistoriaa saatavilla", rain:"Sade", rainNone:"ei sadetta", justNow:"juuri nyt", minAgo:"min sitten", hAgo:"h sitten", retrieved:"Haettu", loading:"Ladataan…",
   },
   sv: {
@@ -49,6 +60,17 @@ STR = {
     footNote:"FIWeatherWatch är ett fristående projekt, utan koppling till Meteorologiska institutet eller Garmin. Tider i finsk lokaltid. Under utveckling — delad för återkoppling.",
     unavailable:"Vädret är tillfälligt otillgängligt", noPlace:"Ingen väderstation hittades för", tryNearby:"Prova en närliggande ort.",
     noBuoy:"ingen aktiv boj", noBuoyArea:"Ingen boj i området", modelled:"WAM-modell — inte uppmätt", away:"km bort",
+    navApp:"Appen", hApp:"På din handled",
+    appLede:"Samma data i din klocka — prognos på land, havsvind från kuststationer och vågdata från Meteorologiska institutets bojar. Inget konto, ingen inloggning.",
+    p1:"Land: temperatur, vind och byar från närmaste station, prognos för resten av dagen",
+    p2:"Hav: vind och byar från 40 kuststationer och 14 insjöstationer",
+    p3:"Vågor: höjd, period, riktning och vattentemperatur",
+    p4:"Dina egna gränser för vind, byar och våghöjd",
+    soon:"Kommer till Connect IQ Store", getIt:"Hämta från Connect IQ Store",
+    seeLive:"Se datan live",
+    devices:"På finska, svenska och engelska. Fungerar på 70 Garmin-modeller.",
+    capSea:"Hav", capWaves:"Vågor", capGlance:"Överblick", capSmall:"Forerunner 255s",
+    privacy:"Integritet", terms:"Villkor",
     coast:"Kusten", lakes:"Insjöar", trend:"Vind, senaste 12 timmarna", mean:"Medelvind", noTrend:"Ingen vindhistorik tillgänglig", rain:"Nederbörd", rainNone:"inget regn", justNow:"just nu", minAgo:"min sedan", hAgo:"h sedan", retrieved:"Hämtad", loading:"Laddar…",
   },
   en: {
@@ -74,6 +96,17 @@ STR = {
     footNote:"FIWeatherWatch is an independent project, not affiliated with or endorsed by the Finnish Meteorological Institute or Garmin. Times in Finnish local time. In development — shared for feedback.",
     unavailable:"Weather is briefly unavailable", noPlace:"No weather station found for", tryNearby:"Try a nearby town.",
     noBuoy:"no buoy reporting", noBuoyArea:"No buoy in this area", modelled:"WAM model — not measured", away:"km away",
+    navApp:"The app", hApp:"On your wrist",
+    appLede:"The same data on your watch — land forecasts, marine wind from the coastal stations, and live wave height from FMI's own buoys. No account, no sign-in.",
+    p1:"Land: temperature, wind and gusts from the nearest station, plus the rest of the day",
+    p2:"Sea: wind and gusts from 40 coastal and 14 inland lake stations",
+    p3:"Waves: height, period, direction and water temperature",
+    p4:"Your own limits for wind, gust and wave height",
+    soon:"Coming to the Connect IQ Store", getIt:"Get it on the Connect IQ Store",
+    seeLive:"See the data live",
+    devices:"In Finnish, Swedish and English. Runs on 70 Garmin models.",
+    capSea:"Sea", capWaves:"Waves", capGlance:"Glance", capSmall:"Forerunner 255s",
+    privacy:"Privacy", terms:"Terms",
     coast:"Coast", lakes:"Inland lakes", trend:"Wind, last 12 hours", mean:"Mean", noTrend:"No wind history available", rain:"Rain", rainNone:"no rain", justNow:"just now", minAgo:"min ago", hAgo:"h ago", retrieved:"Retrieved", loading:"Loading…",
   },
 };
@@ -215,8 +248,33 @@ function dirLabel(degreesFrom) {
   return c ? T("dirFrom").replace("{d}", c) : "";
 }
 
+/* The store button, or an honest placeholder.
+   STORE_URL is unset until the app is published, and a dead "Get it" link is
+   worse than saying it is not out yet. */
+let STORE_URL = null;
+
+function renderCta() {
+  const host = $("#app-cta");
+  if (!host) return;
+  host.innerHTML = STORE_URL
+    ? `<a class="cta cta-primary" href="${STORE_URL}">${T("getIt")}</a>
+       <a class="cta cta-quiet" href="#live">${T("seeLive")}</a>`
+    : `<span class="cta cta-quiet" style="cursor:default">${T("soon")}</span>
+       <a class="cta cta-primary" href="#live">${T("seeLive")}</a>`;
+}
+
+/* The weather page hides the app pitch: someone who came for the weather
+   should get the weather, not a watch app above it. */
+const WEATHER_ONLY = document.body.dataset.site === "weather";
+
 function applyStrings() {
   document.documentElement.lang = LANG;
+  if (WEATHER_ONLY) {
+    for (const id of ["#app", "#nav-app"]) {
+      const e = $(id);
+      if (e) e.style.display = "none";
+    }
+  }
   const set = (id, k) => { const e = $(id); if (e) e.textContent = T(k); };
   set("#nav-live","navLive"); set("#nav-what","navWhat"); set("#nav-data","navData");
   set("#tag-dev","tagDev"); set("#tag-area","tagArea");
@@ -225,6 +283,14 @@ function applyStrings() {
   set("#h-sea","atSea"); set("#sub-sea","atSeaSub");
   set("#l-place","place"); set("#l-station","station"); set("#l-buoy","buoy");
   set("#h-what","whatTitle"); set("#h-data","dataTitle"); set("#foot-note","footNote");
+  set("#nav-app","navApp"); set("#h-app","hApp"); set("#app-lede","appLede");
+  set("#app-devices","devices");
+  set("#cap-sea","capSea"); set("#cap-waves","capWaves");
+  set("#cap-glance","capGlance"); set("#cap-small","capSmall");
+  set("#foot-privacy","privacy"); set("#foot-terms","terms");
+  const pts = $("#app-points");
+  if (pts) pts.innerHTML = ["p1","p2","p3","p4"].map((k) => `<li>${T(k)}</li>`).join("");
+  renderCta();
   for (const i of [1,2,3,4]) { set(`#c${i}t`,`c${i}t`); set(`#c${i}`,`c${i}`); }
   for (const i of [1,2,3])   { set(`#d${i}t`,`d${i}t`); set(`#d${i}`,`d${i}`); }
   const b = $("#buoy");
@@ -382,6 +448,10 @@ function refresh() {
 }
 
 (async function init() {
+  try {
+    const meta = await jget("/v1/app");
+    STORE_URL = meta.store_url || null;
+  } catch (_) { STORE_URL = null; }
   const reg = await jget("/v1/stations");
   // Grouped: coast and lakes are both "sea stations" here, but a reader
   // scanning 54 names wants to know which water they are looking at.
