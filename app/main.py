@@ -328,7 +328,15 @@ async def _buoy_reading(lat: float, lon: float, prefer_fmisid: int | None) -> di
         else:
             chosen = min(candidates, key=lambda c: haversine_km(lat, lon, c[0].lat, c[0].lon))
     else:
-        chosen = min(candidates, key=lambda c: haversine_km(lat, lon, c[0].lat, c[0].lon))
+        # Nearest, but only if it is near enough to describe the same water.
+        # Uncapped, "nearest reporting buoy" hands an inland lake a Baltic buoy
+        # hundreds of kilometres away and presents it as local sea state. An
+        # explicitly chosen buoy is still honoured at any distance — that is
+        # the user saying they know what they are asking for.
+        near = min(candidates, key=lambda c: haversine_km(lat, lon, c[0].lat, c[0].lon))
+        if haversine_km(lat, lon, near[0].lat, near[0].lon) > config.BUOY_MAX_KM:
+            return None
+        chosen = near
 
     station, readings = chosen
     out: dict[str, Any] = {
@@ -372,8 +380,8 @@ async def marine(
     rather than a redesign (RESEARCH.md §16).
     """
     station = stations.by_id(fmisid)
-    if station is None or station not in stations.MARINE_STATIONS:
-        raise HTTPException(status_code=404, detail=f"unknown marine station {fmisid}")
+    if station is None or station not in stations.SEA_STATIONS:
+        raise HTTPException(status_code=404, detail=f"unknown sea station {fmisid}")
 
     try:
         rows, retrieved = await _station_rows(fmisid)
@@ -451,8 +459,8 @@ async def marine_series(
     wide, and the extra resolution is invisible.
     """
     station = stations.by_id(fmisid)
-    if station is None or station not in stations.MARINE_STATIONS:
-        raise HTTPException(status_code=404, detail=f"unknown marine station {fmisid}")
+    if station is None or station not in stations.SEA_STATIONS:
+        raise HTTPException(status_code=404, detail=f"unknown sea station {fmisid}")
 
     async def fetch() -> list[dict]:
         return await timeseries(
@@ -568,11 +576,17 @@ if config.ENABLE_PUBLIC or config.ENABLE_CHARTS:
 
     @app.get("/v1/stations")
     async def stations_list() -> dict:
-        """Marine stations and wave buoys, for the pickers on both pages."""
+        """Sea stations and wave buoys, for the pickers on both pages."""
         return {
+            # Grouped so a picker can separate them. Both are "sea stations":
+            # Finnish calls a chart of Saimaa a merikartta too.
             "marine_stations": [
                 {"fmisid": s.fmisid, "name": s.name, "lat": s.lat, "lon": s.lon}
                 for s in stations.MARINE_STATIONS
+            ],
+            "lake_stations": [
+                {"fmisid": s.fmisid, "name": s.name, "lat": s.lat, "lon": s.lon}
+                for s in stations.LAKE_STATIONS
             ],
             "wave_buoys": [
                 {"fmisid": s.fmisid, "name": s.name, "lat": s.lat, "lon": s.lon}

@@ -47,5 +47,10 @@ ENABLE_CHARTS = _flag("ENABLE_CHARTS", False)
 ENABLE_PUBLIC = _flag("ENABLE_PUBLIC", False)
 
 # Defaults match the app's shipped settings: Helsinki / Harmaja / Suomenlinna.
+# How far an automatically chosen wave buoy may sit from the station. Every
+# buoy is 100+ km from Hanko, so this cannot be tight; but without any cap an
+# inland lake gets handed a Baltic buoy and shown it as local sea state.
+BUOY_MAX_KM = float(os.getenv("BUOY_MAX_KM", "150"))
+
 DEFAULT_PLACE = os.getenv("DEFAULT_PLACE", "Helsinki")
 DEFAULT_SEA_FMISID = int(os.getenv("DEFAULT_SEA_FMISID", "100996"))  # Helsinki Harmaja
