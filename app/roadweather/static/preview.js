@@ -34,7 +34,7 @@ const PLACES = [
 
 let tab = "weather";     // Nico 2026-09-22: the car should open on Weather.
 let nowStyle = "rows";   // "rows" (stable) | "tiles" (experimental API)
-let data = { road: null, obs: null, fc: null, error: null };
+let data = { road: null, obs: null, fc: null, raw: null, error: null };
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
@@ -266,24 +266,28 @@ function render() {
   }
   screen.innerHTML = tab === "road" ? roadScreen()
     : tab === "weather" ? weatherScreen() : aboutScreen();
+  catalogue();
 }
 
 async function load(lat, lon) {
-  data = { road: null, obs: null, fc: null, error: null };
+  data = { road: null, obs: null, fc: null, raw: null, error: null };
   $("#status").textContent = "fetching…";
   render();
   const get = (p) => fetch(p).then((r) => r.ok ? r.json() : Promise.reject(r.status));
   try {
     // Each source may be absent without the others failing — the same way the
     // app degrades, so the preview shows the real degraded states too.
-    const [road, obs, fc] = await Promise.allSettled([
+    const [road, obs, fc, raw] = await Promise.allSettled([
       get(`/v1/road?lat=${lat}&lon=${lon}`),
       get(`/v1/observations?lat=${lat}&lon=${lon}`),
       get(`/v1/forecast?lat=${lat}&lon=${lon}&hours=21&step=180`),
+      // Not an app endpoint: the raw field catalogue under the mockup.
+      get(`/demo/fields?lat=${lat}&lon=${lon}`),
     ]);
     data.road = road.status === "fulfilled" ? road.value : null;
     data.obs = obs.status === "fulfilled" ? obs.value : null;
     data.fc = fc.status === "fulfilled" ? (fc.value.points || []) : [];
+    data.raw = raw.status === "fulfilled" ? raw.value : null;
     if (!data.road && !data.obs) data.error = "No data for this location.";
     $("#status").textContent = "live data · " +
       new Date().toLocaleTimeString("fi-FI", { timeZone: "Europe/Helsinki" });
@@ -314,3 +318,201 @@ function init() {
 }
 
 document.addEventListener("DOMContentLoaded", init);
+
+/* ===================================================================== */
+/* The data catalogue: everything the sources hold, not just what is drawn.
+ *
+ * Nico 2026-09-22: "print all possible data fields ... maybe I can view what
+ * is possible to get from the data and feedback what I might want". So this
+ * is generated from the live responses rather than hand-listed — a written
+ * list would be wrong within a month, and being wrong here would rule out a
+ * field that actually exists.
+ */
+
+/* Digitraffic name their sensors in Finnish with no unit on half of them.
+   Base name after stripping the 1/2 sensor-pair suffix. */
+const SENSOR_EN = {
+  ILMA: "Air temperature",
+  ILMAN_KOSTEUS: "Air humidity",
+  "ILMAN_LÄMPÖTILA_24H_MAX": "Air temperature, 24 h maximum",
+  "ILMAN_LÄMPÖTILA_24H_MIN": "Air temperature, 24 h minimum",
+  ILMA_DERIVAATTA: "Air temperature trend",
+  "JÄÄN_MÄÄRÄ": "Ice on the surface",
+  "JÄÄTYMISPISTE": "Freezing point of the surface solution",
+  KASTEPISTE: "Dew point",
+  KASTEPISTE_ERO_ILMA: "Dew point margin to the air",
+  KASTEPISTE_ERO_TIE: "Dew point margin to the road surface",
+  KELI: "Road condition, categorical",
+  KESKITUULI: "Mean wind",
+  KITKA: "Friction coefficient",
+  KITKA_LUKU: "Friction coefficient, reading",
+  "KOSTEUDEN_MÄÄRÄ": "Moisture on the surface",
+  KUURAPISTE: "Frost point",
+  KUURAPISTE_ERO_ILMA: "Frost point margin to the air",
+  KUURAPISTE_ERO_TIE: "Frost point margin to the road surface",
+  "LUMEN_MÄÄRÄ": "Snow on the surface",
+  MAA: "Ground temperature",
+  MAKSIMITUULI: "Maximum wind",
+  "NÄKYVYYS_KM": "Visibility",
+  "NÄKYVYYS_M": "Visibility",
+  OPTISEN_ANTURIN_KELI: "Road condition, optical sensor",
+  SADE: "Precipitation, categorical",
+  SADESUMMA: "Precipitation total",
+  SADESUMMA_LIUKUVA_24H: "Precipitation, rolling 24 h",
+  SADE_INTENSITEETTI: "Precipitation intensity",
+  SADE_TILA: "Precipitation state",
+  SATEEN_OLOMUOTO_PWDXX: "Precipitation form",
+  "SUOLAN_MÄÄRÄ": "Salt on the surface",
+  "SUOLAN_VÄKEVYYS": "Salt concentration",
+  TIENPINNAN_TILA: "Road surface state",
+  TIENPINNAN_TILA_OPT: "Road surface state, optical",
+  TIE: "Road surface temperature",
+  TIE_DERIVAATTA: "Road surface temperature trend",
+  "TURVALLISUUSLÄMPÖ": "Safety temperature — freezing point of what is on the road",
+  TUULENSUUNTA: "Wind direction",
+  "VALLITSEVA_SÄÄ": "Prevailing weather",
+  VAROITUS: "Station warning",
+  "VEDEN_MÄÄRÄ": "Water film on the surface",
+};
+
+/* Instrument health and raw transducer output. Real, but not content. */
+const SENSOR_DIAG = /^(ASEMAN_STATUS|DSC_|KUITUVASTE|PINTASIGNAALI|PWD_|JOHTAVUUS|JÄÄTAAJUUS|OPTISEN_ANTURIN_VAROITUS|VALOISAA|AURINKOUP)/;
+
+/* `TIE_1`, `KITKA1`, `TIENPINNAN_TILA_OPT2` → the shared base. The probe
+   number is not always last: `TIE_1_DERIVAATTA` and `KITKA1_LUKU` carry it in
+   the middle, and stripping only a trailing digit dropped the road-temperature
+   trend — one of the more useful readings here — into the diagnostics pile. */
+const sensorBase = (n) =>
+  n.replace(/_?(?:OPT)?[12](?=_|$)/g, (m) => (m.includes("OPT") ? "_OPT" : ""));
+
+/* What the mockup draws today, so everything else reads as "available". */
+const USED = {
+  obs: ["stationname", "distance", "temperature", "windspeedms", "windgust",
+        "windcompass8", "age_seconds"],
+  fc: ["epochtime", "temperature", "smartsymbol", "smartsymboltext",
+       "windspeedms", "windcompass8", "pop", "precipitation1h"],
+  road: ["surface.road_temp_c", "surface.air_temp_c", "surface.dew_point_c",
+         "surface.station", "surface.distance_km", "surface.age_seconds",
+         "station.name", "station.distance_km", "station.condition",
+         "station.freezing_point_c", "station.dew_point_margin_c",
+         "station.salt_g_m2", "section.description", "section.outlook",
+         "ice_risk.level", "ice_risk.reason"],
+  sensors: ["KELI_1", "VAROITUS_1", "JÄÄTYMISPISTE_1", "KASTEPISTE_ERO_TIE",
+            "SUOLAN_MÄÄRÄ_1"],
+};
+
+const fmt = (v) => {
+  if (v === null || v === undefined) return `<span class="nul">null</span>`;
+  if (Array.isArray(v)) return `<span class="nul">${v.length} ×</span>`;
+  if (typeof v === "object") return `<span class="nul">{…}</span>`;
+  if (typeof v === "number") return Number.isInteger(v) ? String(v) : v.toFixed(2);
+  return esc(String(v));
+};
+
+const mark = (used) => used
+  ? `<span class="tag on">shown</span>`
+  : `<span class="tag">available</span>`;
+
+/* Flatten one level of nesting; `at` maps are noise and are dropped. */
+function flat(obj, prefix = "") {
+  const out = [];
+  for (const [k, v] of Object.entries(obj || {})) {
+    if (k === "at") continue;
+    const path = prefix ? `${prefix}.${k}` : k;
+    if (v && typeof v === "object" && !Array.isArray(v)) out.push(...flat(v, path));
+    else out.push([path, v]);
+  }
+  return out;
+}
+
+function table(rows) {
+  return `<table class="cat"><tbody>${rows.map(
+    ([name, value, tag, note]) => `<tr><td class="f">${esc(name)}</td>
+      <td class="v">${value}</td><td class="tg">${tag || ""}</td>
+      <td class="n">${note || ""}</td></tr>`).join("")}</tbody></table>`;
+}
+
+function catalogue() {
+  const el = $("#fields");
+  if (!el) return;
+  const raw = data.raw;
+  const parts = [];
+
+  if (data.obs) {
+    parts.push(`<h3>/v1/observations <span class="sub">FMI weather station</span></h3>`);
+    parts.push(table(flat(data.obs).map(([k, v]) =>
+      [k, fmt(v), mark(USED.obs.includes(k.split(".").pop()))])));
+  }
+
+  const pt = (data.fc || [])[0];
+  if (pt) {
+    parts.push(`<h3>/v1/forecast <span class="sub">per point · ${
+      (data.fc || []).length} points served</span></h3>`);
+    parts.push(table(flat(pt).map(([k, v]) => [k, fmt(v), mark(USED.fc.includes(k))])));
+  }
+
+  if (data.road) {
+    parts.push(`<h3>/v1/road <span class="sub">merged FMI + Fintraffic</span></h3>`);
+    const rows = flat(data.road).map(([k, v]) =>
+      [k, fmt(v), mark(USED.road.some((u) => k === u || k.startsWith(u + ".")))]);
+    // The outlook is an array, so it flattens to "5 ×" and its own fields
+    // would go unlisted — which is exactly where the unused ones are.
+    const out0 = (data.road.section?.outlook || [])[0];
+    if (out0) {
+      const usedInOutlook = ["at", "road_temp_c", "surface", "road_condition", "reliability"];
+      rows.push(...Object.entries(out0).map(([k, v]) =>
+        [`section.outlook[].${k}`, fmt(v), mark(usedInOutlook.includes(k))]));
+    }
+    parts.push(table(rows));
+  }
+
+  if (raw) {
+    const good = [], diag = [];
+    for (const s of raw.digitraffic_sensors || []) {
+      const base = sensorBase(s.name);
+      const en = SENSOR_EN[base];
+      const unit = s.unit && !/^[?*/#]+$/.test(s.unit) ? ` ${s.unit}` : "";
+      const row = [s.name, fmt(s.value) + unit,
+                   mark(USED.sensors.includes(s.name)),
+                   esc(s.description ? `${en || base} — ${s.description}` : (en || ""))];
+      (SENSOR_DIAG.test(s.name) || !en ? diag : good).push(row);
+    }
+    if (good.length) {
+      parts.push(`<h3>Digitraffic station sensors <span class="sub">${
+        esc(raw.digitraffic_station?.name || "")} · ${good.length} with meaning, ${
+        diag.length} instrument diagnostics</span></h3>`);
+      parts.push(`<p class="note">This is the interesting list. <strong>Friction</strong>
+        (<code>KITKA</code>, µ) is measured and unused; FMI's own <code>friction</code>
+        parameter is one of the dead ones below. So are the <strong>trends</strong>
+        (<code>_DERIVAATTA</code>, °C/h) — a road at +1 and falling is a different
+        drive from a road at +1 and rising — and the separate <strong>frost point</strong>
+        (<code>KUURAPISTE</code>), which is not the dew point below zero. Sensors ending
+        1 and 2 are two probes on the same gantry, usually different lanes.</p>`);
+      parts.push(table(good));
+    }
+    if (diag.length) {
+      parts.push(`<details><summary>${diag.length} instrument diagnostics — station
+        health and raw transducer output</summary>${table(diag)}</details>`);
+    }
+
+    const fr = Object.entries(raw.fmi_road || {});
+    if (fr.length) {
+      parts.push(`<h3>FMI road station <span class="sub">${
+        esc(raw.fmi_road_station || "")} · every parameter the proxy requests</span></h3>`);
+      parts.push(table(fr.map(([k, v]) => [k, fmt(v), mark(true)])));
+    }
+    if ((raw.fmi_road_never_populated || []).length) {
+      parts.push(`<h3>FMI road parameters that exist but never return a value</h3>`);
+      parts.push(`<p class="note">Accepted as names, <code>null</code> at every station
+        tested, in July and January alike. Listed so they are not mistaken for an
+        option — <code>friction</code> among them, which is exactly why the Digitraffic
+        <code>KITKA</code> reading above matters.</p>`);
+      parts.push(table(raw.fmi_road_never_populated.map((n) =>
+        [n, `<span class="nul">always null</span>`, ""])));
+    }
+  } else {
+    parts.push(`<p class="note">Raw sensor catalogue unavailable for this place.</p>`);
+  }
+
+  el.innerHTML = parts.join("");
+}

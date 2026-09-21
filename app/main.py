@@ -18,6 +18,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import Any, AsyncIterator
 
+import httpx
 from fastapi import FastAPI, HTTPException, Query, Request
 
 from . import config, legal, road, stations
@@ -920,6 +921,78 @@ if config.ENABLE_PUBLIC or config.ENABLE_CHARTS:
         if not _is_roadweather(request):
             raise HTTPException(status_code=404, detail="not found")
         return _rw_page("preview")
+
+    @app.get("/demo/fields")
+    async def roadweather_fields(request: Request, lat: float, lon: float) -> dict:
+        """Everything the upstream services hold for a point, not just what
+        `/v1/road` chooses to shape.
+
+        The design preview answers "does this layout work"; this answers the
+        question underneath it — "what could go on it at all". `/v1/road`
+        forwards six of the nearest Digitraffic station's ninety-odd sensors
+        and eight of FMI's road fields, and those choices were made before
+        anyone had seen the numbers side by side. So this returns the raw
+        sets, with the parameters FMI accepts but never populates listed
+        beside them, so a field that looks appealing here can be trusted to
+        exist tomorrow.
+
+        Same host gate as `/demo` and no more coordinate exposure than
+        `/v1/road` already has: coarse cache keys, coordinates never logged.
+        """
+        if not _is_roadweather(request):
+            raise HTTPException(status_code=404, detail="not found")
+        if not (59.0 <= lat <= 70.5 and 19.0 <= lon <= 32.0):
+            raise HTTPException(status_code=404, detail="outside Finland")
+
+        key_lat, key_lon = road._snap(lat), road._snap(lon)
+        out: dict[str, Any] = {
+            "fmi_road": {}, "fmi_road_station": None,
+            "fmi_road_never_populated": list(road.ROAD_PARAMS_DEAD),
+            "digitraffic_station": None, "digitraffic_sensors": [],
+        }
+
+        try:
+            fmi_rows = await cache.aget_or_set(
+                f"road:fmi:{key_lat}:{key_lon}", config.TTL_ROAD_OBS,
+                lambda: road.fmi_road_rows(lat, lon),
+            )
+        except FMIError:
+            fmi_rows = []
+        # Same nearest-station collapse `/v1/road` does, so the raw view and
+        # the shaped one describe the same place rather than two.
+        rows = [r for r in fmi_rows
+                if not str(r.get("stationname") or "").upper().startswith("TEST")]
+        if rows:
+            distances = [r.get("distance") for r in rows if r.get("distance") is not None]
+            if distances:
+                nearest_d = min(distances)
+                rows = [r for r in rows if r.get("distance") == nearest_d] or rows
+            values, _ = _latest(rows, list(road.ROAD_PARAMS))
+            out["fmi_road"] = {k: values.get(k) for k in road.ROAD_PARAMS}
+            out["fmi_road_station"] = rows[-1].get("stationname")
+
+        try:
+            meta = await cache.aget_or_set(
+                "road:dt:stations", config.TTL_ROAD_GEOMETRY, road.dt_stations
+            )
+            nearest = road.nearest_station(meta, lat, lon)
+            if nearest is not None and nearest.get("id") is not None:
+                data = await cache.aget_or_set(
+                    f"road:dt:data:{nearest['id']}", config.TTL_ROAD_OBS,
+                    lambda sid=nearest["id"]: road.dt_station_data(sid),
+                )
+                out["digitraffic_station"] = nearest
+                out["digitraffic_sensors"] = [
+                    {"name": name, "value": v.get("value"), "unit": v.get("unit"),
+                     "description": v.get("description")}
+                    for name, v in sorted(road.sensor_map(data).items())
+                ]
+        except (road.RoadDataError, httpx.HTTPError):
+            # A partial catalogue is worth more than a 500. The page says
+            # which half is missing.
+            pass
+
+        return out
 
     @app.get("/privacy")
     async def privacy(request: Request) -> HTMLResponse:

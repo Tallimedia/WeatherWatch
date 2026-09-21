@@ -68,6 +68,25 @@ button.on{border-color:var(--accent);color:var(--accent)}
 .mcard .mtitle{font-size:28px;margin:18px 0 14px}
 .mcard .mtext{font-size:19px;color:var(--car-dim);line-height:1.45;margin:0 0 14px}
 .msg{padding:40px 26px;color:var(--car-dim);font-size:22px}
+/* --- the data catalogue, below the frame: a reference table, not a mockup --- */
+#fields{margin-top:52px}
+#fields h3{font-size:17px;margin:32px 0 6px;font-weight:600}
+#fields h3 .sub{color:var(--faint);font-size:13px;font-weight:400;margin-left:8px}
+#fields details{margin-top:18px}
+#fields summary{cursor:pointer;color:var(--dim);font-size:14px;padding:6px 0}
+table.cat{width:100%;border-collapse:collapse;font-size:13.5px;margin:0 0 4px}
+table.cat td{border-top:1px solid var(--line);padding:6px 10px 6px 0;vertical-align:top}
+table.cat td.f{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--fg);
+  white-space:nowrap;width:1%}
+table.cat td.v{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);
+  white-space:nowrap;width:1%;text-align:right;padding-right:18px}
+table.cat td.tg{width:1%;white-space:nowrap}
+table.cat td.n{color:var(--dim)}
+.nul{color:var(--faint);font-style:italic}
+.tag{display:inline-block;border:1px solid var(--line);border-radius:999px;
+  padding:1px 9px;font-size:11.5px;color:var(--faint)}
+.tag.on{border-color:#2f6b3f;color:#7ddb9a}
+#fields code{font-size:12.5px;background:#101729;border-radius:4px;padding:1px 5px}
 footer{margin-top:44px;color:var(--faint);font-size:13px;max-width:44rem}
 footer a{color:var(--accent);margin-right:14px}
 @media(max-width:900px){.frame{transform:scale(.38)}.stage{height:500px}}
@@ -116,6 +135,15 @@ footer a{color:var(--accent);margin-right:14px}
       <div id="screen"><p class="msg">Loading…</p></div>
     </div>
   </div>
+
+  <h2>What the data actually contains</h2>
+  <p class="note">Every field the three sources hold for the selected place, live, so the
+    question "what could this show" has an answer you can read rather than guess at.
+    Generated from the responses themselves — a hand-written list would be wrong within a
+    month, and wrong here means ruling out a field that exists.
+    <span class="tag on">shown</span> is drawn in the mockup above;
+    <span class="tag">available</span> is served and unused.</p>
+  <div id="fields"></div>
 
   <footer>
     <p><a href="/privacy">Privacy</a><a href="/terms">Terms</a></p>
