@@ -11,6 +11,8 @@ with charts off for production.
 
 from __future__ import annotations
 
+import logging
+import re
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
@@ -18,7 +20,7 @@ from typing import Any, AsyncIterator
 
 from fastapi import FastAPI, HTTPException, Query, Request
 
-from . import config, legal, stations
+from . import config, legal, road, stations
 from .cache import cache
 from .fmi import (
     FMIError,
@@ -32,11 +34,42 @@ from .fmi import (
 )
 from .geo import bearing_deg, compass_8, haversine_km
 
+class _RedactCoordinates(logging.Filter):
+    """Keep caller coordinates out of the access log.
+
+    Uvicorn logs the request line verbatim, so ``/v1/road?lat=60.17&lon=24.94``
+    was writing a caller's position to disk on every request — and to any log
+    shipper downstream of it. That is a location history, built passively, of
+    exactly the kind both privacy policies say does not exist, and the car
+    app's Play Data safety declaration depends on the *ephemeral processing*
+    exemption: coordinates used to answer the request and never persisted.
+    An access log breaks that quietly and would be discovered, if ever, by
+    somebody else.
+
+    Only the coordinates are scrubbed. Path, status, method and timing stay,
+    so the log remains useful for the thing it is for. ``place=`` is left
+    alone deliberately — a gazetteer name is coarse, and it is needed to debug
+    the "unknown place" path that 404s.
+    """
+
+    _COORD = re.compile(r"\b(lat|lon|latlon)=([^&\s]+)")
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        args = record.args
+        if isinstance(args, tuple) and len(args) >= 3 and isinstance(args[2], str):
+            scrubbed = self._COORD.sub(r"\1=<redacted>", args[2])
+            if scrubbed != args[2]:
+                record.args = (*args[:2], scrubbed, *args[3:])
+        return True
+
+
 @asynccontextmanager
 async def _lifespan(_: FastAPI) -> AsyncIterator[None]:
-    """Close the shared upstream client on the way out."""
+    """Install the log filter, then close the shared upstream clients."""
+    logging.getLogger("uvicorn.access").addFilter(_RedactCoordinates())
     yield
     await fmi_aclose()
+    await road.aclose()
 
 
 app = FastAPI(
@@ -183,6 +216,80 @@ def _age_seconds(epoch: Any) -> int | None:
     if epoch is None:
         return None
     return max(0, int(time.time()) - int(epoch))
+
+
+def _latest_road(rows: list[dict]) -> dict:
+    """Collapse FMI road-station rows to one reading from the nearest station.
+
+    ``numberofstations`` interleaves several stations, so filtering to the
+    closest one first matters: coalescing across all of them would quietly
+    build a composite reading from stations tens of kilometres apart and
+    present it as one place.
+    """
+    if not rows:
+        return {}
+    distances = [r.get("distance") for r in rows if r.get("distance") is not None]
+    if distances:
+        nearest = min(distances)
+        rows = [r for r in rows if r.get("distance") == nearest] or rows
+
+    fields = {
+        "temperature": "air_temp_c",
+        "roadtemperature": "road_temp_c",
+        "dewpoint": "dew_point_c",
+        "humidity": "humidity_pct",
+        "visibility": "visibility_m",
+        "snowdepth": "snow_depth_cm",
+        "windspeedms": "wind_ms",
+        "winddirection": "wind_dir_deg",
+    }
+    values, at = _latest(rows, list(fields))
+    out: dict[str, Any] = {fields[k]: values.get(k) for k in fields}
+    out["station"] = rows[-1].get("stationname")
+    out["distance_km"] = rows[-1].get("distance")
+    out["at"] = {fields[k]: v for k, v in at.items() if k in fields}
+    out["age_seconds"] = _age_seconds(values.get("epochtime"))
+
+    # -1 is FMI's "no snow", not a missing reading. Passing it through as a
+    # depth would have the client draw a negative snow bar.
+    if out.get("snow_depth_cm") is not None and out["snow_depth_cm"] < 0:
+        out["snow_depth_cm"] = 0
+    return out
+
+
+def _shape_section(section: dict, forecasts: dict) -> dict | None:
+    """Attach the 0-12 h outlook to the nearest road section.
+
+    The bbox call returns every section in the box, so the forecasts are
+    matched back by id rather than assumed to be in the same order.
+    """
+    wanted = section.get("id")
+    entries = forecasts.get("forecastSections", [])
+    match = next((e for e in entries if e.get("id") == wanted), None)
+    if match is None:
+        return None
+    points = []
+    for f in match.get("forecasts", []):
+        reason = f.get("forecastConditionReason") or {}
+        points.append({
+            "at": f.get("forecastName"),
+            "type": f.get("type"),
+            "road_condition": f.get("overallRoadCondition"),
+            "surface": reason.get("roadCondition"),
+            "precipitation": reason.get("precipitationCondition"),
+            "road_temp_c": f.get("roadTemperature"),
+            "air_temp_c": f.get("temperature"),
+            "wind_ms": f.get("windSpeed"),
+            # Digitraffic is candid about whether a road station backed the
+            # forecast. Passing it through lets the client say so too.
+            "reliability": f.get("reliability"),
+        })
+    return {
+        "description": section.get("description"),
+        "road_number": section.get("road_number"),
+        "distance_km": section.get("distance_km"),
+        "outlook": points,
+    }
 
 
 def _fail(exc: FMIError) -> HTTPException:
@@ -372,6 +479,105 @@ async def _buoy_reading(
         except ValueError:
             out["observed_epoch"] = None
     return out
+
+
+@app.get("/v1/road")
+async def road_conditions(lat: float, lon: float) -> dict:
+    """Road surface conditions, ice risk and the hours ahead, for one point.
+
+    The car client's single endpoint. Three upstream sources are merged here so
+    the head unit makes one call and receives a few hundred bytes:
+
+    * FMI road stations — surface temperature and the numbers the ice risk is
+      derived from;
+    * the nearest Digitraffic station — the categorical road state FMI does not
+      publish, plus freezing point and salt;
+    * the nearest Digitraffic road section — 0–12 h road-condition outlook.
+
+    Any of the three may be missing without failing the request. A station that
+    reports only air temperature is normal, and a point with no section nearby
+    is normal too — the client shows what exists and says what does not, which
+    is far better than an error.
+
+    **The caller's coordinates are never logged and never persisted.** Cache
+    keys are snapped to a coarse grid. The car app's Play Data safety
+    declaration depends on this staying true (FIRoadWeather/PLAY-CONSOLE-SETUP.md §3).
+    """
+    if not (59.0 <= lat <= 70.5 and 19.0 <= lon <= 32.0):
+        # Both data sources are Finland-only. Saying so beats four upstream
+        # calls that can only come back empty.
+        raise HTTPException(status_code=404, detail="outside Finland")
+
+    key_lat, key_lon = road._snap(lat), road._snap(lon)
+    bbox = road._bbox(lat, lon)
+
+    async def fmi_fetch() -> list[dict]:
+        return await road.fmi_road_rows(lat, lon)
+
+    try:
+        fmi_rows, retrieved = await cache.aget_or_set_entry(
+            f"road:fmi:{key_lat}:{key_lon}", config.TTL_ROAD_OBS, fmi_fetch
+        )
+    except FMIError as exc:
+        raise _fail(exc) from exc
+
+    surface = _latest_road(fmi_rows)
+
+    station: dict | None = None
+    section: dict | None = None
+    try:
+        meta = await cache.aget_or_set(
+            "road:dt:stations", config.TTL_ROAD_GEOMETRY, road.dt_stations
+        )
+        nearest = road.nearest_station(meta, lat, lon)
+        if nearest is not None and nearest.get("id") is not None:
+            data = await cache.aget_or_set(
+                f"road:dt:data:{nearest['id']}",
+                config.TTL_ROAD_OBS,
+                lambda sid=nearest["id"]: road.dt_station_data(sid),
+            )
+            sensors = road.sensor_map(data)
+            station = {
+                "name": nearest.get("name"),
+                "distance_km": nearest.get("distance_km"),
+                "condition": (sensors.get("KELI_1") or {}).get("description"),
+                "warning": (sensors.get("VAROITUS_1") or {}).get("description"),
+                "freezing_point_c": (sensors.get("JÄÄTYMISPISTE_1") or {}).get("value"),
+                "dew_point_margin_c": (sensors.get("KASTEPISTE_ERO_TIE") or {}).get("value"),
+                "salt_g_m2": (sensors.get("SUOLAN_MÄÄRÄ_1") or {}).get("value"),
+            }
+
+        geometry = await cache.aget_or_set(
+            f"road:dt:sections:{bbox['xMin']}:{bbox['yMin']}",
+            config.TTL_ROAD_GEOMETRY,
+            lambda b=bbox: road.dt_sections(b),
+        )
+        near_section = road.nearest_section(geometry, lat, lon)
+        if near_section is not None:
+            forecasts = await cache.aget_or_set(
+                f"road:dt:fc:{bbox['xMin']}:{bbox['yMin']}",
+                config.TTL_ROAD_FORECAST,
+                lambda b=bbox: road.dt_section_forecasts(b),
+            )
+            section = _shape_section(near_section, forecasts)
+    except road.RoadDataError:
+        # Digitraffic being unavailable degrades the answer; it does not
+        # invalidate the FMI half, which is the part the ice risk rests on.
+        station = station or None
+
+    return {
+        "surface": surface,
+        "station": station,
+        "section": section,
+        "ice_risk": road.ice_risk(
+            surface.get("road_temp_c") if surface else None,
+            surface.get("dew_point_c") if surface else None,
+            surface.get("air_temp_c") if surface else None,
+        ),
+        "retrieved": retrieved,
+        "attribution": ATTRIBUTION,
+        "attribution_road": road.DIGITRAFFIC_ATTRIBUTION,
+    }
 
 
 @app.get("/v1/marine")

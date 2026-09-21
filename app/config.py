@@ -22,6 +22,18 @@ USER_AGENT = os.getenv(
     "USER_AGENT", "FIWeatherWatch/0.1 (+https://weatherapp.tallimedia.com)"
 )
 
+# Fintraffic Digitraffic — the categorical road-condition layer FMI does not
+# provide (FIRoadWeather/RESEARCH.md §5.2). No key; gzip is mandatory and the
+# service 406s without it, and it rate-limits 60 requests/min per IP.
+DIGITRAFFIC_BASE = os.getenv("DIGITRAFFIC_BASE", "https://tie.digitraffic.fi")
+
+# Digitraffic asks callers to identify themselves and raises the allowance for
+# those who do. Never put personal information here — Fintraffic say so
+# explicitly.
+DIGITRAFFIC_USER = os.getenv(
+    "DIGITRAFFIC_USER", "FIRoadWeather/1.0 (+https://roadweather.tallimedia.com)"
+)
+
 # A place name is a gazetteer lookup, not free text. Anything longer is not a
 # Finnish place and only serves to bloat a cache key.
 MAX_PLACE_LEN = int(os.getenv("MAX_PLACE_LEN", "64"))
@@ -35,6 +47,15 @@ TTL_MARINE = int(os.getenv("TTL_MARINE", "600"))
 # A name FMI does not know will not start being known in the next few minutes,
 # and each attempt costs four upstream calls.
 TTL_UNKNOWN_PLACE = int(os.getenv("TTL_UNKNOWN_PLACE", "600"))
+
+# Road TTLs. Station observations move on a ten-minute cadence like any other
+# observation; the section forecast is recomputed a few times an hour. The two
+# metadata calls describe geography — station positions and road-section
+# geometry — which changes a few times a year, so they are cached for hours to
+# stay well inside Digitraffic's 60/min.
+TTL_ROAD_OBS = int(os.getenv("TTL_ROAD_OBS", "300"))
+TTL_ROAD_FORECAST = int(os.getenv("TTL_ROAD_FORECAST", "900"))
+TTL_ROAD_GEOMETRY = int(os.getenv("TTL_ROAD_GEOMETRY", "21600"))
 
 # The prototype charts site is the internal research tool — date scrubbing, raw
 # JSON, questions like "does this parameter earn its place" — and stays LAN-only
