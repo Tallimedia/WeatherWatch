@@ -60,6 +60,7 @@
     <string id="Loading">Loading…</string>
     <string id="NoPhone">No connection</string>
     <string id="NoPlace">Place not found</string>
+    <string id="Refreshing">Refreshing…</string>
     <string id="Offline">Showing last reading</string>
     <string id="PageLand">Land</string>
     <string id="PageSea">Sea</string>
@@ -70,6 +71,7 @@
     <string id="Modelled">modelled</string>
     <string id="NoData">Service unavailable</string>
     <string id="PageAbout">About</string>
+    <string id="NoBuoyArea">No buoy in this area</string>
     <string id="NoBuoy">No buoy reporting</string>
     <string id="Attribution">Data: Finnish Meteorological Institute</string>
 </strings>

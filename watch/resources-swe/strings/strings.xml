@@ -60,6 +60,7 @@
     <string id="Loading">Laddar…</string>
     <string id="NoPhone">Ingen anslutning</string>
     <string id="NoPlace">Orten hittades inte</string>
+    <string id="Refreshing">Uppdaterar…</string>
     <string id="Offline">Senaste avläsning</string>
     <string id="PageLand">Land</string>
     <string id="PageSea">Hav</string>
@@ -70,6 +71,7 @@
     <string id="Modelled">modellerad</string>
     <string id="NoData">Tjänsten svarar inte</string>
     <string id="PageAbout">Om appen</string>
+    <string id="NoBuoyArea">Ingen boj i området</string>
     <string id="NoBuoy">Ingen bojdata</string>
     <string id="Attribution">Källa: Meteorologiska institutet</string>
 </strings>

@@ -60,6 +60,7 @@
     <string id="Loading">Ladataan…</string>
     <string id="NoPhone">Ei yhteyttä</string>
     <string id="NoPlace">Paikkaa ei löydy</string>
+    <string id="Refreshing">Päivitetään…</string>
     <string id="Offline">Viimeisin lukema</string>
     <string id="PageLand">Maa</string>
     <string id="PageSea">Meri</string>
@@ -70,6 +71,7 @@
     <string id="Modelled">mallinnettu</string>
     <string id="NoData">Palvelu ei vastaa</string>
     <string id="PageAbout">Tietoja</string>
+    <string id="NoBuoyArea">Ei poijua alueella</string>
     <string id="NoBuoy">Ei poijutietoa</string>
     <string id="Attribution">Lähde: Ilmatieteen laitos</string>
 </strings>

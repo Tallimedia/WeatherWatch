@@ -282,9 +282,18 @@ module Api {
         fetchLand();
     }
 
-    //! Force a refresh regardless of the floor, for a settings change.
+    //! Force a refresh regardless of the floor — Select, or a settings change.
+    //!
+    //! All three states go to LOADING up front, not as each request starts.
+    //! The fetches are chained, so marking them one at a time would leave the
+    //! Sea page showing nothing for two round trips after Select was pressed,
+    //! which is the silence this was meant to fix. A refresh of all three is
+    //! genuinely under way the moment the chain starts.
     function refreshNow() as Void {
         lastRefresh = Time.now().value();
+        landState = STATE_LOADING;
+        forecastState = STATE_LOADING;
+        marineState = STATE_LOADING;
         fetchLand();
     }
 

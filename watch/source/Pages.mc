@@ -83,22 +83,41 @@ module Pages {
     //! two rows collided — the gap between them was smaller than the font's
     //! own height — which left the version unreadable, and the version exists
     //! precisely so a tester can say which build they are looking at.
-    function updated(dc as Graphics.Dc, age as String, stale as Boolean) as Void {
+    //! The footer: download glyph, then one line that changes with the state.
+    //!
+    //! Fetching says so. Select forces a refresh, and it used to do that
+    //! silently — the reading stayed exactly as it was until the new one
+    //! landed, so the button read as doing nothing and a user would press it
+    //! again. The glyph brightens with the text so the change is visible at a
+    //! glance rather than only on reading it.
+    //!
+    //! When a refresh failed and a cached reading is on screen, the footer
+    //! says that instead. Otherwise a stale number looks exactly like a live
+    //! one, which on the water is the difference that matters. The version
+    //! gives up its place in both cases; it is on the About page regardless.
+    function updated(dc as Graphics.Dc, age as String, state as Number) as Void {
         var font = Graphics.FONT_XTINY;
         var fh = dc.getFontHeight(font);
         var size = (fh * 0.66).toNumber();
-        // When the refresh failed but a cached reading is on screen, say so
-        // here. Otherwise a stale number looks exactly like a live one, which
-        // on the water is the difference that matters. The version gives up
-        // its place for that one line; it is on the About page regardless.
-        var text = stale
-            ? age + " · " + res(Rez.Strings.Offline)
-            : age + " · v" + Config.VERSION;
+
+        var text;
+        var colour;
+        if (state == Api.STATE_LOADING) {
+            text = res(Rez.Strings.Refreshing);
+            colour = Theme.DIM;
+        } else if (state == Api.STATE_ERROR) {
+            text = age + " · " + res(Rez.Strings.Offline);
+            colour = Theme.FAINT;
+        } else {
+            text = age + " · v" + Config.VERSION;
+            colour = Theme.FAINT;
+        }
+
         var tw = dc.getTextWidthInPixels(text, font);
         var top = (h(dc) * 0.855).toNumber();
         var left = ((w(dc) - (size + 4 + tw)) / 2).toNumber();
-        Icons.download(dc, left, top + ((fh - size) / 2).toNumber(), size, Theme.FAINT);
-        dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
+        Icons.download(dc, left, top + ((fh - size) / 2).toNumber(), size, colour);
+        dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
         dc.drawText(left + size + 4, top, font, text, Graphics.TEXT_JUSTIFY_LEFT);
     }
 
@@ -144,7 +163,7 @@ module Pages {
 
         // One age per page here rather than two: the earlier "8 min · 8 min"
         // read as a repeat rather than as two different fields.
-        updated(dc, Fmt.age(Api.v(d, "atW")), Api.landState == Api.STATE_ERROR);
+        updated(dc, Fmt.age(Api.v(d, "atW")), Api.landState);
     }
 
     //! Next few forecast steps, 6-hourly (RESEARCH.md §20), drawn from the
@@ -212,7 +231,7 @@ module Pages {
 
         iconRow(dc, :temp, Graphics.FONT_XTINY, Fmt.temp(Api.v(m, "stTemp")), Theme.DIM, 0);
 
-        updated(dc, Fmt.age(Api.v(m, "stAt")), Api.marineState == Api.STATE_ERROR);
+        updated(dc, Fmt.age(Api.v(m, "stAt")), Api.marineState);
     }
 
     // ---------------------------------------------------------------- buoy
@@ -240,7 +259,14 @@ module Pages {
         headerPlain(dc, res(Rez.Strings.PageBuoy), src);
 
         if (!hasWave) {
-            if (!loading(dc, Api.marineState)) { message(dc, Rez.Strings.NoBuoy); }
+            // Two different absences. Inland there is no buoy at all and
+            // never will be; on the coast they are lifted out for the winter.
+            // Same empty page, and the caption is all that distinguishes them.
+            if (!loading(dc, Api.marineState)) {
+                var mode = Api.v(m, "mode");
+                message(dc, mode != null && mode.equals("none")
+                        ? Rez.Strings.NoBuoyArea : Rez.Strings.NoBuoy);
+            }
             return;
         }
 
@@ -270,7 +296,7 @@ module Pages {
                     res(Rez.Strings.WaterTemp) + " " + Fmt.temp(water), Theme.DIM, 0);
         }
 
-        updated(dc, Fmt.age(Api.v(m, "wAt")), Api.marineState == Api.STATE_ERROR);
+        updated(dc, Fmt.age(Api.v(m, "wAt")), Api.marineState);
     }
 
     // -------------------------------------------------------------- shared
