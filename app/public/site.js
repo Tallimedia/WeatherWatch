@@ -34,7 +34,17 @@ STR = {
     soon:"Tulossa Connect IQ -kauppaan", getIt:"Hae Connect IQ -kaupasta",
     seeLive:"Katso säätiedot livenä sääsivultamme",
     devices:"Suomeksi, ruotsiksi ja englanniksi. Toimii 70 Garmin-mallissa.",
-    hScreens:"Jokainen näyttö", capLand:"Maa", capSea:"Meri", capWaves:"Aallot", capGlance:"Vilkaisu", capAbout:"Tietoja", capSmall:"Forerunner 255s",
+    hSetup:"Käyttöönotto", hReq:"Vaatimukset", hContact:"Yhteystiedot",
+    s1k:"Vaihe 1", s1t:"Asenna sovellus", s1:"Connect IQ -kaupasta Garmin Connect -sovelluksella. Ei tiliä eikä kirjautumista.",
+    s2k:"Vaihe 2", s2t:"Valitse paikka ja asema", s2:"Garmin Connect -sovelluksessa: Connect IQ -sovellukset → FIWeatherWatch → Asetukset. Paikkakunta maasäälle, merihavaintoasema merelle.",
+    s3k:"Vaihe 3", s3t:"Aseta omat rajasi", s3:"Tuuli, puuska ja aallonkorkeus. Rajan ylittävä lukema korostuu, joten sitä ei tarvitse etsiä.",
+    r1t:"Kello", r1:"70 Garmin-mallia, fenix, quatix, epix, Forerunner ja Venu mukaan lukien.",
+    r2t:"Yhteys", r2:"Puhelin lähellä tai WiFi. Viimeisin lukema jää näkyviin, jos yhteyttä ei ole.",
+    r3t:"Tili", r3:"Ei tiliä, ei kirjautumista, ei mitään tallennettavaa sinusta.",
+    r4t:"Kielet", r4:"Suomi, ruotsi ja englanti, kellon oman kieliasetuksen mukaan.",
+    r5t:"Alue", r5:"Suomi — Ilmatieteen laitoksen havaintoverkko, rannikko ja sisävedet.",
+    cMail:"Palaute ja bugi-ilmoitukset. Kerro versionumero, joka näkyy sovelluksen Tietoja-sivulla.",
+    k1:"Sivu 1", k2:"Sivu 2", k3:"Sivu 3", k4:"Asetukset", hScreens:"Jokainen näyttö", capLand:"Maa", capSea:"Meri", capWaves:"Aallot", capGlance:"Vilkaisu", capAbout:"Tietoja", capSmall:"Forerunner 255s",
     privacy:"Tietosuoja", terms:"Käyttöehdot",
     coast:"Rannikko", lakes:"Sisävedet", trend:"Tuuli, 12 viime tuntia", mean:"Keskituuli", noTrend:"Ei tuulihistoriaa saatavilla", rain:"Sade", rainNone:"ei sadetta", justNow:"juuri nyt", minAgo:"min sitten", hAgo:"h sitten", retrieved:"Haettu", loading:"Ladataan…",
   },
@@ -71,7 +81,17 @@ STR = {
     soon:"Kommer till Connect IQ Store", getIt:"Hämta från Connect IQ Store",
     seeLive:"Se väderdata live på vår vädersida",
     devices:"På finska, svenska och engelska. Fungerar på 70 Garmin-modeller.",
-    hScreens:"Varje skärm", capLand:"Land", capSea:"Hav", capWaves:"Vågor", capGlance:"Överblick", capAbout:"Om appen", capSmall:"Forerunner 255s",
+    hSetup:"Kom igång", hReq:"Krav", hContact:"Kontakt",
+    s1k:"Steg 1", s1t:"Installera appen", s1:"Från Connect IQ Store via Garmin Connect. Inget konto, ingen inloggning.",
+    s2k:"Steg 2", s2t:"Välj ort och station", s2:"I Garmin Connect: Connect IQ-appar → FIWeatherWatch → Inställningar. Ort för land, havsstation för havet.",
+    s3k:"Steg 3", s3t:"Ställ in dina gränser", s3:"Vind, by och våghöjd. Ett värde över gränsen framhävs, så du slipper leta efter det.",
+    r1t:"Klocka", r1:"70 Garmin-modeller, inklusive fenix, quatix, epix, Forerunner och Venu.",
+    r2t:"Anslutning", r2:"Telefon i närheten eller WiFi. Senaste avläsningen står kvar utan anslutning.",
+    r3t:"Konto", r3:"Inget konto, ingen inloggning, inget sparat om dig.",
+    r4t:"Språk", r4:"Finska, svenska och engelska, enligt klockans eget språk.",
+    r5t:"Område", r5:"Finland — Meteorologiska institutets nät, kust och insjöar.",
+    cMail:"Återkoppling och buggrapporter. Ange versionsnumret från appens Om-sida.",
+    k1:"Sida 1", k2:"Sida 2", k3:"Sida 3", k4:"Inställningar", hScreens:"Varje skärm", capLand:"Land", capSea:"Hav", capWaves:"Vågor", capGlance:"Överblick", capAbout:"Om appen", capSmall:"Forerunner 255s",
     privacy:"Integritet", terms:"Villkor",
     coast:"Kusten", lakes:"Insjöar", trend:"Vind, senaste 12 timmarna", mean:"Medelvind", noTrend:"Ingen vindhistorik tillgänglig", rain:"Nederbörd", rainNone:"inget regn", justNow:"just nu", minAgo:"min sedan", hAgo:"h sedan", retrieved:"Hämtad", loading:"Laddar…",
   },
@@ -108,7 +128,17 @@ STR = {
     soon:"Coming to the Connect IQ Store", getIt:"Get it on the Connect IQ Store",
     seeLive:"View weather data live from our weather page",
     devices:"In Finnish, Swedish and English. Runs on 70 Garmin models.",
-    hScreens:"Every screen", capLand:"Land", capSea:"Sea", capWaves:"Waves", capGlance:"Glance", capAbout:"About", capSmall:"Forerunner 255s",
+    hSetup:"Setup", hReq:"Requirements", hContact:"Contact",
+    s1k:"Step 1", s1t:"Install it", s1:"From the Connect IQ Store through Garmin Connect. No account, no sign-in.",
+    s2k:"Step 2", s2t:"Set your place and station", s2:"In Garmin Connect: Connect IQ Apps → FIWeatherWatch → Settings. A place for land, a marine station for sea.",
+    s3k:"Step 3", s3t:"Set your limits", s3:"Wind, gust and wave height. A reading over your limit stands out, so you do not have to look for it.",
+    r1t:"Watch", r1:"70 Garmin models, including fenix, quatix, epix, Forerunner and Venu.",
+    r2t:"Connection", r2:"Phone nearby or WiFi. The last reading stays on screen when there is neither.",
+    r3t:"Account", r3:"No account, no sign-in, nothing stored about you.",
+    r4t:"Languages", r4:"Finnish, Swedish and English, following your watch's own language.",
+    r5t:"Area", r5:"Finland — the Finnish Meteorological Institute's network, coast and inland lakes.",
+    cMail:"Feedback and bug reports. Include the version number from the app's About page.",
+    k1:"Page 1", k2:"Page 2", k3:"Page 3", k4:"Settings", hScreens:"Every screen", capLand:"Land", capSea:"Sea", capWaves:"Waves", capGlance:"Glance", capAbout:"About", capSmall:"Forerunner 255s",
     privacy:"Privacy", terms:"Terms",
     coast:"Coast", lakes:"Inland lakes", trend:"Wind, last 12 hours", mean:"Mean", noTrend:"No wind history available", rain:"Rain", rainNone:"no rain", justNow:"just now", minAgo:"min ago", hAgo:"h ago", retrieved:"Retrieved", loading:"Loading…",
   },
@@ -330,6 +360,10 @@ function applyStrings() {
   set("#nav-app","navApp"); set("#h-app","hApp"); set("#app-lede","appLede");
   set("#app-devices","devices");
   set("#h-screens","hScreens");
+  set("#h-setup","hSetup"); set("#h-req","hReq"); set("#h-contact","hContact");
+  for (const i of [1,2,3]) { set(`#s${i}k`,`s${i}k`); set(`#s${i}t`,`s${i}t`); set(`#s${i}`,`s${i}`); }
+  for (const i of [1,2,3,4,5]) { set(`#r${i}t`,`r${i}t`); set(`#r${i}`,`r${i}`); }
+  set("#c-mail","cMail");
   set("#cap-land","capLand"); set("#cap-sea","capSea"); set("#cap-waves","capWaves");
   set("#cap-glance","capGlance"); set("#cap-about","capAbout");
   set("#foot-privacy","privacy"); set("#foot-terms","terms");
@@ -350,7 +384,9 @@ function applyStrings() {
     nums[i].textContent = String(i + 1).padStart(2, "0");
   }
   renderCta();
-  for (const i of [1,2,3,4]) { set(`#c${i}t`,`c${i}t`); set(`#c${i}`,`c${i}`); }
+  for (const i of [1,2,3,4]) {
+    set(`#c${i}t`,`c${i}t`); set(`#c${i}`,`c${i}`); set(`#k${i}`,`k${i}`);
+  }
   for (const i of [1,2,3])   { set(`#d${i}t`,`d${i}t`); set(`#d${i}`,`d${i}`); }
   const b = $("#buoy");
   if (b && b.options.length) b.options[0].textContent = T("nearest");

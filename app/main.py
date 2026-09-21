@@ -584,8 +584,10 @@ if config.ENABLE_PUBLIC or config.ENABLE_CHARTS:
 
     #: Whole sections that belong to one site only, removed before serving.
     _ONLY_ON = {
-        "app": ("live", "live-sea"),          # the data view
-        "weather": ("app", "screens"),        # the app pitch
+        # the data view
+        "app": ("live", "live-sea"),
+        # everything that is about the app rather than the weather
+        "weather": ("app", "what", "screens", "setup", "requirements", "contact"),
     }
 
     def _strip(html: str, ids: tuple[str, ...]) -> str:

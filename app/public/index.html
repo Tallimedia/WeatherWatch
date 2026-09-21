@@ -53,6 +53,9 @@
   .trend-read { margin-left: auto; font-size: 12px; color: var(--color-neutral-700);
                 font-variant-numeric: tabular-nums; min-height: 1em; }
   .trend-svg { width: 100%; height: auto; display: block; touch-action: pan-y; }
+  /* VolvoWatch's card kicker: the small uppercase label above each title. */
+  .card-kicker { font-family: var(--font-heading); font-size: 12px; letter-spacing: 0.08em;
+                 text-transform: uppercase; color: var(--color-accent-700); margin-bottom: 12px; }
   .sec-num { font-family: var(--font-heading); font-size: 13px; letter-spacing: 0.08em;
              text-transform: uppercase; color: var(--color-accent-700); }
   .sec-rule { flex: 1; height: 1px; background: var(--color-divider); }
@@ -141,8 +144,7 @@
   <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,0.85fr);gap:48px;align-items:center">
     <div>
       <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:18px">
-        <span class="sec-num"></span>
-        <h2 style="font-size:40px;margin:0" id="h-app">On your wrist</h2>
+                <h2 style="font-size:40px;margin:0" id="h-app">On your wrist</h2>
         <span class="sec-rule"></span>
       </div>
       <p style="font-size:17px;color:var(--color-neutral-800);margin:0 0 20px;max-width:46ch;text-wrap:pretty">
@@ -159,6 +161,39 @@
     </figure>
   </div>
 
+</section>
+
+
+
+<section id="what" style="max-width:1240px;margin:0 auto;padding:64px 32px">
+  <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:32px">
+    <span class="sec-num"></span>
+    <h2 style="font-size:40px;margin:0" id="h-what">What the watch shows</h2>
+    <span class="sec-rule"></span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1px;
+      background:var(--color-divider);border:1px solid var(--color-divider)">
+      <div style="background:var(--color-bg);padding:26px">
+        <div class="card-kicker" id="k1"></div>
+        <h3 id="c1t" style="font-size:24px;margin:0 0 10px">Land</h3>
+        <p style="margin:0;color:var(--color-neutral-800)" id="c1">Current temperature, wind and gusts from the nearest reporting station, named, with its distance shown.</p>
+      </div>
+      <div style="background:var(--color-bg);padding:26px">
+        <div class="card-kicker" id="k2"></div>
+        <h3 id="c2t" style="font-size:24px;margin:0 0 10px">Sea</h3>
+        <p style="margin:0;color:var(--color-neutral-800)" id="c2">Wind and gusts from 40 coastal and 14 inland lake stations across Finland.</p>
+      </div>
+      <div style="background:var(--color-bg);padding:26px">
+        <div class="card-kicker" id="k3"></div>
+        <h3 id="c3t" style="font-size:24px;margin:0 0 10px">Waves</h3>
+        <p style="margin:0;color:var(--color-neutral-800)" id="c3">Significant wave height, period, direction and sea water temperature from FMI's wave buoys.</p>
+      </div>
+      <div style="background:var(--color-bg);padding:26px">
+        <div class="card-kicker" id="k4"></div>
+        <h3 id="c4t" style="font-size:24px;margin:0 0 10px">Your limits</h3>
+        <p style="margin:0;color:var(--color-neutral-800)" id="c4">Set your own wind, gust and wave thresholds, so a reading stands out when it matters to you.</p>
+      </div>
+  </div>
 </section>
 
 <section id="screens" style="background:var(--color-accent-900);color:#f5f8fd;padding:64px 0;margin-top:56px">
@@ -182,6 +217,8 @@
     </div>
   </div>
 </section>
+
+
 
 <section id="live" class="wrap" style="padding:56px 32px 0">
   <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:18px">
@@ -213,27 +250,59 @@
   <div class="panel" id="marine-trend" style="margin-top: 18px"><p class="msg">Loading…</p></div>
 </section>
 
-<section id="what" style="background:var(--color-accent-900);color:#f5f8fd;padding:64px 0">
-  <div class="wrap">
-  <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:18px">
-    <span class="sec-num" style="color:var(--color-accent-300)"></span>
-    <h2 style="font-size:40px;margin:0;color:#f5f8fd" id="h-what">What the watch shows</h2>
-    <span style="flex:1;height:1px;background:color-mix(in srgb,#f5f8fd 26%,transparent)"></span>
+
+
+<section id="setup" style="max-width:1240px;margin:0 auto;padding:64px 32px">
+  <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:32px">
+    <span class="sec-num"></span>
+    <h2 style="font-size:40px;margin:0" id="h-setup">Setup</h2>
+    <span class="sec-rule"></span>
   </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:30px">
-      <div><h3 id="c1t" style="font-family:var(--font-heading);font-size:21px;margin:0 0 6px">Land</h3>
-        <p style="margin:0;color:#c9d7e8" id="c1">Current temperature, wind and gusts, plus a
-        10-day forecast — with the reporting station named and its distance shown.</p></div>
-      <div><h3 id="c2t" style="font-family:var(--font-heading);font-size:21px;margin:0 0 6px">Sea</h3>
-        <p style="margin:0;color:#c9d7e8" id="c2">Wind and gusts from Harmaja, Utö, Kalbådagrund
-        and 19 other Finnish marine stations.</p></div>
-      <div><h3 id="c3t" style="font-family:var(--font-heading);font-size:21px;margin:0 0 6px">Waves</h3>
-        <p style="margin:0;color:#c9d7e8" id="c3">Significant wave height, period, direction and
-        sea water temperature from FMI's wave buoys.</p></div>
-      <div><h3 id="c4t" style="font-family:var(--font-heading);font-size:21px;margin:0 0 6px">Your limits</h3>
-        <p style="margin:0;color:#c9d7e8" id="c4">Set your own wind, gust and wave thresholds, so a
-        reading stands out when it matters to you.</p></div>
-    </div>
+  <ol style="list-style:none;margin:0;padding:0;display:grid;gap:1px;
+      background:var(--color-divider);border:1px solid var(--color-divider)">
+    <li style="background:var(--color-bg);padding:26px">
+      <div class="card-kicker" id="s1k"></div>
+      <h3 style="font-size:22px;margin:0 0 8px" id="s1t">Install it</h3>
+      <p style="margin:0;color:var(--color-neutral-800)" id="s1"></p></li>
+    <li style="background:var(--color-bg);padding:26px">
+      <div class="card-kicker" id="s2k"></div>
+      <h3 style="font-size:22px;margin:0 0 8px" id="s2t">Set your place and station</h3>
+      <p style="margin:0;color:var(--color-neutral-800)" id="s2"></p></li>
+    <li style="background:var(--color-bg);padding:26px">
+      <div class="card-kicker" id="s3k"></div>
+      <h3 style="font-size:22px;margin:0 0 8px" id="s3t">Set your limits</h3>
+      <p style="margin:0;color:var(--color-neutral-800)" id="s3"></p></li>
+  </ol>
+</section>
+
+<section id="requirements" style="max-width:1240px;margin:0 auto;padding:0 32px 64px">
+  <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:32px">
+    <span class="sec-num"></span>
+    <h2 style="font-size:40px;margin:0" id="h-req">Requirements</h2>
+    <span class="sec-rule"></span>
+  </div>
+  <table class="table" style="width:100%">
+    <tbody>
+      <tr><th style="width:30%;text-align:left" id="r1t">Watch</th><td id="r1"></td></tr>
+      <tr><th style="text-align:left" id="r2t">Connection</th><td id="r2"></td></tr>
+      <tr><th style="text-align:left" id="r3t">Account</th><td id="r3"></td></tr>
+      <tr><th style="text-align:left" id="r4t">Languages</th><td id="r4"></td></tr>
+      <tr><th style="text-align:left" id="r5t">Area</th><td id="r5"></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="contact" style="max-width:1240px;margin:0 auto;padding:0 32px 64px">
+  <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:32px">
+    <span class="sec-num"></span>
+    <h2 style="font-size:40px;margin:0" id="h-contact">Contact</h2>
+    <span class="sec-rule"></span>
+  </div>
+  <div style="max-width:62ch">
+    <div class="card-kicker" id="c-mailk">Email</div>
+    <a href="mailto:iot@tallimedia.com" style="font-size:22px;font-family:var(--font-heading);
+       font-weight:600">iot@tallimedia.com</a>
+    <p style="margin:14px 0 0;color:var(--color-neutral-800)" id="c-mail"></p>
   </div>
 </section>
 
