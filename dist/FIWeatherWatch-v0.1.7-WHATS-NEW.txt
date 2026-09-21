@@ -1,0 +1,36 @@
+FIWeatherWatch v0.1.7 — for testing
+===================================
+
+SIDELOAD
+  FIWeatherWatch-v0.1.7.prg            -> GARMIN/APPS/
+  FIWeatherWatch-v0.1.7-settings.json  -> GARMIN/APPS/SETTINGS/
+
+Or upload FIWeatherWatch-v0.1.7.iq to the store as a Beta release.
+Check the footer reads "v0.1.7" before testing.
+
+
+FIXED SINCE 0.1.6
+-----------------
+The About page credit ran off both edges of the screen. It read
+"ata: Finnish Meteorological Institu" — clipped at both ends. That is
+the CC BY 4.0 attribution, the one string that has to be readable in
+full, so it now wraps onto as many lines as it needs instead of being
+drawn as a single unconstrained centred line.
+
+PLEASE CHECK: swipe to the About page (fourth) and confirm the whole
+credit is readable.
+
+
+ALSO IN 0.1.6, IF NOT YET TESTED
+--------------------------------
+* 54 sea stations, was 22 — coastal then 14 inland lakes
+* An inland lake says "Ei poijua alueella" on the waves page, not
+  "ei havaitsevaa poijua" (which means a buoy exists but is quiet)
+* Select shows "Päivitetään..." while refreshing
+* The glance refreshes at most every 5 minutes
+
+
+STILL OPEN
+----------
+* The 14 lake stations are picks from coordinates — say if any is not
+  really on boatable water

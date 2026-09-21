@@ -9,10 +9,10 @@ will eventually be sideloaded by mistake.
 
 | File | What |
 |---|---|
-| `FIWeatherWatch-v0.1.6.prg` | sideload — copy to `GARMIN/APPS/` |
-| `FIWeatherWatch-v0.1.6-settings.json` | its settings — copy to `GARMIN/APPS/SETTINGS/` |
-| `FIWeatherWatch-v0.1.6.iq` | store upload (Beta release) |
-| `FIWeatherWatch-v0.1.6-WHATS-NEW.txt` | what changed and what to test |
+| `FIWeatherWatch-v0.1.7.prg` | sideload — copy to `GARMIN/APPS/` |
+| `FIWeatherWatch-v0.1.7-settings.json` | its settings — copy to `GARMIN/APPS/SETTINGS/` |
+| `FIWeatherWatch-v0.1.7.iq` | store upload (Beta release) |
+| `FIWeatherWatch-v0.1.7-WHATS-NEW.txt` | what changed and what to test |
 | `FIWeatherWatch-Peter-v0.1.4.zip` | Peter's tester build — Karjaa / Hanko Russarö / Suomenlahti |
 
 `.prg` files are built for `fenix847mm`, which covers quatix 8 — the two are

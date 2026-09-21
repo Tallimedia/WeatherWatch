@@ -421,11 +421,59 @@ module Pages {
                     Graphics.TEXT_JUSTIFY_CENTER);
         top += fh + (fh / 2).toNumber();
 
+        // Wrapped, not truncated. The credit ran off both edges of the screen
+        // as a single centred line, and it is the one string here that has to
+        // be readable in full — CC BY 4.0 requires the source be named. An
+        // ellipsis would satisfy the layout and not the licence.
         dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, top, Graphics.FONT_XTINY, res(Rez.Strings.Attribution),
+        var lines = wrap(dc, res(Rez.Strings.Attribution), Graphics.FONT_XTINY,
+                         (w(dc) * 0.82).toNumber());
+        for (var i = 0; i < lines.size(); i += 1) {
+            dc.drawText(cx, top + i * fh, Graphics.FONT_XTINY, lines[i],
+                        Graphics.TEXT_JUSTIFY_CENTER);
+        }
+        dc.drawText(cx, top + lines.size() * fh, Graphics.FONT_XTINY, "CC BY 4.0",
                     Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx, top + fh, Graphics.FONT_XTINY, "CC BY 4.0",
-                    Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    //! Break text into lines that fit `maxW`, at word boundaries.
+    //!
+    //! Monkey C has no split(), so this scans for spaces itself. A single word
+    //! too long for the line is hard-broken rather than allowed to overflow —
+    //! no Finnish or Swedish word here is that long, but silent overflow is
+    //! exactly the failure this function exists to prevent.
+    function wrap(dc as Graphics.Dc, text as String, font as Graphics.FontDefinition,
+                  maxW as Number) as Array<String> {
+        var lines = [] as Array<String>;
+        var rest = text;
+        while (rest.length() > 0) {
+            if (dc.getTextWidthInPixels(rest, font) <= maxW) {
+                lines.add(rest);
+                break;
+            }
+            var cut = -1;
+            for (var i = 0; i < rest.length(); i += 1) {
+                if (rest.substring(i, i + 1).equals(" ")) {
+                    if (dc.getTextWidthInPixels(rest.substring(0, i), font) <= maxW) {
+                        cut = i;
+                    } else {
+                        break;
+                    }
+                }
+            }
+            if (cut <= 0) {
+                var n = rest.length();
+                while (n > 1 && dc.getTextWidthInPixels(rest.substring(0, n), font) > maxW) {
+                    n -= 1;
+                }
+                lines.add(rest.substring(0, n));
+                rest = rest.substring(n, rest.length());
+            } else {
+                lines.add(rest.substring(0, cut));
+                rest = rest.substring(cut + 1, rest.length());
+            }
+        }
+        return lines;
     }
 
     function message(dc as Graphics.Dc, res as ResourceId) as Void {
