@@ -401,7 +401,7 @@ const USED = {
             "SUOLAN_MÄÄRÄ_1"],
 };
 
-const fmt = (v) => {
+const fieldValue = (v) => {
   if (v === null || v === undefined) return `<span class="nul">null</span>`;
   if (Array.isArray(v)) return `<span class="nul">${v.length} ×</span>`;
   if (typeof v === "object") return `<span class="nul">{…}</span>`;
@@ -441,27 +441,27 @@ function catalogue() {
   if (data.obs) {
     parts.push(`<h3>/v1/observations <span class="sub">FMI weather station</span></h3>`);
     parts.push(table(flat(data.obs).map(([k, v]) =>
-      [k, fmt(v), mark(USED.obs.includes(k.split(".").pop()))])));
+      [k, fieldValue(v), mark(USED.obs.includes(k.split(".").pop()))])));
   }
 
   const pt = (data.fc || [])[0];
   if (pt) {
     parts.push(`<h3>/v1/forecast <span class="sub">per point · ${
       (data.fc || []).length} points served</span></h3>`);
-    parts.push(table(flat(pt).map(([k, v]) => [k, fmt(v), mark(USED.fc.includes(k))])));
+    parts.push(table(flat(pt).map(([k, v]) => [k, fieldValue(v), mark(USED.fc.includes(k))])));
   }
 
   if (data.road) {
     parts.push(`<h3>/v1/road <span class="sub">merged FMI + Fintraffic</span></h3>`);
     const rows = flat(data.road).map(([k, v]) =>
-      [k, fmt(v), mark(USED.road.some((u) => k === u || k.startsWith(u + ".")))]);
+      [k, fieldValue(v), mark(USED.road.some((u) => k === u || k.startsWith(u + ".")))]);
     // The outlook is an array, so it flattens to "5 ×" and its own fields
     // would go unlisted — which is exactly where the unused ones are.
     const out0 = (data.road.section?.outlook || [])[0];
     if (out0) {
       const usedInOutlook = ["at", "road_temp_c", "surface", "road_condition", "reliability"];
       rows.push(...Object.entries(out0).map(([k, v]) =>
-        [`section.outlook[].${k}`, fmt(v), mark(usedInOutlook.includes(k))]));
+        [`section.outlook[].${k}`, fieldValue(v), mark(usedInOutlook.includes(k))]));
     }
     parts.push(table(rows));
   }
@@ -472,7 +472,7 @@ function catalogue() {
       const base = sensorBase(s.name);
       const en = SENSOR_EN[base];
       const unit = s.unit && !/^[?*/#]+$/.test(s.unit) ? ` ${s.unit}` : "";
-      const row = [s.name, fmt(s.value) + unit,
+      const row = [s.name, fieldValue(s.value) + unit,
                    mark(USED.sensors.includes(s.name)),
                    esc(s.description ? `${en || base} — ${s.description}` : (en || ""))];
       (SENSOR_DIAG.test(s.name) || !en ? diag : good).push(row);
@@ -499,7 +499,7 @@ function catalogue() {
     if (fr.length) {
       parts.push(`<h3>FMI road station <span class="sub">${
         esc(raw.fmi_road_station || "")} · every parameter the proxy requests</span></h3>`);
-      parts.push(table(fr.map(([k, v]) => [k, fmt(v), mark(true)])));
+      parts.push(table(fr.map(([k, v]) => [k, fieldValue(v), mark(true)])));
     }
     if ((raw.fmi_road_never_populated || []).length) {
       parts.push(`<h3>FMI road parameters that exist but never return a value</h3>`);
