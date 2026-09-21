@@ -15,9 +15,12 @@ class FIWeatherGlanceView extends WatchUi.GlanceView {
     }
 
     function onShow() as Void {
+        // The cached values are drawn either way; only the refresh is throttled.
         Api.restore();
-        Api.fetchLand();
-        Api.fetchMarine();
+        if (Api.glanceDue()) {
+            Api.fetchLand();
+            Api.fetchMarine();
+        }
     }
 
     //! Resolves a configured slot to [label, value, colour].

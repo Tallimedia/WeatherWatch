@@ -42,6 +42,29 @@ module Api {
     var lastRefresh = 0;
     const MIN_REFRESH_SECS = 30;
 
+    //! How long a glance fetch is considered fresh enough.
+    //!
+    //! The glance fires on every scroll past it in the carousel, so without a
+    //! floor a thumb on the widget list is two web requests per pass. Five
+    //! minutes also matches the data: FMI republishes observations about every
+    //! ten minutes and the backend caches for five, so a faster glance would
+    //! spend radio on bytes it already has.
+    const GLANCE_MIN_SECS = 300;
+
+    //! The glance runs in **its own process**, started and stopped as the
+    //! carousel moves, so an in-memory timestamp does not survive between
+    //! showings. It has to persist, and Storage is the only thing that does.
+    function glanceDue() as Boolean {
+        var last = null;
+        try { last = Application.Storage.getValue("gAt"); } catch (e) { last = null; }
+        var now = Time.now().value();
+        if (last instanceof Number && now - last < GLANCE_MIN_SECS && now >= last) {
+            return false;
+        }
+        try { Application.Storage.setValue("gAt", now); } catch (e) {}
+        return true;
+    }
+
     //! Maps a Communications result to a reason.
     //!
     //! Every non-200 used to render as "No connection". A queue-full, an
