@@ -24,7 +24,7 @@ STR = {
     footNote:"FIWeatherWatch on itsenäinen projekti, ei Ilmatieteen laitoksen eikä Garminin tukema. Ajat Suomen aikaa. Kehitysvaiheessa — jaettu palautetta varten.",
     unavailable:"Sää ei ole hetkellisesti saatavilla", noPlace:"Paikkakunnalle ei löytynyt havaintoasemaa", tryNearby:"Kokeile lähikaupunkia.",
     noBuoy:"ei havaitsevaa poijua", noBuoyArea:"Ei poijua alueella", modelled:"WAM-malli — ei mitattu", away:"km päässä",
-    navApp:"Sovellus", navWeather:"Säätiedot", brandWeather:"Sää", tagLive:"Live-data", navApp2:"Sovellus",
+    navApp:"Sovellus", navWeather:"Säätiedot", navLiveWeather:"Live-sää", brandWeather:"Sää", tagLive:"Live-data", navApp2:"Sovellus",
     ledeWeather:"Ennusteet, merituuli ja live-aaltodata — suoraan Ilmatieteen laitoksen omasta avoimesta datasta, ei globaalista mallista. Kaikki alla on live-dataa juuri nyt.", hApp:"Ranteessasi",
     appLede:"Sama data kellossasi — maasään ennuste, merituuli rannikkoasemilta ja aaltotiedot Ilmatieteen laitoksen poijuilta. Ei tiliä, ei kirjautumista.",
     p1:"Maa: lämpötila, tuuli ja puuskat lähimmältä asemalta, ennuste loppupäivälle",
@@ -61,7 +61,7 @@ STR = {
     footNote:"FIWeatherWatch är ett fristående projekt, utan koppling till Meteorologiska institutet eller Garmin. Tider i finsk lokaltid. Under utveckling — delad för återkoppling.",
     unavailable:"Vädret är tillfälligt otillgängligt", noPlace:"Ingen väderstation hittades för", tryNearby:"Prova en närliggande ort.",
     noBuoy:"ingen aktiv boj", noBuoyArea:"Ingen boj i området", modelled:"WAM-modell — inte uppmätt", away:"km bort",
-    navApp:"Appen", navWeather:"Väderdata", brandWeather:"Väder", tagLive:"Live-data", navApp2:"Appen",
+    navApp:"Appen", navWeather:"Väderdata", navLiveWeather:"Live-väder", brandWeather:"Väder", tagLive:"Live-data", navApp2:"Appen",
     ledeWeather:"Prognoser, havsvind och vågdata i realtid — direkt från Meteorologiska institutets egna öppna data, inte en global modell. Allt nedan är live just nu.", hApp:"På din handled",
     appLede:"Samma data i din klocka — prognos på land, havsvind från kuststationer och vågdata från Meteorologiska institutets bojar. Inget konto, ingen inloggning.",
     p1:"Land: temperatur, vind och byar från närmaste station, prognos för resten av dagen",
@@ -98,7 +98,7 @@ STR = {
     footNote:"FIWeatherWatch is an independent project, not affiliated with or endorsed by the Finnish Meteorological Institute or Garmin. Times in Finnish local time. In development — shared for feedback.",
     unavailable:"Weather is briefly unavailable", noPlace:"No weather station found for", tryNearby:"Try a nearby town.",
     noBuoy:"no buoy reporting", noBuoyArea:"No buoy in this area", modelled:"WAM model — not measured", away:"km away",
-    navApp:"The app", navWeather:"Weather data", brandWeather:"Weather", tagLive:"Live data", navApp2:"The app",
+    navApp:"The app", navWeather:"Weather data", navLiveWeather:"Live weather", brandWeather:"Weather", tagLive:"Live data", navApp2:"The app",
     ledeWeather:"Forecasts, marine wind and live wave data — from the Finnish Meteorological Institute\u2019s own open data, not a global model. Everything below is live right now.", hApp:"On your wrist",
     appLede:"The same data on your watch — land forecasts, marine wind from the coastal stations, and live wave height from FMI's own buoys. No account, no sign-in.",
     p1:"Land: temperature, wind and gusts from the nearest station, plus the rest of the day",
@@ -266,11 +266,15 @@ function renderNavCta() {
          style="color:var(--color-bg);text-transform:uppercase;letter-spacing:0.06em">${T("getIt")}
          <i class="corner tl"></i><i class="corner tr"></i>
          <i class="corner bl"></i><i class="corner br"></i></a>`
-    : `<a class="btn blueprint" href="${WEATHER_ONLY ? APP_URL : WEATHER_URL}"
-         style="text-transform:uppercase;letter-spacing:0.06em">${
-           WEATHER_ONLY ? T("navApp2") : T("navWeather")}
-         <i class="corner tl"></i><i class="corner tr"></i>
-         <i class="corner bl"></i><i class="corner br"></i></a>`;
+    : WEATHER_ONLY
+      ? `<a class="btn blueprint" href="${APP_URL}"
+           style="text-transform:uppercase;letter-spacing:0.06em">${T("navApp2")}
+           <i class="corner tl"></i><i class="corner tr"></i>
+           <i class="corner bl"></i><i class="corner br"></i></a>`
+      : `<span class="btn blueprint" style="text-transform:uppercase;
+           letter-spacing:0.06em;color:var(--color-neutral-600);cursor:default">${T("soon")}
+           <i class="corner tl"></i><i class="corner tr"></i>
+           <i class="corner bl"></i><i class="corner br"></i></span>`;
 }
 
 function renderCta() {
@@ -316,12 +320,6 @@ function applyStrings() {
     set("#tag-kind", "tagLive");
     set("#lede", "ledeWeather");
   }
-  // On the app page the nav entry survives, repointed across rather than
-  // removed: someone looking for the data should find the way to it.
-  if (!WEATHER_ONLY) {
-    const nav = $("#nav-live");
-    if (nav) { nav.href = WEATHER_URL; nav.textContent = T("navWeather"); }
-  }
   set("#nav-live","navLive"); set("#nav-what","navWhat"); set("#nav-data","navData");
   set("#tag-dev","tagDev"); set("#tag-area","tagArea");
   set("#hero-a","heroA"); set("#hero-b","heroB"); set("#lede","lede");
@@ -337,6 +335,13 @@ function applyStrings() {
   set("#foot-privacy","privacy"); set("#foot-terms","terms");
   const pts = $("#app-points");
   if (pts) pts.innerHTML = ["p1","p2","p3","p4"].map((k) => `<li>${T(k)}</li>`).join("");
+  // Last, deliberately: the generic set() pass below would otherwise put
+  // "Live data" back over this and point it at an anchor on a page that no
+  // longer has one.
+  if (!WEATHER_ONLY) {
+    const nav = $("#nav-live");
+    if (nav) { nav.href = WEATHER_URL; nav.textContent = T("navLiveWeather"); }
+  }
   renderCta();
   for (const i of [1,2,3,4]) { set(`#c${i}t`,`c${i}t`); set(`#c${i}`,`c${i}`); }
   for (const i of [1,2,3])   { set(`#d${i}t`,`d${i}t`); set(`#d${i}`,`d${i}`); }

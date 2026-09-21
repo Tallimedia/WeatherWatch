@@ -582,6 +582,31 @@ if config.ENABLE_PUBLIC or config.ENABLE_CHARTS:
 
     ASSET_V = _asset_version()
 
+    #: Whole sections that belong to one site only, removed before serving.
+    _ONLY_ON = {
+        "app": ("live", "live-sea"),          # the data view
+        "weather": ("app", "screens"),        # the app pitch
+    }
+
+    def _strip(html: str, ids: tuple[str, ...]) -> str:
+        """Remove whole <section id="..."> blocks.
+
+        Server-side rather than hidden with CSS. Three bugs today came from
+        hiding: a section that leaked because only half of it had an id,
+        panels left at "Loading…" on a page that deliberately does not fetch,
+        and a translation throw. All three were invisible to any check that
+        reads the served HTML, because the markup was always there and only
+        the script decided what you saw. Now each page contains its own
+        content and nothing else, which is checkable from outside — and
+        correct without JavaScript.
+        """
+        for sid in ids:
+            html = re.sub(
+                rf'<section id="{re.escape(sid)}"[^>]*>.*?</section>\s*',
+                "", html, flags=re.S,
+            )
+        return html
+
     def _page(name: str, site: str = "app") -> HTMLResponse:
         html = (_HERE / name / "index.html").read_text(encoding="utf-8")
         html = re.sub(r'((?:src|href)="/[^"]+?\.(?:js|css))"', r'\1?v=' + ASSET_V + '"', html)
@@ -592,6 +617,7 @@ if config.ENABLE_PUBLIC or config.ENABLE_CHARTS:
         # second thing to keep correct.
         if site != "app":
             html = html.replace("<body>", f'<body data-site="{site}">', 1)
+        html = _strip(html, _ONLY_ON[site])
         # The HTML must never be cached, or it keeps pointing at an old version.
         return HTMLResponse(html, headers={"Cache-Control": "no-cache, must-revalidate"})
 
