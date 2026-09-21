@@ -6,6 +6,14 @@ Paste-ready text for <https://apps-developer.garmin.com>. Keep in sync with
 The beta (v0.1.x) is unlisted and needs no copy. This is the draft for the
 public v1.0.0 entry.
 
+**Submitted for review 2026-09-21.** The public entry is
+`172c2042-7cc8-4125-a0f6-9ba109be3a8a` — dashboard at
+<https://apps-developer.garmin.com/fi-FI/apps/172c2042-7cc8-4125-a0f6-9ba109be3a8a>
+(sign-in only, not a public link). Once Garmin approves it, the same UUID becomes
+the store URL at <https://apps.garmin.com/apps/172c2042-7cc8-4125-a0f6-9ba109be3a8a>,
+which goes into `STORE_URL` in the backend `.env`. That URL 404s until approval,
+so do not publish it early.
+
 ---
 
 ## Short description (≤50 chars)
