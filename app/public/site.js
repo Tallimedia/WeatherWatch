@@ -290,6 +290,11 @@ const WEATHER_ONLY = document.body.dataset.site === "weather";
 
 function applyStrings() {
   document.documentElement.lang = LANG;
+  // Declared before anything uses it. It used to sit further down, after the
+  // per-site blocks below already called it — a temporal dead zone, so
+  // applyStrings threw on the weather page and every element after the throw
+  // kept whatever language it had. That read as "translation half works".
+  const set = (id, k) => { const e = $(id); if (e) e.textContent = T(k); };
   // The live data lives only under the weather hostname, and the app pitch
   // only under the app one. Each page hides the other's half rather than
   // being a separate template.
@@ -317,7 +322,6 @@ function applyStrings() {
     const nav = $("#nav-live");
     if (nav) { nav.href = WEATHER_URL; nav.textContent = T("navWeather"); }
   }
-  const set = (id, k) => { const e = $(id); if (e) e.textContent = T(k); };
   set("#nav-live","navLive"); set("#nav-what","navWhat"); set("#nav-data","navData");
   set("#tag-dev","tagDev"); set("#tag-area","tagArea");
   set("#hero-a","heroA"); set("#hero-b","heroB"); set("#lede","lede");
