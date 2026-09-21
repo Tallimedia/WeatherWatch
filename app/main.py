@@ -116,6 +116,10 @@ _FORECAST_PARAMS = [
     "winddirection",
     "windcompass8",
     "precipitation1h",
+    # Probability of precipitation. Distinct from the amount and not derivable
+    # from it: 68 % overcast with 0.0 mm and 56 % showers with 0.4 mm are both
+    # real readings (FIRoadWeather/SPEC.md §9).
+    "pop",
 ]
 
 # Observation parameters. Gust is `windgust` here — asking for
@@ -871,42 +875,37 @@ if config.ENABLE_PUBLIC or config.ENABLE_CHARTS:
             headers={"Cache-Control": "no-cache, must-revalidate"},
         )
 
-    #: A holding page, not a product page. The car app is not released, and a
-    #: landing page promising features it does not yet have would be a store
-    #: review problem as well as untrue. It exists because the hostname must
-    #: answer something of its own: before this, roadweather.tallimedia.com
-    #: served the *watch* app's page and the watch app's privacy policy, and
-    #: that policy is the URL Play is given for the car app.
-    _COMING_SOON = (
-        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">"
-        "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
-        "<title>Finnish RoadWeather</title><style>"
-        "body{margin:0;min-height:100vh;display:flex;align-items:center;"
-        "justify-content:center;background:linear-gradient(#090d1a,#131a30);"
-        "color:#f5f8fd;font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}"
-        "main{max-width:34rem;padding:48px 24px;text-align:center}"
-        "h1{font-size:30px;margin:0 0 6px;letter-spacing:-.01em}"
-        "p.lead{color:#96a6c2;margin:0 0 28px}"
-        "p.soon{display:inline-block;border:1px solid #2c364e;border-radius:999px;"
-        "padding:6px 16px;color:#8ac6ff;font-size:14px;margin:0 0 32px}"
-        "p.src{color:#62708a;font-size:13px;margin:32px 0 0}"
-        "a{color:#5e94ff;text-decoration:none;margin:0 10px}"
-        "a:hover{text-decoration:underline}</style></head><body><main>"
-        "<h1>Finnish RoadWeather</h1>"
-        "<p class=\"lead\">Road surface conditions, ice risk and Finnish weather, "
-        "for cars with Google built-in.</p>"
-        "<p class=\"soon\">Coming soon</p>"
-        "<p><a href=\"/privacy\">Privacy</a>·<a href=\"/terms\">Terms</a></p>"
-        "<p class=\"src\">Data: Finnish Meteorological Institute (CC BY 4.0) and "
-        "Fintraffic / digitraffic.fi (CC 4.0 BY). Independent app, not affiliated "
-        "with or endorsed by either organisation.</p>"
-        "</main></body></html>"
-    )
+    def _rw_page(name: str) -> HTMLResponse:
+        html = (_HERE / "roadweather" / f"{name}.html").read_text(encoding="utf-8")
+        html = re.sub(r'((?:src|href)="/[^"]+?\.(?:js|css))"', r'\1?v=' + ASSET_V + '"', html)
+        return HTMLResponse(html, headers={"Cache-Control": "no-cache, must-revalidate"})
 
     def _roadweather_placeholder() -> HTMLResponse:
-        return HTMLResponse(
-            _COMING_SOON, headers={"Cache-Control": "no-cache, must-revalidate"}
-        )
+        """The car app's own page: a holding notice, nothing more.
+
+        The design preview lives at /demo instead, unlinked from here: a mockup
+        of an unreleased app has no business being the first thing a visitor
+        sees on its product page.
+        """
+        return _rw_page("index")
+
+    @app.get("/demo")
+    async def roadweather_demo(request: Request) -> HTMLResponse:
+        """Live design preview of the car app, for deciding layout before Kotlin.
+
+        Draws only what a Car App Library template can actually render — rows
+        and grid tiles, capped at about six. A mockup prettier than the
+        templates allow would get approved and then turn out unbuildable.
+
+        Runs on live data from the endpoints the app itself calls, which is the
+        point: a layout that looks fine with "12.4 °C" also has to survive
+        "Ice risk unknown — no road sensor nearby".
+
+        Unlisted rather than secret — `noindex`, and nothing links to it.
+        """
+        if not _is_roadweather(request):
+            raise HTTPException(status_code=404, detail="not found")
+        return _rw_page("preview")
 
     @app.get("/privacy")
     async def privacy(request: Request) -> HTMLResponse:
@@ -955,6 +954,11 @@ if config.ENABLE_PUBLIC or config.ENABLE_CHARTS:
         }
 
     app.mount("/web", StaticFiles(directory=_HERE / "web"), name="web")
+    app.mount(
+        "/demo/static",
+        StaticFiles(directory=_HERE / "roadweather" / "static"),
+        name="roadweather-static",
+    )
 
 
 if config.ENABLE_CHARTS:

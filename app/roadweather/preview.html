@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- Unlisted: a preview of an unreleased app has no business in search results. -->
+<meta name="robots" content="noindex,nofollow">
+<title>Finnish RoadWeather</title>
+<meta name="description" content="Road surface conditions, ice risk and Finnish weather for cars with Google built-in.">
+<style>
+:root{
+  --bg:#090d1a; --bg2:#131a30; --fg:#f5f8fd; --dim:#96a6c2; --faint:#62708a;
+  --accent:#5e94ff; --line:#2c364e;
+  /* The car draws on black, not on the brand navy. The frame must not flatter. */
+  --car-bg:#000; --car-fg:#fff; --car-dim:#9aa0a6; --car-line:#2a2d31;
+  --car-accent:#8ab4f8; --warn:#f28b82; --caution:#fdd663;
+  --cloud:#c9d3e4; --cloud-2:#aab7cd; --s1:#5e94ff; --s4:#eda100;
+}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(var(--bg),var(--bg2));color:var(--fg);
+  font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh}
+main{max-width:64rem;margin:0 auto;padding:56px 24px 96px}
+h1{font-size:34px;margin:0 0 6px;letter-spacing:-.01em}
+.lead{color:var(--dim);margin:0 0 20px;max-width:34rem}
+.soon{display:inline-block;border:1px solid var(--line);border-radius:999px;
+  padding:6px 16px;color:var(--accent);font-size:14px;margin:0 0 40px}
+h2{font-size:20px;margin:0 0 4px}
+.note{color:var(--faint);font-size:14px;margin:0 0 20px;max-width:40rem}
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 24px}
+select,button{background:#101729;color:var(--fg);border:1px solid var(--line);
+  border-radius:8px;padding:8px 12px;font:inherit;font-size:14px;cursor:pointer}
+button.on{border-color:var(--accent);color:var(--accent)}
+.stage{height:660px}
+.frame{width:800px;height:1280px;background:var(--car-bg);border-radius:14px;
+  overflow:hidden;transform:scale(.5);transform-origin:top left;
+  box-shadow:0 20px 60px rgba(0,0,0,.5);border:1px solid #1d2331}
+/* --- inside the car screen: template-accurate, nothing a Row cannot do --- */
+.hdr{display:flex;align-items:center;gap:14px;padding:22px 26px 6px}
+.hdr img{width:34px;height:34px;border-radius:6px}
+.hdr span{font-size:26px}
+.tabs{display:flex;padding:8px 0 0}
+.tab{flex:1;text-align:center;padding:10px 0 14px;color:var(--car-dim);font-size:22px}
+.tab.sel{color:var(--car-fg);box-shadow:inset 0 -3px 0 var(--car-fg)}
+.tab svg,.tab .gl{display:block;margin:0 auto 6px;width:30px;height:30px}
+.sec{color:var(--car-accent);font-size:20px;padding:16px 26px 6px}
+.row{padding:16px 26px;border-top:1px solid var(--car-line);display:flex;gap:18px;align-items:flex-start}
+.row .body{flex:1;min-width:0}
+.row .t{font-size:30px;line-height:1.25}
+.row .s{font-size:20px;color:var(--car-dim);line-height:1.35}
+.row .ic{flex:0 0 auto}
+.warnc{color:var(--warn)} .cautionc{color:var(--caution)} .dimc{color:var(--car-dim)}
+/* GridTemplate: tiles, image over label. Six is the usual host limit. */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:10px 18px}
+.cell{padding:16px 8px;text-align:center}
+.cell .h{font-size:20px;color:var(--car-dim)}
+.cell .v{font-size:28px;margin-top:2px}
+.cell .p{font-size:18px;color:var(--car-accent);margin-top:2px}
+.msg{padding:40px 26px;color:var(--car-dim);font-size:22px}
+footer{margin-top:44px;color:var(--faint);font-size:13px;max-width:44rem}
+footer a{color:var(--accent);margin-right:14px}
+@media(max-width:900px){.frame{transform:scale(.38)}.stage{height:500px}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Finnish RoadWeather</h1>
+  <p class="lead">Road surface conditions, ice risk and Finnish weather, for cars with
+    Google built-in.</p>
+  <p class="soon">Coming soon</p>
+
+  <h2>Design preview</h2>
+  <p class="note">A mockup of an unreleased app, drawn at half size — the real screen is
+    800 × 1280. It shows <strong>live data</strong> from the same backend the app uses, and
+    is deliberately limited to what Android's car templates can actually render: rows and
+    grid tiles, capped at about six, no custom layout.</p>
+
+  <div class="controls">
+    <button id="t-road" class="on">Road</button>
+    <button id="t-weather">Weather</button>
+    <button id="t-about">About</button>
+    <select id="place"></select>
+    <span id="status" style="color:var(--faint);font-size:13px"></span>
+  </div>
+
+  <div class="stage">
+    <div class="frame">
+      <div class="hdr"><img src="/demo/static/icon.png" alt=""><span>Road Weather</span></div>
+      <div class="tabs">
+        <div class="tab sel" id="tab-road"><span class="gl"></span>Road</div>
+        <div class="tab" id="tab-weather"><span class="gl"></span>Weather</div>
+        <div class="tab" id="tab-about"><span class="gl"></span>About</div>
+      </div>
+      <div id="screen"><p class="msg">Loading…</p></div>
+    </div>
+  </div>
+
+  <footer>
+    <p><a href="/privacy">Privacy</a><a href="/terms">Terms</a></p>
+    <p>Data: Finnish Meteorological Institute (CC BY 4.0) and Fintraffic / digitraffic.fi
+      (CC 4.0 BY). Independent app, not affiliated with or endorsed by either organisation.
+      Road conditions shown here are for design preview only — not for driving decisions.</p>
+  </footer>
+</main>
+<script src="/web/common.js"></script>
+<script src="/demo/static/preview.js"></script>
+</body>
+</html>
