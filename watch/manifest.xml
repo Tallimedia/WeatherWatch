@@ -1,7 +1,23 @@
 <?xml version="1.0"?>
+<!--
+    This id belongs to the PUBLIC store entry (1.0.0, 2026-09-21).
+
+    The beta entry used a7c41e2b9d364f158e0b73a2c65d9f04 (0.1.0–0.1.8). Garmin
+    will not promote a beta to a public listing: "If you want to publish your
+    app after testing, you must upload it again using a different application
+    ID in the app's manifest.xml." So a public release means a new id here and
+    a separate store entry — new URL, no carried-over installs or reviews.
+
+    Generate a fresh one with:  uuidgen | tr -d - | tr 'A-Z' 'a-z'
+
+    Watch out: Application.Storage and app settings are keyed per app id, so
+    the public build starts with the shipped defaults — Helsinki and Harmaja —
+    and a beta tester has to set their place and station again. There is no
+    pairing to redo, since the app has no account.
+-->
 <iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
     <iq:application
-        id="a7c41e2b9d364f158e0b73a2c65d9f04"
+        id="0f3b51991291466bb7f5a57a0b689537"
         type="widget"
         name="@Strings.AppName"
         entry="FIWeatherWatchApp"
