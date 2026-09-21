@@ -636,7 +636,11 @@ if config.ENABLE_PUBLIC or config.ENABLE_CHARTS:
     @app.get("/v1/app")
     async def app_meta() -> dict:
         """What the landing page needs to know about the app itself."""
-        return {"store_url": config.STORE_URL, "version": app.version}
+        return {
+            "store_url": config.STORE_URL,
+            "weather_url": config.WEATHER_URL,
+            "version": app.version,
+        }
 
     @app.get("/v1/stations")
     async def stations_list() -> dict:

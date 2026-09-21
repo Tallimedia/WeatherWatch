@@ -51,5 +51,10 @@ ENABLE_PUBLIC = _flag("ENABLE_PUBLIC", False)
 # "coming to the store" rather than offering a link that goes nowhere.
 STORE_URL = os.getenv("STORE_URL", "")
 
+# Where the live weather data lives. It is served from this same container but
+# only under its own hostname, so the app page links out to it rather than
+# carrying a second copy.
+WEATHER_URL = os.getenv("WEATHER_URL", "https://weather.tallimedia.com")
+
 DEFAULT_PLACE = os.getenv("DEFAULT_PLACE", "Helsinki")
 DEFAULT_SEA_FMISID = int(os.getenv("DEFAULT_SEA_FMISID", "100996"))  # Helsinki Harmaja
