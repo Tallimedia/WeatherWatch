@@ -106,6 +106,39 @@ def test_nearest_station_picks_the_closest_by_great_circle():
     assert nearest_station(stations, 60.17, 24.94)["name"] == "near"
 
 
+def test_digitraffic_test_rigs_are_not_offered_as_the_nearest_sensor():
+    """Ten of Digitraffic's 528 stations are their own test rigs.
+
+    Fintraffic flag them nowhere in the metadata — `collectionStatus` reads
+    `GATHERING` exactly like a real station — so the name is the only signal.
+    They sit in Lapland, where real coverage is thinnest, and at Utsjoki the
+    test rig is genuinely the closest thing there is.
+    """
+    stations = {"features": [
+        {"geometry": {"coordinates": [27.03, 69.90]},
+         "properties": {"id": 1, "name": "TEST_st970_Utsjoki_Nuvvus_Lumi",
+                        "collectionStatus": "GATHERING"}},
+        {"geometry": {"coordinates": [28.00, 70.08]},
+         "properties": {"id": 2, "name": "st970_Utsjoki_Nuorgam",
+                        "collectionStatus": "GATHERING"}},
+    ]}
+    assert nearest_station(stations, 69.908, 27.029)["name"] == "st970_Utsjoki_Nuorgam"
+
+
+def test_a_withdrawn_station_is_not_the_nearest_sensor():
+    """Coordinates outlive service. A station Fintraffic have pulled is not a
+    reading, however close it still plots."""
+    stations = {"features": [
+        {"geometry": {"coordinates": [24.94, 60.17]},
+         "properties": {"id": 1, "name": "near_but_gone",
+                        "collectionStatus": "REMOVED_TEMPORARILY"}},
+        {"geometry": {"coordinates": [25.50, 60.20]},
+         "properties": {"id": 2, "name": "further_but_live",
+                        "collectionStatus": "GATHERING"}},
+    ]}
+    assert nearest_station(stations, 60.17, 24.94)["name"] == "further_but_live"
+
+
 def test_nearest_section_measures_to_the_line_not_its_first_point():
     """Sections are LineStrings. Ranking on the first vertex alone picks the
     wrong road whenever a long section starts far away and passes close by."""
@@ -181,3 +214,25 @@ def test_redaction_keeps_the_place_name_for_debugging():
     )
     _RedactCoordinates().filter(record)
     assert record.args[2] == "/v1/observations?place=Espoo"
+
+
+def test_fmi_road_rows_drop_the_same_test_rigs():
+    """FMI's `producer=road` mirrors Fintraffic's station list, test rigs
+    included — and the two sources are selected independently, so filtering
+    only Digitraffic left the two halves of one reading naming different
+    places: `station` said Nuorgam, `surface.station` said TEST_..._Nuvvus.
+    """
+    rows = [
+        {"epochtime": 100, "distance": 33.5, "stationname": "TEST_st970_Utsjoki_Nuvvus_Lumi",
+         "roadtemperature": -1.0},
+        {"epochtime": 100, "distance": 40.1, "stationname": "st970_Utsjoki_Nuorgam",
+         "roadtemperature": -2.0},
+    ]
+    out = _latest_road(rows)
+    assert out["station"] == "st970_Utsjoki_Nuorgam"
+    assert out["road_temp_c"] == -2.0
+
+
+def test_only_test_rigs_nearby_is_empty_not_a_test_reading():
+    assert _latest_road([{"epochtime": 1, "distance": 2.0,
+                          "stationname": "TEST_TSA_1", "roadtemperature": 5.0}]) == {}

@@ -207,12 +207,34 @@ async def dt_section_forecasts(bbox: dict[str, float]) -> dict:
 # Shaping
 # --------------------------------------------------------------------------
 
+#: Digitraffic's own test rigs. Ten of 528, and Fintraffic flag them nowhere
+#: in the metadata — ``collectionStatus`` reads ``GATHERING`` exactly like a
+#: real station, so the name prefix is the only signal there is. They cluster
+#: in Lapland (Utsjoki, Inari, Savukoski, Muonio, Kuhmo, Puolanka), which is
+#: precisely where real coverage is thinnest and a wrong pick is most likely:
+#: at Utsjoki the nearest "sensor" was ``TEST_st970_Utsjoki_Nuvvus_Lumi``.
+_TEST_STATION_PREFIX = "TEST"
+
+
+def _usable_station(props: dict) -> bool:
+    """Whether a station may be offered to a driver as *the* nearby reading."""
+    name = (props.get("name") or "").upper()
+    if name.startswith(_TEST_STATION_PREFIX):
+        return False
+    # A station Fintraffic have pulled out of service is not "the nearest
+    # sensor" in any useful sense, whatever its coordinates still say.
+    return props.get("collectionStatus") != "REMOVED_TEMPORARILY"
+
+
 def nearest_station(stations: dict, lat: float, lon: float) -> dict | None:
-    """The closest road weather station, with its distance."""
+    """The closest usable road weather station, with its distance."""
     best: dict | None = None
     for feature in stations.get("features", []):
         coords = (feature.get("geometry") or {}).get("coordinates") or []
         if len(coords) < 2:
+            continue
+        props_check = feature.get("properties") or {}
+        if not _usable_station(props_check):
             continue
         slon, slat = float(coords[0]), float(coords[1])
         km = haversine_km(lat, lon, slat, slon)

@@ -73,7 +73,7 @@ const RISK = {
 /* The station ids are machine names. A driver reads the road number. */
 const prettyStation = (raw) =>
   String(raw ?? "").replace(/_/g, " ").replace(/^([a-z]{1,2})(\d+)/, (m, p, n) =>
-    p.toUpperCase() + p.slice(1) + " " + n);
+    p[0].toUpperCase() + p.slice(1) + " " + n);
 
 function row(title, lines, iconHtml, cls = "") {
   const body = [`<div class="t ${cls}">${title}</div>`]
@@ -101,7 +101,7 @@ function roadScreen() {
   const margin = st.dew_point_margin_c != null ? st.dew_point_margin_c
     : (s.road_temp_c != null && s.dew_point_c != null ? s.road_temp_c - s.dew_point_c : null);
 
-  html += row(t1(s.road_temp_c, " °C"),
+  html += row(s.road_temp_c != null ? t1(s.road_temp_c, " °C") : "No surface reading",
     [`<span class="${riskCls}">${esc(riskText)}</span>`,
      [st.condition ? `Surface ${esc(st.condition.toLowerCase())}` : null,
       `air ${t1(s.air_temp_c, " °C")}`].filter(Boolean).join(" · ")], null);
@@ -109,9 +109,7 @@ function roadScreen() {
   html += row(st.freezing_point_c != null
       ? `Freezes at ${t1(st.freezing_point_c, " °C")}` : "Freezing point unknown",
     [st.salt_g_m2 != null ? `Salt on the surface now: ${t1(st.salt_g_m2)} g/m²` : null,
-     margin != null
-       ? `${t1(margin, " °C")} above the dew point — frost forms at 0`
-       : "Dew point margin unavailable"], null);
+     margin != null ? dewLine(margin) : "Dew point margin unavailable"], null);
 
   html += row(esc(prettyStation(st.name || s.station) || "No road sensor nearby"),
     [["Nearest road sensor",
@@ -123,7 +121,7 @@ function roadScreen() {
   if (out.length) {
     html += sec(`Next hours on ${r.section.description || "this road"}`);
     out.forEach((o) => {
-      const when = o.at === "0h" ? "Now" : `In ${o.at.replace("h", " h")}`;
+      const when = !o.at ? "Later" : o.at === "0h" ? "Now" : `In ${o.at.replace("h", " h")}`;
       const state = human(o.surface || o.road_condition);
       const overall = o.road_condition && o.road_condition !== "NORMAL_CONDITION"
         ? ` · driving ${human(o.road_condition).toLowerCase()}` : "";
@@ -164,20 +162,26 @@ function weatherScreen() {
         <div class="v big">${t1(o.temperature, " °C")}</div>
         <div class="p dim">${esc(cond)}${rain ? " · " + rain : ""}</div></div>
       <div class="cell">${roadTile()}
-        <div class="v big">${t1(s.road_temp_c, " °C")}</div>
-        <div class="p ${riskCls || "dim"}">${roadState} · ${esc(riskText.toLowerCase())}</div></div>
+        <div class="v big">${s.road_temp_c != null ? t1(s.road_temp_c, " °C") : "Road"}</div>
+        <div class="p ${s.road_temp_c != null ? (riskCls || "dim") : "dim"}">${
+          s.road_temp_c != null ? `${roadState} · ${esc(riskText.toLowerCase())}`
+                                : "No sensor within reach"}</div></div>
     </div>`;
   } else {
     html += row(t1(o.temperature, " °C"),
-      [[esc(cond), rain].filter(Boolean).join(" · "),
-       `Wind ${esc(o.windcompass8 || "")} ${t1(o.windspeedms)} m/s · gust ${t1(o.windgust)}`],
+      [[esc(cond), rain].filter(Boolean).join(" · "), windLine(o)],
       sym ? icon(sym.c, sym.night, 62) : "");
-    html += row(`Road ${t1(s.road_temp_c, " °C")}`,
-      [`${roadState} · <span class="${riskCls}">${esc(riskText.toLowerCase())}</span>`,
-       [prettyStation(st.name || s.station),
-        (st.distance_km ?? s.distance_km) != null
-          ? `${(st.distance_km ?? s.distance_km).toFixed(1)} km` : null]
-         .filter(Boolean).join(" · ") || "No road sensor nearby"],
+    const where = [prettyStation(st.name || s.station),
+      (st.distance_km ?? s.distance_km) != null
+        ? `${(st.distance_km ?? s.distance_km).toFixed(1)} km` : null]
+      .filter(Boolean).join(" · ");
+    html += row(
+      s.road_temp_c != null ? `Road ${t1(s.road_temp_c, " °C")}` : "Road surface unknown",
+      [s.road_temp_c != null
+        ? `${roadState} · <span class="${riskCls}">${esc(riskText.toLowerCase())}</span>`
+        : `<span class="dimc">No road sensor within reach</span>`,
+       // Naming a sensor that reported nothing only invites the question.
+       (s.road_temp_c != null || st.condition) ? (where || null) : null],
       roadTile(56));
   }
 
@@ -199,6 +203,24 @@ function weatherScreen() {
     });
   }
   return html;
+}
+
+/* The margin goes negative, and Utsjoki was already at -0.1 in September.
+   "-0.1 °C above the dew point" is the wrong way round, and this is the one
+   number on the tab that says whether frost is forming right now. */
+function dewLine(margin) {
+  if (margin < 0) {
+    return `<span class="cautionc">${t1(-margin, " °C")} below the dew point` +
+           ` — moisture condensing on the surface</span>`;
+  }
+  return `${t1(margin, " °C")} above the dew point — frost forms at 0`;
+}
+
+/* Wind is optional in an FMI observation — Utsjoki reports none. */
+function windLine(o) {
+  if (o.windspeedms == null) return `<span class="dimc">Wind not reported here</span>`;
+  const gust = o.windgust == null ? "" : ` · gust ${t1(o.windgust)}`;
+  return `Wind ${esc(o.windcompass8 || "")} ${t1(o.windspeedms)} m/s${gust}`;
 }
 
 /* A road-surface glyph, so the road reading is not mistaken for an air one. */

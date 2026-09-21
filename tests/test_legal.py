@@ -47,3 +47,41 @@ def test_car_documents_carry_both_required_attributions(name):
     _, body = legal.document(name)
     assert "Finnish Meteorological Institute" in body
     assert "digitraffic.fi" in body
+
+
+# --------------------------------------------------------------------------
+# Asset cache busting
+# --------------------------------------------------------------------------
+
+def test_asset_fingerprint_covers_nested_static_files():
+    """A one-level glob missed the car app's design preview.
+
+    `app/roadweather/static/preview.js` sits two directories down, so
+    `glob("*/*.js")` never saw it: its `?v=` stayed fixed while the bytes
+    changed, and Cloudflare's four-hour cache kept serving the old file to the
+    one page that exists to be re-reviewed after every change.
+    """
+    import hashlib
+    from pathlib import Path
+
+    here = Path(__file__).resolve().parent.parent / "app"
+    preview = here / "roadweather" / "static" / "preview.js"
+    assert preview.exists(), "the demo script moved; update this test"
+
+    covered = sorted(here.rglob("*.js")) + sorted(here.rglob("*.css"))
+    assert preview in covered
+
+    def fingerprint(paths):
+        digest = hashlib.sha256()
+        for path in paths:
+            digest.update(path.read_bytes())
+        return digest.hexdigest()[:10]
+
+    # Changing only the nested file must move the fingerprint.
+    original = preview.read_bytes()
+    before = fingerprint(covered)
+    try:
+        preview.write_bytes(original + b"\n// cache-bust probe\n")
+        assert fingerprint(covered) != before
+    finally:
+        preview.write_bytes(original)

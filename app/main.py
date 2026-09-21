@@ -232,6 +232,14 @@ def _latest_road(rows: list[dict]) -> dict:
     """
     if not rows:
         return {}
+    # FMI's `producer=road` mirrors Fintraffic's station list, test rigs and
+    # all, and at Utsjoki the test rig is genuinely the closest one. Same
+    # filter as `nearest_station`, applied here because the two sources are
+    # selected independently and would otherwise disagree about the place.
+    rows = [r for r in rows
+            if not str(r.get("stationname") or "").upper().startswith("TEST")] or []
+    if not rows:
+        return {}
     distances = [r.get("distance") for r in rows if r.get("distance") is not None]
     if distances:
         nearest = min(distances)
@@ -784,9 +792,15 @@ if config.ENABLE_PUBLIC or config.ENABLE_CHARTS:
         the new HTML — which is exactly how a language selector can appear but
         do nothing. Versioned URLs make a long cache lifetime correct rather
         than dangerous: the URL changes whenever the bytes do.
+
+        Recursive on purpose. A one-level glob missed
+        ``roadweather/static/preview.js`` — the car app's design preview, the
+        one page whose whole job is to be re-read after every change — so its
+        version never moved and reviewers kept the stale copy for four hours.
+        Any asset served from anywhere under ``app/`` has to count.
         """
         digest = hashlib.sha256()
-        for path in sorted(_HERE.glob("*/*.js")) + sorted(_HERE.glob("*/*.css")):
+        for path in sorted(_HERE.rglob("*.js")) + sorted(_HERE.rglob("*.css")):
             digest.update(path.read_bytes())
         return digest.hexdigest()[:10]
 
