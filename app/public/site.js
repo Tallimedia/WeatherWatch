@@ -23,7 +23,7 @@ STR = {
     footData:"Säädata:", footLic:"avointa dataa, lisenssi",
     footNote:"FIWeatherWatch on itsenäinen projekti, ei Ilmatieteen laitoksen eikä Garminin tukema. Ajat Suomen aikaa. Kehitysvaiheessa — jaettu palautetta varten.",
     unavailable:"Sää ei ole hetkellisesti saatavilla", noPlace:"Paikkakunnalle ei löytynyt havaintoasemaa", tryNearby:"Kokeile lähikaupunkia.",
-    noBuoy:"ei havaitsevaa poijua", modelled:"WAM-malli — ei mitattu", away:"km päässä",
+    noBuoy:"ei havaitsevaa poijua", noBuoyArea:"Ei poijua alueella", modelled:"WAM-malli — ei mitattu", away:"km päässä",
     coast:"Rannikko", lakes:"Sisävedet", trend:"Tuuli, 12 viime tuntia", mean:"Keskituuli", noTrend:"Ei tuulihistoriaa saatavilla", rain:"Sade", rainNone:"ei sadetta", justNow:"juuri nyt", minAgo:"min sitten", hAgo:"h sitten", retrieved:"Haettu", loading:"Ladataan…",
   },
   sv: {
@@ -48,7 +48,7 @@ STR = {
     footData:"Väderdata:", footLic:"öppna data, licens",
     footNote:"FIWeatherWatch är ett fristående projekt, utan koppling till Meteorologiska institutet eller Garmin. Tider i finsk lokaltid. Under utveckling — delad för återkoppling.",
     unavailable:"Vädret är tillfälligt otillgängligt", noPlace:"Ingen väderstation hittades för", tryNearby:"Prova en närliggande ort.",
-    noBuoy:"ingen aktiv boj", modelled:"WAM-modell — inte uppmätt", away:"km bort",
+    noBuoy:"ingen aktiv boj", noBuoyArea:"Ingen boj i området", modelled:"WAM-modell — inte uppmätt", away:"km bort",
     coast:"Kusten", lakes:"Insjöar", trend:"Vind, senaste 12 timmarna", mean:"Medelvind", noTrend:"Ingen vindhistorik tillgänglig", rain:"Nederbörd", rainNone:"inget regn", justNow:"just nu", minAgo:"min sedan", hAgo:"h sedan", retrieved:"Hämtad", loading:"Laddar…",
   },
   en: {
@@ -73,7 +73,7 @@ STR = {
     footData:"Weather data:", footLic:"open data, licensed",
     footNote:"FIWeatherWatch is an independent project, not affiliated with or endorsed by the Finnish Meteorological Institute or Garmin. Times in Finnish local time. In development — shared for feedback.",
     unavailable:"Weather is briefly unavailable", noPlace:"No weather station found for", tryNearby:"Try a nearby town.",
-    noBuoy:"no buoy reporting", modelled:"WAM model — not measured", away:"km away",
+    noBuoy:"no buoy reporting", noBuoyArea:"No buoy in this area", modelled:"WAM model — not measured", away:"km away",
     coast:"Coast", lakes:"Inland lakes", trend:"Wind, last 12 hours", mean:"Mean", noTrend:"No wind history available", rain:"Rain", rainNone:"no rain", justNow:"just now", minAgo:"min ago", hAgo:"h ago", retrieved:"Retrieved", loading:"Loading…",
   },
 };
@@ -175,8 +175,11 @@ async function loadMarine(fmisid, buoy) {
     const s = m.station, w = m.waves;
     // `mode` says whether waves are measured or modelled; never present a model
     // value as if a buoy had reported it (RESEARCH.md §16).
+    // Two different absences: no buoy serves this water at all (inland, and
+    // permanent), or the buoys are lifted out for the winter. Same dash, and
+    // the caption is the only thing that tells them apart.
     const wavesBlock = !w ? `<div><span>${T("waves")}</span><b>—</b>
-        <span class="at">${T("noBuoy")}</span></div>`
+        <span class="at">${m.mode === "none" ? T("noBuoyArea") : T("noBuoy")}</span></div>`
       : `<div><span>${T("waveH")}</span><b>${fmt(w.wave_height_m, 1)} m</b>
            <span class="at">${w.measured ? w.name : T("modelled")}</span></div>
          <div><span>${T("period")}</span><b>${fmt(w.wave_period_s, 1)} s

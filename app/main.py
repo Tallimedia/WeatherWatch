@@ -429,7 +429,12 @@ async def marine(
             }
             mode = "model"
         else:
-            mode = "model"
+            # Neither a buoy nor a model value. Inland that is permanent — WAM
+            # covers the Baltic, so there is nothing to have — and it is a
+            # different statement from a buoy being out of the water for the
+            # winter. Saying "model" here claimed a source that produced
+            # nothing.
+            mode = "none"
 
     return {
         "mode": mode,
