@@ -56,5 +56,8 @@ STORE_URL = os.getenv("STORE_URL", "")
 # carrying a second copy.
 WEATHER_URL = os.getenv("WEATHER_URL", "https://weather.tallimedia.com")
 
+# The app site, for the weather page to link back to.
+APP_URL = os.getenv("APP_URL", "https://weatherapp.tallimedia.com")
+
 DEFAULT_PLACE = os.getenv("DEFAULT_PLACE", "Helsinki")
 DEFAULT_SEA_FMISID = int(os.getenv("DEFAULT_SEA_FMISID", "100996"))  # Helsinki Harmaja

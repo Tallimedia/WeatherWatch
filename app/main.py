@@ -639,6 +639,7 @@ if config.ENABLE_PUBLIC or config.ENABLE_CHARTS:
         return {
             "store_url": config.STORE_URL,
             "weather_url": config.WEATHER_URL,
+            "app_url": config.APP_URL,
             "version": app.version,
         }
 
