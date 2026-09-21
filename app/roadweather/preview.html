@@ -68,6 +68,18 @@ button.on{border-color:var(--accent);color:var(--accent)}
 .mcard .mtitle{font-size:28px;margin:18px 0 14px}
 .mcard .mtext{font-size:19px;color:var(--car-dim);line-height:1.45;margin:0 0 14px}
 .msg{padding:40px 26px;color:var(--car-dim);font-size:22px}
+.hdr .strip{margin-left:auto;font-size:30px;color:var(--car-dim);
+  border:1px solid var(--car-line);border-radius:999px;width:52px;height:52px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer}
+.hdr .strip.on{color:var(--car-fg);border-color:var(--car-fg)}
+/* --- the radar candidate, deliberately outside the car frame --- */
+#radar{margin:0 0 8px}
+.radarwrap{position:relative;border:1px solid var(--line);border-radius:10px;
+  overflow:hidden;background:#0b1020}
+.radarwrap img{position:absolute;inset:0;display:block}
+.crosshair{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;
+  border:2px solid #ff5a5a;border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,.45)}
+#radar .leg{display:block;margin:12px 0 0;border-radius:6px;background:#fff}
 /* --- the data catalogue, below the frame: a reference table, not a mockup --- */
 #fields{margin-top:52px}
 #fields h3{font-size:17px;margin:32px 0 6px;font-weight:600}
@@ -112,7 +124,8 @@ footer a{color:var(--accent);margin-right:14px}
   <div class="controls">
     <button id="t-road">Road</button>
     <button id="t-weather" class="on">Weather</button>
-    <button id="t-about">About</button>
+    <button id="t-warnings">Warnings</button>
+    <button id="t-about">ⓘ About</button>
     <select id="place"></select>
     <span id="status" style="color:var(--faint);font-size:13px"></span>
   </div>
@@ -126,15 +139,33 @@ footer a{color:var(--accent);margin-right:14px}
 
   <div class="stage">
     <div class="frame">
-      <div class="hdr"><img src="/demo/static/icon.png" alt=""><span>Road Weather</span></div>
+      <div class="hdr"><img src="/demo/static/icon.png" alt=""><span>Road Weather</span>
+        <!-- ActionStrip on the tab's own ListTemplate: the tab header itself is
+             reserved for Action.APP_ICON and cannot hold this (SPEC §1). -->
+        <div class="strip" id="info" title="About">ⓘ</div></div>
       <div class="tabs">
         <div class="tab" id="tab-road"><span class="gl"></span>Road</div>
         <div class="tab sel" id="tab-weather"><span class="gl"></span>Weather</div>
-        <div class="tab" id="tab-about"><span class="gl"></span>About</div>
+        <div class="tab" id="tab-warnings"><span class="gl"></span>Warnings</div>
       </div>
       <div id="screen"><p class="msg">Loading…</p></div>
     </div>
   </div>
+
+  <h2>Radar — a candidate, not a decision</h2>
+  <p class="note">Outside the car frame on purpose. A bitmap <em>is</em> a legal
+    <code>CarIcon</code>, so this is buildable — but quality rule <strong>IU-1</strong>
+    gates images on a reviewer's judgement, and how large an image slot renders on an
+    800 × 1280 portrait screen is still unmeasured. Drawing it inside the mockup would be
+    claiming a decision nobody has made. Layers are stacked here as two images; the app
+    would composite them server-side and send the car one.</p>
+  <div class="controls">
+    <span class="lbl">Layer:</span>
+    <button id="r-dbz" class="on">Reflectivity</button>
+    <button id="r-rr">Rain rate</button>
+    <button id="r-hclass">Precipitation type</button>
+  </div>
+  <div id="radar"></div>
 
   <h2>What the data actually contains</h2>
   <p class="note">Every field the three sources hold for the selected place, live, so the

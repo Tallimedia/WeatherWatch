@@ -18,10 +18,12 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import Any, AsyncIterator
 
+import xml.etree.ElementTree as ET
+
 import httpx
 from fastapi import FastAPI, HTTPException, Query, Request
 
-from . import config, legal, road, stations
+from . import config, legal, road, stations, warnings as warn
 from .cache import cache
 from .fmi import (
     FMIError,
@@ -492,6 +494,58 @@ async def _buoy_reading(
         except ValueError:
             out["observed_epoch"] = None
     return out
+
+
+@app.get("/v1/warnings")
+async def warnings_and_notices(
+    lat: float, lon: float,
+    lang: str = Query("en", pattern="^(fi|sv|en)$"),
+    radius_km: float = Query(warn.DEFAULT_RADIUS_KM, ge=1, le=100),
+) -> dict:
+    """Severe-weather warnings and road notices for one point.
+
+    The car client's third tab. Two sources because neither carries the tab
+    alone (FIRoadWeather/RESEARCH.md §5.6): FMI's CAP feed is authoritative but
+    frequently has nothing on land, while Fintraffic's road works are never
+    empty and are what a driver can actually act on.
+
+    Alerts are selected by **point in polygon**, not by event name. That keeps
+    marine warnings out of a road app without a keyword list, and it is what
+    quality rule WE-1 asks for — content relevant to the driver's location.
+
+    Either source may be absent without failing the request, the same way
+    `/v1/road` degrades.
+
+    **Coordinates are never logged and never persisted.**
+    """
+    if not (59.0 <= lat <= 70.5 and 19.0 <= lon <= 32.0):
+        raise HTTPException(status_code=404, detail="outside Finland")
+
+    alerts: list[dict] = []
+    try:
+        xml = await cache.aget_or_set(f"cap:{lang}", config.TTL_CAP,
+                                      lambda: warn.fetch_cap(lang))
+        alerts = warn.alerts_at(warn.parse_cap(xml), lat, lon)
+    except (road.RoadDataError, httpx.HTTPError, ET.ParseError):
+        alerts = []
+
+    notices: list[dict] = []
+    try:
+        messages = await cache.aget_or_set(
+            "dt:traffic", config.TTL_TRAFFIC_MESSAGES, warn.dt_traffic_messages
+        )
+        notices = warn.notices_near(messages, lat, lon, radius_km)
+    except (road.RoadDataError, httpx.HTTPError):
+        notices = []
+
+    return {
+        "warnings": alerts,
+        "road_notices": notices,
+        "radius_km": radius_km,
+        "retrieved": int(time.time()),
+        "attribution": "Finnish Meteorological Institute, CC BY 4.0",
+        "attribution_road": road.DIGITRAFFIC_ATTRIBUTION,
+    }
 
 
 @app.get("/v1/road")

@@ -236,3 +236,82 @@ def test_fmi_road_rows_drop_the_same_test_rigs():
 def test_only_test_rigs_nearby_is_empty_not_a_test_reading():
     assert _latest_road([{"epochtime": 1, "distance": 2.0,
                           "stationname": "TEST_TSA_1", "roadtemperature": 5.0}]) == {}
+
+
+# --------------------------------------------------------------------------
+# Warnings and road notices
+# --------------------------------------------------------------------------
+
+def test_a_road_work_is_measured_to_its_nearest_point_not_its_first():
+    """Road works are MultiLineStrings — a stretch of road, not a dot.
+
+    Ranking on the first coordinate would put a long roadwork that starts
+    40 km away but passes the car below one that never comes close.
+    """
+    from app.warnings import shape_notice
+
+    feature = {
+        "geometry": {"type": "MultiLineString",
+                     "coordinates": [[[25.90, 60.90], [24.9410, 60.1680]]]},
+        "properties": {"situationType": "ROAD_WORK", "announcements": [{
+            "title": "Tie 51. Tietyö.",
+            "timeAndDuration": {"startTime": "x", "endTime": "y"},
+            "locationDetails": {"roadAddressLocation": {"primaryPoint": {
+                "municipality": "Helsinki", "roadName": "Länsiväylä",
+                "roadAddress": {"road": 51}}}},
+            "features": [{"name": "Nopeusrajoitus"}],
+            "roadWorkPhases": [{"severity": "HIGH", "restrictions": [
+                {"type": "SPEED_LIMIT", "restriction": {"quantity": 50, "unit": "km/h"}}]}],
+        }]},
+    }
+    out = shape_notice(feature, 60.167, 24.940)
+    assert out["distance_km"] < 1.0
+    assert out["road"] == 51
+    assert out["restrictions"][0] == {"type": "SPEED_LIMIT", "quantity": 50, "unit": "km/h"}
+
+
+def test_notices_are_closest_first_and_bounded_by_radius():
+    from app.warnings import notices_near
+
+    def work(lon, lat, title):
+        return {"geometry": {"type": "Point", "coordinates": [lon, lat]},
+                "properties": {"situationType": "ROAD_WORK",
+                               "announcements": [{"title": title}]}}
+
+    msgs = {"features": [work(25.90, 60.90, "far"), work(24.945, 60.170, "near")]}
+    out = notices_near(msgs, 60.167, 24.940, radius_km=25)
+    assert [n["title"] for n in out] == ["near"], "the 90 km one must be dropped, not just ranked"
+
+
+def test_a_sea_warning_does_not_reach_a_driver_on_land():
+    """The whole reason alerts are matched by polygon rather than event name.
+
+    This app is land and road only, and the CAP feed is mostly marine — six of
+    six entries on 2026-09-22. Matching on names would need a keyword list that
+    goes stale; the geometry already knows.
+    """
+    from app.warnings import alerts_at
+
+    gulf = [(59.8, 24.0), (59.8, 26.0), (60.0, 26.0), (60.0, 24.0)]
+    alerts = [{"event": "Yellow wind warning for sea area", "_rings": [gulf]}]
+    assert alerts_at(alerts, 60.17, 24.94) == [], "Helsinki is not in the Gulf polygon"
+    assert len(alerts_at(alerts, 59.9, 25.0)) == 1, "a point inside it must still match"
+
+
+def test_cap_polygons_are_latitude_first():
+    """CAP orders coordinates lat,lon — the opposite of GeoJSON. Reading them
+    as lon,lat puts every Finnish warning in Somalia."""
+    from app.warnings import parse_cap
+
+    xml = """<feed xmlns="http://www.w3.org/2005/Atom">
+      <entry><content><alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+        <info><event>Test</event><severity>Moderate</severity>
+          <parameter><valueName>color</valueName><value>yellow</value></parameter>
+          <area><areaDesc>Uusimaa</areaDesc>
+            <polygon>60.0,24.0 60.0,25.0 61.0,25.0 61.0,24.0 60.0,24.0</polygon>
+          </area>
+        </info></alert></content></entry></feed>"""
+    alert = parse_cap(xml)[0]
+    assert alert["colour"] == "yellow"
+    lats = [p[0] for p in alert["_rings"][0]]
+    assert all(59 < v < 71 for v in lats), f"latitudes look like longitudes: {lats}"

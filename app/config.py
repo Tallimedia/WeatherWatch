@@ -57,6 +57,14 @@ TTL_ROAD_OBS = int(os.getenv("TTL_ROAD_OBS", "300"))
 TTL_ROAD_FORECAST = int(os.getenv("TTL_ROAD_FORECAST", "900"))
 TTL_ROAD_GEOMETRY = int(os.getenv("TTL_ROAD_GEOMETRY", "21600"))
 
+# Warnings. FMI reissue CAP alerts on a slow cadence and each one carries its
+# own onset/expires, so a few minutes of staleness changes nothing. The
+# Fintraffic message feed is 1.2 MB with no bbox parameter, so it is fetched
+# once for the whole country and filtered per request — the TTL is what keeps
+# that affordable inside the 60/min limit.
+TTL_CAP = int(os.getenv("TTL_CAP", "300"))
+TTL_TRAFFIC_MESSAGES = int(os.getenv("TTL_TRAFFIC_MESSAGES", "300"))
+
 # The prototype charts site is the internal research tool — date scrubbing, raw
 # JSON, questions like "does this parameter earn its place" — and stays LAN-only
 # (RESEARCH.md §19). Default off.

@@ -33,8 +33,11 @@ const PLACES = [
 ];
 
 let tab = "weather";     // Nico 2026-09-22: the car should open on Weather.
+let showAbout = false;   // the ⓘ action, not a tab (SPEC §1)
+let radarLayer = "dbz";
+let here = [60.1699, 24.9384];
 let nowStyle = "rows";   // "rows" (stable) | "tiles" (experimental API)
-let data = { road: null, obs: null, fc: null, raw: null, error: null };
+let data = { road: null, obs: null, fc: null, raw: null, warn: null, error: null };
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
@@ -229,6 +232,91 @@ const roadTile = (px = 72) => `<svg class="rt" width="${px}" height="${px}" view
   <path d="M5 21 9 3M19 21 15 3" /><path d="M12 5v3M12 11v3M12 17v3" stroke-dasharray="0" />
 </svg>`;
 
+/* -------------------------------------------------------------- Warnings */
+
+/* FMI land warnings first, then road works and notices by distance. The order
+   is severity then proximity, and the restriction is the headline — "one
+   carriageway closed" is the fact, "roadwork" is just the category. */
+const RESTRICTION_EN = {
+  SPEED_LIMIT: "Speed limit", SPEED_LIMIT_LENGTH: "for",
+  SINGLE_LANE_CLOSED: "One lane closed", MULTIPLE_LANES_CLOSED: "Several lanes closed",
+  SINGLE_CARRIAGEWAY_CLOSED: "One carriageway closed", ROAD_CLOSED: "Road closed",
+  SINGLE_ALTERNATE_LINE_TRAFFIC: "Alternating one-way", NARROW_LANES: "Narrowed lanes",
+  TRAFFIC_LIGHTS: "Temporary traffic lights", DETOUR: "Detour in place",
+  INTERMITTENT_SHORT_TERM_STOPS: "Short stops", INTERMITTENT_STOPS_AND_CLOSURE_EFFECTIVE: "Stops and closures",
+  SLOW_MOVING_MAINTENANCE_VEHICLE: "Slow maintenance vehicle",
+  VEHICLE_WIDTH_LIMIT: "Max width", VEHICLE_HEIGHT_LIMIT: "Max height",
+  OPEN_FIRE_HEATER_IN_USE: "Open-flame heater",
+};
+
+function restrictionLine(n) {
+  const parts = [];
+  for (const r of n.restrictions || []) {
+    if (r.type === "SPEED_LIMIT_LENGTH") continue;   // a qualifier, not a fact
+    const label = RESTRICTION_EN[r.type] || human(r.type);
+    parts.push(r.quantity == null ? label
+      : `${label} ${Math.round(r.quantity)}${r.unit ? " " + r.unit : ""}`);
+  }
+  if (!parts.length && (n.features || []).length) parts.push(esc(n.features[0]));
+  return parts.slice(0, 2).join(" · ");
+}
+
+const SEV = { HIGHEST: "warnc", HIGH: "cautionc", LOW: "" };
+
+/* "Road work" under "one carriageway closed" says nothing. When it ends does:
+   some of these run to 2027, and a driver reads a two-year closure very
+   differently from one that clears this afternoon. */
+function until(n) {
+  const kind = n.type === "ROAD_WORK" ? "Road work" : "Notice";
+  if (!n.ends) return kind;
+  const end = new Date(n.ends);
+  if (isNaN(end)) return kind;
+  const days = (end - Date.now()) / 86400000;
+  if (days > 120) return `${kind} · long-term`;
+  const fmtDate = end.toLocaleDateString("en-GB",
+    { day: "numeric", month: "short", timeZone: "Europe/Helsinki" });
+  return days < 1
+    ? `${kind} · until ${hhmm(end.getTime() / 1000)} today`
+    : `${kind} · until ${fmtDate}`;
+}
+
+function warningsScreen() {
+  const w = data.warn;
+  if (!w) return `<p class="msg">No warnings data for this location.</p>`;
+  const alerts = w.warnings || [], notices = w.road_notices || [];
+
+  if (!alerts.length && !notices.length) {
+    // A real state, not a placeholder: Utsjoki returns zero of both.
+    return `<p class="msg">No warnings, and no road works within
+      ${Math.round(w.radius_km || 25)} km.</p>`;
+  }
+
+  let html = "";
+  if (alerts.length) {
+    html += sec("Weather warnings here");
+    alerts.slice(0, 2).forEach((a) => {
+      const cls = a.colour === "red" ? "warnc" : a.colour === "orange" ? "warnc"
+        : a.colour === "yellow" ? "cautionc" : "";
+      html += row(`<span class="${cls}">${esc(a.event || "Warning")}</span>`,
+        [esc(a.headline || ""), esc(a.impacts || a.description || "")], null);
+    });
+  }
+  if (notices.length) {
+    html += sec(`Road works and notices · within ${Math.round(w.radius_km || 25)} km`);
+    notices.slice(0, alerts.length ? 4 : 6).forEach((n) => {
+      const what = restrictionLine(n);
+      const where = [n.road != null ? `Tie ${n.road}` : null, n.road_name, n.municipality]
+        .filter(Boolean).join(" · ");
+      html += row(
+        `${n.distance_km.toFixed(1)} km&nbsp;&nbsp;&nbsp;<span class="${SEV[n.severity] || ""}">${
+          esc(where || n.title)}</span>`,
+        [what || (n.type === "ROAD_WORK" ? "Road work" : "Traffic announcement"),
+         what ? until(n) : null], null);
+    });
+  }
+  return html;
+}
+
 /* ----------------------------------------------------------------- About */
 
 /* Was four full-height rows and dominated the screen. A MessageTemplate is a
@@ -249,10 +337,12 @@ function aboutScreen() {
 /* ---------------------------------------------------------------- Render */
 
 function render() {
-  ["road", "weather", "about"].forEach((k) => {
-    $("#tab-" + k).classList.toggle("sel", k === tab);
-    $("#t-" + k).classList.toggle("on", k === tab);
+  ["road", "weather", "warnings"].forEach((k) => {
+    $("#tab-" + k).classList.toggle("sel", k === tab && !showAbout);
+    $("#t-" + k).classList.toggle("on", k === tab && !showAbout);
   });
+  $("#t-about").classList.toggle("on", showAbout);
+  $("#info").classList.toggle("on", showAbout);
   ["rows", "tiles"].forEach((k) =>
     $("#n-" + k).classList.toggle("on", k === nowStyle));
   $("#nowhint").textContent = nowStyle === "tiles"
@@ -261,33 +351,38 @@ function render() {
 
   const screen = $("#screen");
   if (data.error) { screen.innerHTML = `<p class="msg">${esc(data.error)}</p>`; return; }
-  if (!data.road && !data.obs && tab !== "about") {
+  if (!data.road && !data.obs && !showAbout) {
     screen.innerHTML = `<p class="msg">Loading…</p>`; return;
   }
-  screen.innerHTML = tab === "road" ? roadScreen()
-    : tab === "weather" ? weatherScreen() : aboutScreen();
+  screen.innerHTML = showAbout ? aboutScreen()
+    : tab === "road" ? roadScreen()
+    : tab === "weather" ? weatherScreen() : warningsScreen();
   catalogue();
+  radar();
 }
 
 async function load(lat, lon) {
-  data = { road: null, obs: null, fc: null, raw: null, error: null };
+  here = [lat, lon];
+  data = { road: null, obs: null, fc: null, raw: null, warn: null, error: null };
   $("#status").textContent = "fetching…";
   render();
   const get = (p) => fetch(p).then((r) => r.ok ? r.json() : Promise.reject(r.status));
   try {
     // Each source may be absent without the others failing — the same way the
     // app degrades, so the preview shows the real degraded states too.
-    const [road, obs, fc, raw] = await Promise.allSettled([
+    const [road, obs, fc, raw, wn] = await Promise.allSettled([
       get(`/v1/road?lat=${lat}&lon=${lon}`),
       get(`/v1/observations?lat=${lat}&lon=${lon}`),
       get(`/v1/forecast?lat=${lat}&lon=${lon}&hours=21&step=180`),
       // Not an app endpoint: the raw field catalogue under the mockup.
       get(`/demo/fields?lat=${lat}&lon=${lon}`),
+      get(`/v1/warnings?lat=${lat}&lon=${lon}`),
     ]);
     data.road = road.status === "fulfilled" ? road.value : null;
     data.obs = obs.status === "fulfilled" ? obs.value : null;
     data.fc = fc.status === "fulfilled" ? (fc.value.points || []) : [];
     data.raw = raw.status === "fulfilled" ? raw.value : null;
+    data.warn = wn.status === "fulfilled" ? wn.value : null;
     if (!data.road && !data.obs) data.error = "No data for this location.";
     $("#status").textContent = "live data · " +
       new Date().toLocaleTimeString("fi-FI", { timeZone: "Europe/Helsinki" });
@@ -307,11 +402,16 @@ function init() {
   sel.addEventListener("change", () => {
     const [, lat, lon] = PLACES[sel.value]; load(lat, lon);
   });
-  ["road", "weather", "about"].forEach((k) => {
-    const go = () => { tab = k; render(); };
+  ["road", "weather", "warnings"].forEach((k) => {
+    const go = () => { tab = k; showAbout = false; render(); };
     $("#t-" + k).addEventListener("click", go);
     $("#tab-" + k).addEventListener("click", go);
   });
+  const about = () => { showAbout = !showAbout; render(); };
+  $("#t-about").addEventListener("click", about);
+  $("#info").addEventListener("click", about);
+  ["dbz", "rr", "hclass"].forEach((k) =>
+    $("#r-" + k).addEventListener("click", () => { radarLayer = k; radar(); }));
   ["rows", "tiles"].forEach((k) =>
     $("#n-" + k).addEventListener("click", () => { nowStyle = k; tab = "weather"; render(); }));
   load(PLACES[0][1], PLACES[0][2]);
@@ -515,4 +615,98 @@ function catalogue() {
   }
 
   el.innerHTML = parts.join("");
+}
+
+/* ===================================================================== */
+/* Radar — the candidate, drawn outside the car frame on purpose.
+ *
+ * Nico 2026-09-22 asked whether the FMI sadekartta could go in the app and
+ * whether it tells snow from rain. It does not: the rain map is reflectivity,
+ * which shows snow and rain alike and labels neither. HydroClass does, and is
+ * the layer worth arguing for (RESEARCH.md §5.5).
+ *
+ * This sits below the frame rather than inside it because nothing here is
+ * agreed yet: a bitmap IS a legal CarIcon, but IU-1 gates images on a
+ * reviewer's judgement, and how large an image slot renders on an 800 x 1280
+ * portrait screen is still unmeasured. Drawing it inside the mockup would be
+ * claiming a decision nobody has made.
+ *
+ * The layers are stacked as plain <img> here. The app would composite them
+ * server-side into one PNG — the car gets one image, not two requests.
+ */
+
+const WMS = "https://openwms.fmi.fi/geoserver/wms";
+
+/* HydroClass exists per radar site only — there is no national mosaic — so
+   the nearest site is picked for the point being viewed. Centres derived from
+   each layer's own advertised bounding box. */
+const HCLASS_SITES = [
+  ["Radar:radar_fivih_ppi_hclass", 60.50, 24.80, "Vihti"],
+  ["Radar:radar_fianj_ppi_hclass", 60.85, 27.45, "Anjalankoski"],
+  ["Radar:radar_fikor_ppi_hclass", 60.10, 21.95, "Korppoo"],
+  ["Radar:radar_fikan_ppi_hclass", 61.75, 22.85, "Kankaanpää"],
+  ["Radar:radar_fipet_ppi_hclass", 62.20, 25.80, "Petäjävesi"],
+  ["Radar:radar_fikes_ppi_hclass", 61.85, 30.15, "Kesälahti"],
+  ["Radar:radar_fikuo_ppi_hclass", 62.80, 27.75, "Kuopio"],
+  ["Radar:radar_finur_ppi_hclass", 63.75, 29.85, "Nurmes"],
+  ["Radar:radar_fivim_ppi_hclass", 63.05, 24.20, "Vimpeli"],
+  ["Radar:radar_fiuta_ppi_hclass", 64.65, 26.75, "Utajärvi"],
+  ["Radar:radar_filuo_ppi_hclass", 67.05, 27.40, "Luosto"],
+  ["Radar:radar_ppi_fikau_hclass", 68.30, 28.05, "Kaunispää"],
+];
+
+const nearestSite = (lat, lon) => HCLASS_SITES
+  .map((s) => [...s, Math.hypot(s[1] - lat, (s[2] - lon) * Math.cos(lat * Math.PI / 180))])
+  .sort((a, b) => a[4] - b[4])[0];
+
+const LAYERS = {
+  dbz: ["Radar:suomi_dbz_eureffin", "", "Reflectivity — what sadekartta draws"],
+  rr: ["Radar:suomi_rr_eureffin", "", "Rain rate, mm/h"],
+  hclass: [null, "Radar hydroclass", "Precipitation type — rain vs wet vs dry snow"],
+};
+
+/* A square view roughly 200 km across, centred on the car. */
+function bbox(lat, lon) {
+  const dLat = 0.9;
+  const dLon = dLat / Math.cos(lat * Math.PI / 180);
+  return [lon - dLon, lat - dLat, lon + dLon, lat + dLat].map((v) => v.toFixed(4)).join(",");
+}
+
+const wmsUrl = (layer, style, lat, lon, px) =>
+  `${WMS}?service=WMS&version=1.3.0&request=GetMap&CRS=CRS:84` +
+  `&WIDTH=${px}&HEIGHT=${px}&FORMAT=image/png&TRANSPARENT=TRUE` +
+  `&LAYERS=${encodeURIComponent(layer)}&STYLES=${encodeURIComponent(style || "")}` +
+  `&BBOX=${bbox(lat, lon)}`;
+
+function radar() {
+  const el = $("#radar");
+  if (!el) return;
+  ["dbz", "rr", "hclass"].forEach((k) => $("#r-" + k).classList.toggle("on", k === radarLayer));
+
+  const [lat, lon] = here;
+  const px = 520;
+  let [layer, style, caption] = LAYERS[radarLayer];
+  let note = "";
+  if (radarLayer === "hclass") {
+    const site = nearestSite(lat, lon);
+    layer = site[0];
+    note = `Nearest radar: <strong>${esc(site[3])}</strong>. HydroClass is published per
+      radar site — there is no national mosaic, and coverage thins with range.`;
+  }
+
+  const base = `${WMS}?service=WMS&version=1.3.0&request=GetMap&CRS=CRS:84` +
+    `&WIDTH=${px}&HEIGHT=${px}&FORMAT=image/png&LAYERS=Basemaps:naturalearthgray` +
+    `&STYLES=&BBOX=${bbox(lat, lon)}`;
+
+  el.innerHTML = `
+    <div class="radarwrap" style="width:${px}px;height:${px}px">
+      <img src="${base}" alt="" width="${px}" height="${px}">
+      <img src="${wmsUrl(layer, style, lat, lon, px)}" alt="" width="${px}" height="${px}">
+      <div class="crosshair"></div>
+    </div>
+    ${radarLayer === "hclass" ? `<img class="leg" alt="HydroClass legend"
+       src="${WMS}?service=WMS&version=1.3.0&request=GetLegendGraphic&FORMAT=image/png&LAYER=${
+         encodeURIComponent(layer)}&STYLE=${encodeURIComponent(style)}">` : ""}
+    <p class="note">${esc(caption)}. ~200 km across, 5-minute steps, observation only —
+      the two-hour nowcast on ilmatieteenlaitos.fi is not in the open WMS. ${note}</p>`;
 }
