@@ -63,3 +63,15 @@ def test_by_distance_is_ordered_and_matches_verified_figures():
     # Verified live 2026-09-20: 2.0 km sheltered, 21.2 km open sea (RESEARCH.md §4).
     assert abs(distances[0] - 2.0) < 0.1
     assert abs(distances[1] - 21.2) < 0.1
+
+
+def test_inland_stations_are_distinguishable_for_buoy_selection():
+    """Buoy auto-selection is switched off by station type, not by distance.
+
+    Distance was the wrong test: it is a proxy for "is this the same body of
+    water". Hanko legitimately uses a buoy 119 km away because none sits closer
+    to the same sea, while Näsijärvi should get none at any distance.
+    """
+    assert stations.by_id(101311) in stations.LAKE_STATIONS      # Tampere, Näsijärvi
+    assert stations.by_id(100932) not in stations.LAKE_STATIONS  # Hanko Russarö
+    assert stations.by_id(100932) in stations.MARINE_STATIONS

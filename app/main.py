@@ -287,11 +287,24 @@ _BUOY_FIELDS = {
 }
 
 
-async def _buoy_reading(lat: float, lon: float, prefer_fmisid: int | None) -> dict | None:
-    """Nearest reporting wave buoy, or None if none are in the water.
+async def _buoy_reading(
+    lat: float,
+    lon: float,
+    prefer_fmisid: int | None,
+    auto: bool = True,
+) -> dict | None:
+    """Nearest reporting wave buoy, or None.
 
     Buoys are seasonal (RESEARCH.md §4), so "no reading" is a normal winter
     state rather than an error.
+
+    ``auto=False`` turns off nearest-buoy selection entirely, for stations on
+    inland water. Distance was the wrong test for this: it is a proxy for "is
+    this the same body of water", and the station list answers that directly.
+    Näsijärvi should not be handed a Baltic buoy at any distance, while Hanko
+    legitimately uses one 119 km away because no buoy sits closer to the same
+    sea. An explicitly chosen buoy is still honoured either way — that is the
+    user saying they know what they are asking for.
     """
     try:
         observed = await cache.aget_or_set(
@@ -327,16 +340,10 @@ async def _buoy_reading(lat: float, lon: float, prefer_fmisid: int | None) -> di
                 break
         else:
             chosen = min(candidates, key=lambda c: haversine_km(lat, lon, c[0].lat, c[0].lon))
+    elif not auto:
+        return None
     else:
-        # Nearest, but only if it is near enough to describe the same water.
-        # Uncapped, "nearest reporting buoy" hands an inland lake a Baltic buoy
-        # hundreds of kilometres away and presents it as local sea state. An
-        # explicitly chosen buoy is still honoured at any distance — that is
-        # the user saying they know what they are asking for.
-        near = min(candidates, key=lambda c: haversine_km(lat, lon, c[0].lat, c[0].lon))
-        if haversine_km(lat, lon, near[0].lat, near[0].lon) > config.BUOY_MAX_KM:
-            return None
-        chosen = near
+        chosen = min(candidates, key=lambda c: haversine_km(lat, lon, c[0].lat, c[0].lon))
 
     station, readings = chosen
     out: dict[str, Any] = {
@@ -389,7 +396,9 @@ async def marine(
         raise _fail(exc) from exc
 
     current, measured_at = _latest(rows, _OBSERVATION_PARAMS) if rows else ({}, {})
-    buoy = await _buoy_reading(station.lat, station.lon, buoy_fmisid)
+    # Inland stations never auto-select a buoy; a picked one still works.
+    inland = station in stations.LAKE_STATIONS
+    buoy = await _buoy_reading(station.lat, station.lon, buoy_fmisid, auto=not inland)
 
     waves: dict[str, Any] | None = buoy
     mode = "waves"
