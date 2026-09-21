@@ -93,8 +93,13 @@ module Pages {
     //!
     //! When a refresh failed and a cached reading is on screen, the footer
     //! says that instead. Otherwise a stale number looks exactly like a live
-    //! one, which on the water is the difference that matters. The version
-    //! gives up its place in both cases; it is on the About page regardless.
+    //! one, which on the water is the difference that matters.
+    //!
+    //! The build number used to sit on this row. It earned its keep during the
+    //! beta — twice it settled which build a screenshot had come from — but
+    //! the About page carries it now, and keeping it on every page put a
+    //! version string into every store screenshot, so the artwork expired with
+    //! each release.
     function updated(dc as Graphics.Dc, age as String, state as Number) as Void {
         var font = Graphics.FONT_XTINY;
         var fh = dc.getFontHeight(font);
@@ -109,7 +114,7 @@ module Pages {
             text = age + " · " + res(Rez.Strings.Offline);
             colour = Theme.FAINT;
         } else {
-            text = age + " · v" + Config.VERSION;
+            text = age;
             colour = Theme.FAINT;
         }
 

@@ -39,8 +39,10 @@ named and its distance shown, so you know where the number came from. A
 six-hourly forecast strip covers the rest of the day.
 
 SEA
-Wind, gusts and direction from any of 22 Finnish marine stations — Harmaja, Utö,
-Kalbådagrund, Bogskär, Märket and the rest. Air temperature at the station too.
+Wind, gusts and direction from any of 40 Finnish coastal stations — Harmaja,
+Utö, Kalbådagrund, Mäkiluoto, Bågaskär, Märket and the rest — plus 14 inland
+lake stations, because a chart of Saimaa is a merikartta too. Air temperature at
+the station as well.
 
 WAVES
 Significant wave height, period, direction and sea water temperature from FMI's
@@ -89,7 +91,7 @@ Finnish Meteorological Institute or Garmin.
 First public release.
 
 • Land forecast and current conditions from the nearest reporting station
-• Marine wind and gusts from 22 Finnish coastal stations
+• Marine wind and gusts from 40 coastal and 14 inland lake stations
 • Wave height, period, direction and water temperature from FMI wave buoys
 • Your own wind, gust, wave and temperature limits
 • Configurable glance with two values of your choosing

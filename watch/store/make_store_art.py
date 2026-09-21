@@ -154,7 +154,7 @@ def make_hero() -> None:
 
     bullets = [
         "Forecasts and live observations",
-        "Marine wind and gusts from 22 coastal stations",
+        "Marine wind from 40 coastal and 14 lake stations",
         "Wave height and water temperature from FMI buoys",
         "Your own wind, gust and wave limits",
     ]

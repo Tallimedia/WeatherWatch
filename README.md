@@ -1,99 +1,115 @@
-# FIWeatherWatch — backend
+# FIWeatherWatch
 
-Serves [Finnish Meteorological Institute](https://en.ilmatieteenlaitos.fi/open-data)
-open data, reshaped for the FIWeatherWatch Garmin watch app.
+Finnish weather on a Garmin watch — land forecasts, marine wind from the coastal
+stations, and live wave height from the Finnish Meteorological Institute's own
+wave buoys.
 
-Planning and research live in `RESEARCH.md`, which is owned by the `claude-docs`
-repo rather than this one (see that repo's `CLAUDE.md`). Section references
-below (§2, §4, …) point there.
+![FIWeatherWatch hero](watch/store/hero-1440x720.png)
 
-## Why a backend at all
+Independent project, not affiliated with or endorsed by the Finnish
+Meteorological Institute or Garmin. Weather data from
+[FMI open data](https://en.ilmatieteenlaitos.fi/open-data), licensed
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
-Monkey C has no XML parser, and Connect IQ starts failing somewhere around 32 kB
-of response. FMI's documented interface is WFS/GML, wave-buoy observations exist
-*only* there, and the warnings feed is 1.1 MB of CAP XML. This service turns all
-of that into a few hundred bytes of JSON. It also gives the watch a TLS
-certificate already proven to work on Garmin hardware. (§2, §10, §12)
+## What it does
 
-## Endpoints
-
-| Endpoint | Returns | Size |
+| Land | Sea | Waves |
 |---|---|---|
-| `GET /healthz` | liveness | — |
-| `GET /v1/glance` | land temp + sea wind/gust | ~96 B |
-| `GET /v1/observations` | nearest station, current conditions, provenance | ~300 B |
-| `GET /v1/marine` | station wind + waves, with a `mode` field | ~510 B |
-| `GET /v1/forecast` | land forecast, up to 10 days | ~0.8–1.4 kB |
-| `GET /v1/marine-series` | 12 h of station wind + gust, for the web chart | ~1.8 kB |
-| `GET /v1/stations` | marine stations and wave buoys, for the pickers | ~2 kB |
+| ![Land page](Screenshots/framed/pg1.png) | ![Sea page](Screenshots/framed/pg2.png) | ![Waves page](Screenshots/framed/pg3.png) |
 
-`/v1/marine-series` is for the public page, not the watch — a single current reading
-cannot show whether the wind is rising or falling, and the watch cannot hold the
-series anyway.
+- **Land** — current temperature and wind from the nearest reporting station,
+  named, with its distance, plus a six-hourly forecast strip for the rest of
+  the day.
+- **Sea** — wind, gusts, direction and air temperature from any of 22 Finnish
+  marine stations: Harmaja, Utö, Kalbådagrund, Bogskär, Märket and the rest.
+- **Waves** — significant wave height, period, direction and sea water
+  temperature from FMI's wave buoys, with the nearest reporting buoy chosen
+  automatically.
+- **Your own limits** — wind, gust, wave and temperature thresholds you set
+  yourself; a reading is highlighted when it crosses one.
+- **Glance** — any two values of your choosing in the widget carousel.
+- **About** — build number and the data attribution.
 
-`/v1/marine` carries `mode` (`waves` or `model`) from day one. Sea ice adds a
-third value in v1.5; shipping the field now keeps that a server change rather
-than a redesign. (§16, §18)
+Finnish, Swedish and English, following the watch's own language setting. Wind in
+m/s, knots or Beaufort; distance in kilometres or nautical miles.
 
-## Running it
+## Every value is timestamped
+
+Stations do not report on a common schedule. Harmaja republishes wind every
+minute, most stations manage every ten, and a wave buoy reports height every half
+hour while sending water temperature every five minutes. Presenting them as one
+reading taken at one moment would be a small, constant lie, so each value carries
+its own age.
+
+If the phone goes out of range the last reading stays on screen and says that it
+is the last reading — for a marine app that is the normal case, not the edge
+case.
+
+## How it works
+
+```
+watch ⇄ phone/WiFi → weatherapp.tallimedia.com → opendata.fmi.fi
+```
+
+The watch talks to a small FastAPI service rather than to FMI directly. Three
+reasons, none of them optional:
+
+1. **Monkey C has no XML parser.** FMI's documented interface is WFS/GML, and
+   wave-buoy observations exist *only* there.
+2. **Connect IQ starts failing somewhere around 32 kB** of response. The
+   warnings feed alone is 1.1 MB of CAP XML; the service turns all of it into a
+   few hundred bytes of JSON.
+3. **Garmin's root certificate store is thin.** The backend presents a
+   certificate already proven to work on Garmin hardware.
+
+There is no account, no sign-in and no pairing — every endpoint is public and
+read-only. Settings are edited in Garmin Connect Mobile.
+
+You can run your own instance if you would rather not use the hosted one; see
+[`app/README.md`](app/README.md).
+
+## Live data
+
+[weatherapp.tallimedia.com](https://weatherapp.tallimedia.com) shows the same
+data the watch does, in a browser — useful for checking a station before you
+leave, and for seeing whether the wind is rising or falling over the last twelve
+hours.
+
+## Repository layout
+
+| Path | What |
+|---|---|
+| `watch/` | the Connect IQ app (Monkey C) |
+| `app/` | the FastAPI backend |
+| `app/public/` | the public weather page |
+| `Screenshots/` | simulator captures, and the framed versions for the store |
+| `CHANGELOG.md` | release history |
+| `dist/` | the current release: .iq, sideload .prg, store artwork |
+
+## Building
 
 ```bash
+# backend
 python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 .venv/bin/uvicorn app.main:app --reload --port 8791
 .venv/bin/pytest -q
+
+# watch app
+./watch/build-release.sh fenix847mm
 ```
 
-With Docker: `cp .env.example .env && docker compose up -d --build`
+`fenix847mm` is the development target; quatix 8 is API-identical and has no
+separate simulator profile.
 
-## Deployment
+## Licence
 
-Production is `weatherapp.tallimedia.com`, on **public-vm** under
-`~/public-services/weatherapp/`, behind the shared Traefik and Cloudflare tunnel. It
-is not a git checkout — copy the tree up and rebuild:
+**Code** — [PolyForm Noncommercial 1.0.0](LICENSE). Use it, change it, share it
+for any noncommercial purpose; selling it is reserved.
 
-```bash
-tar --exclude='__pycache__' --exclude='.DS_Store' -czf - app Dockerfile pyproject.toml \
-  | ssh public-vm-auto 'cd ~/public-services/weatherapp && tar -xzf -'
-ssh public-vm-auto 'cd ~/public-services/weatherapp && docker compose build && docker compose up -d'
-```
+**Weather data** — © Finnish Meteorological Institute, licensed
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The two are separate:
+FMI's licence permits commercial use of the *data*, and nothing here restricts
+that. The noncommercial terms cover this project's own code only.
 
-There is no `rsync` on that host. Tag `fiweatherwatch-backend:rollback` before
-building so a revert is one command. `.env` there sets `ENABLE_PUBLIC=true` and
-`ENABLE_CHARTS=false` — **the charts explorer must stay off in production.**
-
-**Cloudflare caches assets for four hours and will hide a correct deploy.** Asset
-URLs carry a hash of their own bytes (`site.js?v=<hash>`) and the HTML is served
-`no-cache`, so a change always moves the URL. Verify against the live URL, never
-against the file on the host — they have disagreed for hours while both were
-"correct".
-
-## Deployments
-
-One repo, two targets (§19). Nothing is authored on a server.
-
-| | Host | Charts | Reach |
-|---|---|---|---|
-| Prototype | `weather.int.kavaleff.com` | on | LAN only |
-| Production | `<name>.tallimedia.com` (public-vm) | off | public |
-
-## Gotchas this code exists to handle
-
-Each of these was found by querying FMI and getting a plausible wrong answer:
-
-- The bare `time` field is **local, not UTC** — 12:00 Helsinki is 09:00Z. We
-  request `epochtime` everywhere instead.
-- Values round to integers without `precision=double`.
-- Gusts are `hourlymaximumgust` in forecasts but `windgust` in observations;
-  asking for the wrong one returns nulls rather than an error.
-- `bbox` is **silently ignored** by the wave stored query — it returns every
-  buoy in Finland, so a naive read gives you one 517 km away. Buoys are filtered
-  by distance in `app/geo.py`.
-- `ModalWDi` is wave direction; `WHDD` is directional *spread*. Confusing them
-  points the arrow about 180° wrong.
-- Marine stations must be chosen by `fmisid`: `place=Bogskär` returns Mariehamn
-  **airport**, `place=Isokari` returns Pori airport 18.6 km inland.
-
-## Licence and attribution
-
-FMI open data is **CC BY 4.0**, and attribution is required — every response
-carries it, and the app must show it too.
+Attribution to FMI is required wherever the data is shown, which is why it
+appears on the watch's About page as well as here.
