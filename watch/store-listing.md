@@ -3,16 +3,18 @@
 Paste-ready text for <https://apps-developer.garmin.com>. Keep in sync with
 `../CHANGELOG.md`.
 
-The beta (v0.1.x) is unlisted and needs no copy. This is the draft for the
+The beta (v0.1.x) is unlisted and needs no copy. This is the copy that shipped as the
 public v1.0.0 entry.
 
-**Submitted for review 2026-09-21.** The public entry is
-`172c2042-7cc8-4125-a0f6-9ba109be3a8a` — dashboard at
-<https://apps-developer.garmin.com/fi-FI/apps/172c2042-7cc8-4125-a0f6-9ba109be3a8a>
-(sign-in only, not a public link). Once Garmin approves it, the same UUID becomes
-the store URL at <https://apps.garmin.com/apps/172c2042-7cc8-4125-a0f6-9ba109be3a8a>,
-which goes into `STORE_URL` in the backend `.env`. That URL 404s until approval,
-so do not publish it early.
+**Live on the Connect IQ Store since 2026-09-22** (submitted 2026-09-21, approved in
+a day). Public listing:
+<https://apps.garmin.com/apps/172c2042-7cc8-4125-a0f6-9ba109be3a8a> — the locale-less
+form, so the store follows the viewer's own language rather than pinning fi-FI. That URL
+is set as `STORE_URL` in the backend `.env` on public-vm, which is what turns the site's
+button into "Get it on Connect IQ".
+
+Dashboard (sign-in only, not a public link):
+<https://apps-developer.garmin.com/fi-FI/apps/172c2042-7cc8-4125-a0f6-9ba109be3a8a>.
 
 ---
 
