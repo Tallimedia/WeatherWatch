@@ -18,91 +18,138 @@ Dashboard (sign-in only, not a public link):
 
 ---
 
+## Listing language
+
+The Connect IQ store takes a **separate description per language**, and the app
+already declares `eng`, `fin` and `swe`. **Finnish is the primary listing** — the data is
+Finland-only and so is most of the audience. English is the fallback everyone else sees.
+
+Rewritten 2026-09-23, shorter: the v1.0.0 launch text ran 2 795 characters and read like
+documentation. These run 1622 (fi) and 1791 (en). Nothing load-bearing was cut —
+COVERAGE and the CC BY attribution are both still here, for the reasons noted below.
+
+---
+
 ## Short description (≤50 chars)
+
+**Finnish:**
+
+```
+Suomen sää, tuuli ja aallot — maalla ja merellä
+```
+(47)
+
+Alternatives: `Ilmatieteen laitoksen sää ranteessasi` (37) ·
+`Sää, tuuli ja aallot Suomen omasta datasta` (42)
+
+**English:**
 
 ```
 Finnish weather, wind and waves, land and sea
 ```
 (45)
 
-Alternatives, all within 50:
-
-- `FMI weather on your wrist — land and sea` (40)
-- `Finnish forecasts, marine wind and live waves` (45)
-- `Weather and sea state from Finland's own data` (45)
+Alternative: `FMI weather on your wrist — land and sea` (40)
 
 ---
 
-## Full description (≤4000 chars)
+## Full description — Finnish (1622 chars, limit 4000)
+
+```
+Suomen sää, maalla ja merellä.
+
+FIWeatherWatch näyttää sen, mitä Ilmatieteen laitoksen omat mittarit raportoivat juuri nyt — ei globaalin mallin arvausta Suomesta.
+
+MAA
+Lämpötila ja tuuli lähimmältä havaintoasemalta, asema ja sen etäisyys näkyvissä. Ennuste kuuden tunnin välein loppupäivälle.
+
+MERI
+Tuuli, puuskat ja suunta 40 rannikkoasemalta ja 14 sisävesiasemalta — Harmajasta Märketiin, Saimaalta Näsijärvelle.
+
+AALLOT
+Merkitsevä aallonkorkeus, jakso, suunta ja veden lämpötila Ilmatieteen laitoksen aaltopoijuilta. Poijut nostetaan talveksi pois vedestä; silloin sovellus kertoo sen ja näyttää mallidataa selvästi merkittynä.
+
+OMAT RAJASI
+Aseta tuulen, puuskan ja aallonkorkeuden rajat, niin lukema korostuu kun raja ylittyy.
+
+VILKAISU
+Valitse kaksi arvoa vilkaisunäkymään ja lue ne avaamatta sovellusta.
+
+Jokaisen lukeman ikä näkyy erikseen — asemat raportoivat eri tahtiin, eikä sovellus teeskentele muuta. Jos puhelin ei ole kantamalla, viimeisin lukema jää näkyviin ja kertoo olevansa viimeisin.
+
+Suomi, ruotsi ja englanti kellon oman kieliasetuksen mukaan. Tuuli m/s, solmuina tai boforeina; etäisyys kilometreinä tai meripeninkulmina.
+
+KATTAVUUS
+Vain Suomi. Data tulee Ilmatieteen laitoksen omasta havaintoverkosta, joten paikat, rannikkoasemat ja poijut ovat suomalaisia. Suomenlahti, Saaristomeri, Selkämeri ja Ahvenanmaan vedet kyllä — Tukholman tai Tallinnan sää ei.
+
+Vaatii puhelinyhteyden tai WiFin. Ei tiliä eikä kirjautumista. Asetukset Garmin Connect Mobilessa.
+
+Säädata: Ilmatieteen laitos, CC BY 4.0 -lisenssillä. FIWeatherWatch on itsenäinen projekti, ei Ilmatieteen laitoksen eikä Garminin tukema.
+```
+
+---
+
+## Full description — English (1791 chars, limit 4000)
 
 ```
 Finnish weather, land and sea.
 
-FIWeatherWatch shows what the Finnish Meteorological Institute's own instruments
-are reporting right now — not a global model's guess at Finland. Forecasts for
-your town, wind and gusts from the coastal marine stations, and live wave height
-from FMI's wave buoys.
+FIWeatherWatch shows what the Finnish Meteorological Institute's own instruments are reporting right now — not a global model's guess at Finland.
 
 LAND
-Current temperature and wind from the nearest reporting station, with the station
-named and its distance shown, so you know where the number came from. A
-six-hourly forecast strip covers the rest of the day.
+Temperature and wind from the nearest reporting station, with the station and its distance shown. A six-hourly forecast covers the rest of the day.
 
 SEA
-Wind, gusts and direction from any of 40 Finnish coastal stations — Harmaja,
-Utö, Kalbådagrund, Mäkiluoto, Bågaskär, Märket and the rest — plus 14 inland
-lake stations, because a chart of Saimaa is a merikartta too. Air temperature at
-the station as well.
+Wind, gusts and direction from 40 coastal and 14 inland lake stations — Harmaja to Märket, Saimaa to Näsijärvi.
 
 WAVES
-Significant wave height, period, direction and sea water temperature from FMI's
-wave buoys. The buoys are lifted out of the water roughly December to April; when
-none is reporting, the app says so and falls back to model output, clearly
-labelled as modelled rather than measured.
+Significant wave height, period, direction and water temperature from FMI's wave buoys. The buoys are lifted out for the winter; when none is reporting the app says so and falls back to model output, clearly labelled.
 
 YOUR OWN LIMITS
-Set the wind, gust and wave heights that matter to you, and a reading is
-highlighted when it crosses one. The defaults are sensible; the point is that
-they are yours. A cold and a hot temperature limit work the same way.
+Set the wind, gust and wave heights that matter to you, and a reading is highlighted when it crosses one.
 
 GLANCE
-Pick any two values for the glance carousel — land temperature, land wind, sea
-wind and gust, wave height, water temperature — and read them without opening
-the app.
+Pick two values for the glance carousel and read them without opening the app.
 
-EVERY VALUE IS TIMESTAMPED
-Stations report at different rates. Harmaja republishes wind every minute; most
-stations manage every ten; a wave buoy reports height every half hour but water
-temperature every five minutes. So each reading shows its own age rather than
-pretending they were all taken together. If the phone is out of range, the last
-reading stays on screen and says that it is the last reading.
+Every reading shows its own age — stations report at different rates and the app does not pretend otherwise. If the phone is out of range, the last reading stays on screen and says that it is the last one.
 
-LANGUAGES
-Finnish, Swedish and English, following your watch's own language setting. No
-setting to find.
-
-UNITS
-Wind in m/s, knots or Beaufort. Distance in kilometres or nautical miles.
+Finnish, Swedish and English, following your watch's language. Wind in m/s, knots or Beaufort; distance in kilometres or nautical miles.
 
 COVERAGE
-Finland only. The data comes from the Finnish Meteorological Institute's own
-network, so the places, coastal stations and wave buoys are Finnish ones. If you
-sail the Gulf of Finland, the Archipelago Sea, the Bothnian Sea or the Åland
-waters, that is exactly the area this covers — but it will not show you the
-weather at home in Stockholm, Tallinn or Kiel.
+Finland only. The data comes from FMI's own observation network, so the places, coastal stations and buoys are Finnish. The Gulf of Finland, the Archipelago Sea, the Bothnian Sea and the Åland waters yes — the weather at home in Stockholm or Tallinn no.
 
-WHAT IT NEEDS
-A phone connection or WiFi. No account, no sign-in, nothing to configure beyond
-your own place and station. Settings are edited in Garmin Connect Mobile.
+Needs a phone connection or WiFi. No account, no sign-in. Settings are edited in Garmin Connect Mobile.
 
-Weather data: Finnish Meteorological Institute, licensed CC BY 4.0.
-FIWeatherWatch is an independent project, not affiliated with or endorsed by the
-Finnish Meteorological Institute or Garmin.
+Weather data: Finnish Meteorological Institute, licensed CC BY 4.0. FIWeatherWatch is an independent project, not affiliated with or endorsed by the Finnish Meteorological Institute or Garmin.
 ```
+
+**Do not cut COVERAGE for length.** Availability and coverage are different claims and the
+store only lets you set the first. The app sells in nine countries and shows Finnish data
+only; a German or Swedish buyer who discovers that after installing leaves an accurate
+one-star review. Those four lines are the cheapest review insurance in the listing.
+
+**Do not cut the attribution line.** CC BY 4.0 requires it, and it is the one legal
+obligation the listing carries.
 
 ---
 
 ## What's new — v1.0.0
+
+**Finnish:**
+
+```
+Ensimmäinen julkinen versio.
+
+• Maasää ja ennuste lähimmältä havaintoasemalta
+• Merituuli ja puuskat 40 rannikko- ja 14 sisävesiasemalta
+• Aallonkorkeus, jakso, suunta ja veden lämpötila poijuilta
+• Omat tuuli-, puuska-, aalto- ja lämpötilarajat
+• Vilkaisunäkymä kahdella itse valitulla arvolla
+• Suomi, ruotsi ja englanti kellon kieliasetuksen mukaan
+• Tuuli m/s, solmuina tai boforeina; etäisyys km tai mpk
+```
+
+**English:**
 
 ```
 First public release.
