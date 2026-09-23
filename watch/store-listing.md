@@ -268,8 +268,9 @@ into the store artwork.
 
 ## Screenshots
 
-From `Screenshots/framed/` — framed in the device, already under the store's
-300 kB limit:
+**One set per app, not per device, and the count is capped** — every watch sees the same
+images, so each slot has to earn its place. From `Screenshots/framed/`, framed in the
+device skin, already under the store's 300 kB limit:
 
 | File | Shows |
 |---|---|
@@ -278,5 +279,33 @@ From `Screenshots/framed/` — framed in the device, already under the store's
 | `pg3.png` | Waves — height, period, direction, water temperature |
 | `glance.png` | Glance carousel |
 
-An About-page capture is still missing and should be added: it carries the FMI
-attribution.
+### Priority order, so the cap decides itself
+
+Take the top N for whatever N the dashboard allows. Colour first — it is the large
+majority of supported devices and the gallery preview shows image one.
+
+1. **`pg2.png` Sea** — the differentiator. Nobody else serves FMI marine stations
+2. **`pg3.png` Waves** — the unique data, live buoys
+3. **`pg1.png` Land** — the everyday page, and the one that says "this is a weather app"
+4. **`glance.png` Glance** — convenience, and the feature most users will actually live in
+5. **Monochrome capture** — *add with the Instinct release, not before.* See below
+6. **About page** — lowest priority, and **not** an attribution requirement: CC BY is
+   satisfied by the description line *"Säädata: Ilmatieteen laitos, CC BY 4.0"*, which is
+   text and already there. Drop this before dropping anything above it
+
+### The monochrome slot
+
+When the Instinct family is added, one image has to show a black-and-white screen, or
+buyers on eight devices choose on the strength of a picture their watch cannot draw.
+
+**Make it the Sea or Waves page with a value over the user's limit**, so the one capture
+does two jobs: it shows the monochrome rendering honestly, and it demonstrates the
+inverse-video highlight that replaces colour there. A mono screenshot of an unremarkable
+reading wastes the slot.
+
+Keep it late in the order — a colour image should stay first for the gallery preview.
+
+### Open
+
+An About-page capture has never been taken. Given the priority above it is optional, but
+`Screenshots/` should still hold one for the site and for documentation.
