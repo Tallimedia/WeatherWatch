@@ -163,6 +163,48 @@ obligation the listing carries.
 
 ---
 
+## Prepared: the "what differs by watch" paragraph
+
+**Not for use yet.** This goes in *with* the release that adds the monochrome Instinct
+family, never before — the app does not support those devices today and the paragraph
+would be a false claim (same rule as the Syke copy, `SYKE-RESEARCH.md` §12).
+
+**Why it is needed.** The store serves **one description per language to every device**;
+there is no per-device text. A fenix owner and an Instinct owner read the same words, so
+the words have to be true on a colour round screen and on a 1-bit 176×176 semi-octagon.
+The rest of the description already is — *korostuu* / *highlighted* never says "orange" —
+but a buyer with an Instinct still deserves to know before installing what their screen
+will actually do.
+
+**What genuinely differs:** only how a reading past your limit is emphasised. Same data,
+same four pages, same stations, same settings, same three languages.
+
+**Finnish** — insert after the OMAT RAJASI block:
+
+```
+NÄYTÖT
+Sama data ja samat sivut kaikilla tuetuilla kelloilla. Mustavalkonäyttöisissä
+malleissa (Instinct, Descent G1) rajan ylittävä lukema korostuu käänteisenä
+värin sijaan. Muuta eroa ei ole.
+```
+
+**English** — insert after the YOUR OWN LIMITS block:
+
+```
+ACROSS WATCHES
+The same data and the same pages on every supported watch. On black-and-white
+models (Instinct, Descent G1) a reading past your limit is highlighted in
+inverse rather than in colour. Nothing else differs.
+```
+
+**Screenshots matter more than this paragraph.** All four current captures are colour
+fenix screens. Ship at least one monochrome capture in the same release, so nobody buys
+on the strength of a picture their watch cannot draw. Confirm in the dashboard whether
+screenshots can be attached **per device** or are a single shared set — that decides
+whether Instinct gets its own or the shared set has to include one.
+
+---
+
 ## What's new — v1.0.0
 
 **Finnish:**
