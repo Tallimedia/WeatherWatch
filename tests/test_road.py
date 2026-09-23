@@ -315,3 +315,65 @@ def test_cap_polygons_are_latitude_first():
     assert alert["colour"] == "yellow"
     lats = [p[0] for p in alert["_rings"][0]]
     assert all(59 < v < 71 for v in lats), f"latitudes look like longitudes: {lats}"
+
+
+# --------------------------------------------------------------------------
+# Localisation and sensor faults — both found in the car, 2026-09-22
+# --------------------------------------------------------------------------
+
+def test_a_broken_sensor_is_not_a_road_condition():
+    """`vt3_Helsinki_Pirkkola` put "The sensor has a fault" on the car screen
+    where "Dry" belongs, directly under "Ei liukkausriskiä".
+
+    Absent data reading as an answer is the one presentation SPEC §2 rules
+    out, so a faulty sensor has to become a null condition rather than a
+    string nobody can act on.
+    """
+    from app.road import is_fault, sensor_map
+
+    data = {"sensorValues": [
+        {"name": "KELI_1", "value": 0.0,
+         "sensorValueDescriptionEn": "The sensor has a fault",
+         "sensorValueDescriptionFi": "Anturissa on vikaa"},
+    ]}
+    assert is_fault(sensor_map(data)["KELI_1"])
+    assert not is_fault(sensor_map({"sensorValues": [
+        {"name": "KELI_1", "value": 1.0, "sensorValueDescriptionEn": "Dry"}]})["KELI_1"])
+
+
+def test_fault_detection_survives_a_finnish_request():
+    """Matched on the English description on purpose: asking in Finnish must
+    not make the fault invisible."""
+    from app.road import is_fault, sensor_map
+
+    data = {"sensorValues": [
+        {"name": "KELI_1", "value": 0.0,
+         "sensorValueDescriptionEn": "The sensor has a fault",
+         "sensorValueDescriptionFi": "Anturissa on vikaa"},
+    ]}
+    assert is_fault(sensor_map(data, "fi")["KELI_1"])
+
+
+def test_finnish_descriptions_were_there_all_along():
+    """Digitraffic send both; the proxy read only the English one, which is
+    how English leaked into a Finnish car UI."""
+    from app.road import sensor_map
+
+    data = {"sensorValues": [
+        {"name": "KELI_1", "value": 1.0,
+         "sensorValueDescriptionEn": "Dry", "sensorValueDescriptionFi": "Kuiva"},
+    ]}
+    assert sensor_map(data, "fi")["KELI_1"]["description"] == "Kuiva"
+    assert sensor_map(data, "en")["KELI_1"]["description"] == "Dry"
+
+
+def test_swedish_falls_back_to_english_not_finnish():
+    """Digitraffic publish no Swedish description. A Swedish speaker reads
+    English more readily than Finnish."""
+    from app.road import sensor_map
+
+    data = {"sensorValues": [
+        {"name": "KELI_1", "value": 1.0,
+         "sensorValueDescriptionEn": "Dry", "sensorValueDescriptionFi": "Kuiva"},
+    ]}
+    assert sensor_map(data, "sv")["KELI_1"]["description"] == "Dry"

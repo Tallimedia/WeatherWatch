@@ -279,17 +279,49 @@ def nearest_section(sections: dict, lat: float, lon: float) -> dict | None:
     return best
 
 
-def sensor_map(station_data: dict) -> dict[str, dict]:
-    """Sensor name → {value, unit, description}, for the sensors we care about."""
+#: A station whose road-state sensor is broken says so *in the description*,
+#: and there is no separate status field to read it from. Seen in the car on
+#: 2026-09-22: `vt3_Helsinki_Pirkkola` returned "The sensor has a fault" where
+#: a surface state belongs, and the app printed it as one.
+_FAULT_MARKERS = ("fault", "error")
+
+
+def is_fault(sensor: dict | None) -> bool:
+    """Whether a sensor is reporting its own failure rather than a reading.
+
+    Matched on the **English** description on purpose: it is always present,
+    whereas matching the localised one would need a phrase per language and
+    would quietly stop working the day a translation changed.
+    """
+    if not sensor:
+        return False
+    text = (sensor.get("description_en") or "").lower()
+    return any(marker in text for marker in _FAULT_MARKERS)
+
+
+def sensor_map(station_data: dict, lang: str = "en") -> dict[str, dict]:
+    """Sensor name → {value, unit, description}, for the sensors we care about.
+
+    Digitraffic publish `sensorValueDescriptionFi` alongside the English one
+    and the proxy used to drop it, which put "The sensor has a fault" into an
+    otherwise Finnish car UI. There is **no Swedish** field, so `sv` falls back
+    to English rather than to Finnish — a Swedish speaker reads English more
+    readily than Finnish, and FIRoadWeather/SPEC.md §3 records the choice.
+    """
+    field = "sensorValueDescriptionFi" if lang == "fi" else "sensorValueDescriptionEn"
     out: dict[str, dict] = {}
     for sensor in station_data.get("sensorValues", []):
         name = sensor.get("name")
         if not name:
             continue
+        english = sensor.get("sensorValueDescriptionEn")
         out[name] = {
             "value": sensor.get("value"),
             "unit": sensor.get("unit"),
-            "description": sensor.get("sensorValueDescriptionEn"),
+            "description": sensor.get(field) or english,
+            # Kept regardless of language so fault detection has one thing to
+            # match against.
+            "description_en": english,
         }
     return out
 

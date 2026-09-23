@@ -549,7 +549,10 @@ async def warnings_and_notices(
 
 
 @app.get("/v1/road")
-async def road_conditions(lat: float, lon: float) -> dict:
+async def road_conditions(
+    lat: float, lon: float,
+    lang: str = Query("en", pattern="^(fi|sv|en)$"),
+) -> dict:
     """Road surface conditions, ice risk and the hours ahead, for one point.
 
     The car client's single endpoint. Three upstream sources are merged here so
@@ -603,11 +606,18 @@ async def road_conditions(lat: float, lon: float) -> dict:
                 config.TTL_ROAD_OBS,
                 lambda sid=nearest["id"]: road.dt_station_data(sid),
             )
-            sensors = road.sensor_map(data)
+            sensors = road.sensor_map(data, lang)
+            keli = sensors.get("KELI_1")
+            # A broken sensor is missing data, not a road state. Passing its
+            # own error text through put "The sensor has a fault" in the slot
+            # where "Dry" belongs, directly under a reassuring ice-risk line —
+            # the one presentation FIRoadWeather/SPEC.md §2 rules out.
+            keli_faulty = road.is_fault(keli)
             station = {
                 "name": nearest.get("name"),
                 "distance_km": nearest.get("distance_km"),
-                "condition": (sensors.get("KELI_1") or {}).get("description"),
+                "condition": None if keli_faulty else (keli or {}).get("description"),
+                "condition_fault": keli_faulty,
                 "warning": (sensors.get("VAROITUS_1") or {}).get("description"),
                 "freezing_point_c": (sensors.get("JÄÄTYMISPISTE_1") or {}).get("value"),
                 "dew_point_margin_c": (sensors.get("KASTEPISTE_ERO_TIE") or {}).get("value"),
