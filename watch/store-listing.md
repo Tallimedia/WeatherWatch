@@ -25,7 +25,7 @@ already declares `eng`, `fin` and `swe`. **Finnish is the primary listing** — 
 Finland-only and so is most of the audience. English is the fallback everyone else sees.
 
 Rewritten 2026-09-23, shorter: the v1.0.0 launch text ran 2 795 characters and read like
-documentation. These run 1587 (fi) and 1791 (en). Nothing load-bearing was cut —
+documentation. These run 1583 (fi) and 1788 (en). Nothing load-bearing was cut —
 COVERAGE and the CC BY attribution are both still here, for the reasons noted below.
 
 ---
@@ -54,13 +54,15 @@ Alternative: `FMI weather on your wrist — land and sea` (40)
 
 ---
 
-## Full description — Finnish (1587 chars, limit 4000)
+## Full description — Finnish (1583 chars, limit 4000)
 
 Nico's wording, 2026-09-23. Two changes from the first draft: the *"ei globaalin mallin
 arvausta Suomesta"* clause is gone, and `Garmin IQ Connect Mobilessa` was corrected to
-`Garmin Connect -sovelluksessa` — Connect IQ is the platform, Garmin Connect is the app,
-and the transposed name would read as an error to exactly the Finnish audience this
-listing is for.
+`Connect IQ -sovelluksessa`. Connect IQ is both the platform and the name of the
+companion app, so the app reference is right — only the word order was wrong
+(`Garmin IQ Connect` → `Connect IQ`), and a transposed product name reads as an error to
+exactly the Finnish audience this listing is for. The English body uses "the Connect IQ
+app" to match.
 
 ```
 Suomen sää, maalla ja merellä.
@@ -89,14 +91,14 @@ Suomi, ruotsi ja englanti kellon oman kieliasetuksen mukaan. Tuuli m/s, solmuina
 KATTAVUUS
 Vain Suomi. Data tulee Ilmatieteen laitoksen omasta havaintoverkosta, joten paikat, rannikkoasemat ja poijut ovat suomalaisia. Suomenlahti, Saaristomeri, Selkämeri ja Ahvenanmaan vedet kyllä — Tukholman tai Tallinnan sää ei.
 
-Vaatii puhelinyhteyden tai WiFin. Ei tiliä eikä kirjautumista. Asetukset Garmin Connect -sovelluksessa.
+Vaatii puhelinyhteyden tai WiFin. Ei tiliä eikä kirjautumista. Asetukset Connect IQ -sovelluksessa.
 
 Säädata: Ilmatieteen laitos, CC BY 4.0 -lisenssillä. FIWeatherWatch on itsenäinen projekti, ei Ilmatieteen laitoksen eikä Garminin tukema.
 ```
 
 ---
 
-## Full description — English (1791 chars, limit 4000)
+## Full description — English (1788 chars, limit 4000)
 
 ```
 Finnish weather, land and sea.
@@ -125,7 +127,7 @@ Finnish, Swedish and English, following your watch's language. Wind in m/s, knot
 COVERAGE
 Finland only. The data comes from FMI's own observation network, so the places, coastal stations and buoys are Finnish. The Gulf of Finland, the Archipelago Sea, the Bothnian Sea and the Åland waters yes — the weather at home in Stockholm or Tallinn no.
 
-Needs a phone connection or WiFi. No account, no sign-in. Settings are edited in Garmin Connect Mobile.
+Needs a phone connection or WiFi. No account, no sign-in. Settings are edited in the Connect IQ app.
 
 Weather data: Finnish Meteorological Institute, licensed CC BY 4.0. FIWeatherWatch is an independent project, not affiliated with or endorsed by the Finnish Meteorological Institute or Garmin.
 ```
