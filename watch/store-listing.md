@@ -24,13 +24,26 @@ The Connect IQ store takes a **separate description per language**, and the app
 already declares `eng`, `fin` and `swe`. **Finnish is the primary listing** — the data is
 Finland-only and so is most of the audience. English is the fallback everyone else sees.
 
+The dashboard offers **a name and a description, nothing else** — no short-description
+field, no feature bullets, no subtitle. Everything the listing says has to live in those
+two boxes.
+
 Rewritten 2026-09-23, shorter: the v1.0.0 launch text ran 2 795 characters and read like
 documentation. These run 1583 (fi) and 1788 (en). Nothing load-bearing was cut —
 COVERAGE and the CC BY attribution are both still here, for the reasons noted below.
 
 ---
 
-## Short description (≤50 chars)
+## App name
+
+**The dashboard has two fields only: the name and the description.** There is no separate
+short-description field, which is why the live v1.0.0 name is the descriptive
+`Finnish weather for land and sea with waves` rather than a bare product name — a
+descriptive name is the only short pitch the store gives you, and it is what search
+matches on.
+
+That name carries the same problem `merellä` does: **"sea" excludes the 14 lake stations.**
+Candidates, if it is worth changing:
 
 **Finnish:**
 
@@ -39,10 +52,11 @@ Suomen sää, tuuli ja aallot — maalla ja vesillä
 ```
 (47) — **"vesillä", not "merellä"**: *vesillä* means on the water, sea and lakes alike,
 which *merellä* does not. 14 of the 54 stations are on lakes, so the distinction is real
-rather than stylistic. The English short description mirrors it with "land and water".
+rather than stylistic.
 
-Alternatives: `Ilmatieteen laitoksen sää ranteessasi` (37) ·
-`Sää, tuuli ja aallot Suomen omasta datasta` (42)
+Alternatives: `Suomen sää ja meritilanne — Ilmatieteen laitoksen data` (54, likely too long) ·
+`Sää, tuuli ja aallot Suomen omasta datasta` (42) ·
+`Ilmatieteen laitoksen sää ranteessasi` (37)
 
 **English:**
 
@@ -51,12 +65,19 @@ Finnish weather, wind and waves, land and water
 ```
 (47)
 
-Alternatives: `Finnish weather, wind and waves, land and sea` (45, but *sea* excludes the
-lake stations the way *merellä* does) · `FMI weather on your wrist — land and water` (42)
+Alternatives: `Finnish weather for land and lakes and sea` (42) ·
+`FMI weather on your wrist — land and water` (42) ·
+`Finnish weather for land and sea with waves` (43, the name live today)
+
+**Two things to confirm in the dashboard**, because neither is documented here and the
+guesses in earlier drafts were wrong: whether the **name is localisable per language** the
+way the description is, and what its **character limit** actually is. The live name is 43
+characters, so the ceiling is at least that. Everything above is written to stay under 50
+on the assumption it is around there — check before pasting anything longer.
 
 ---
 
-## Full description — Finnish (1583 chars, limit 4000)
+## Description — Finnish (1583 chars)
 
 Nico's wording, 2026-09-23. Two changes from the first draft: the *"ei globaalin mallin
 arvausta Suomesta"* clause is gone, and `Garmin IQ Connect Mobilessa` was corrected to
@@ -100,7 +121,7 @@ Säädata: Ilmatieteen laitos, CC BY 4.0 -lisenssillä. FIWeatherWatch on itsen�
 
 ---
 
-## Full description — English (1788 chars, limit 4000)
+## Description — English (1788 chars)
 
 ```
 Finnish weather, land and sea.
