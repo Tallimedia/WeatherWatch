@@ -36,27 +36,14 @@ COVERAGE and the CC BY attribution are both still here, for the reasons noted be
 
 ## App name
 
-**The dashboard has two fields only: the name and the description.** There is no separate
-short-description field, which is why the live v1.0.0 name is the descriptive
-`Finnish weather for land and sea with waves` rather than a bare product name — a
-descriptive name is the only short pitch the store gives you, and it is what search
-matches on.
-
-That name carries the same problem `merellä` does: **"sea" excludes the 14 lake stations.**
-Candidates, if it is worth changing:
+**Decided 2026-09-23.** The name is set per language, same as the description.
 
 **Finnish:**
 
 ```
 Suomen sää, tuuli ja aallot — maalla ja vesillä
 ```
-(47) — **"vesillä", not "merellä"**: *vesillä* means on the water, sea and lakes alike,
-which *merellä* does not. 14 of the 54 stations are on lakes, so the distinction is real
-rather than stylistic.
-
-Alternatives: `Suomen sää ja meritilanne — Ilmatieteen laitoksen data` (54, likely too long) ·
-`Sää, tuuli ja aallot Suomen omasta datasta` (42) ·
-`Ilmatieteen laitoksen sää ranteessasi` (37)
+(47)
 
 **English:**
 
@@ -65,15 +52,24 @@ Finnish weather, wind and waves, land and water
 ```
 (47)
 
-Alternatives: `Finnish weather for land and lakes and sea` (42) ·
-`FMI weather on your wrist — land and water` (42) ·
-`Finnish weather for land and sea with waves` (43, the name live today)
+**Why these.** The dashboard has two fields only — a name and a description — so the name
+is the whole short pitch, and it is what store search matches on. A bare product name
+would waste it. Both forms say *on the water* rather than *at sea*: `vesillä` covers sea
+and lakes alike, `merellä` does not, and 14 of the 54 stations are on lakes, so the
+distinction is real rather than stylistic. "land and water" carries the same sense in
+English.
 
-**Two things to confirm in the dashboard**, because neither is documented here and the
-guesses in earlier drafts were wrong: whether the **name is localisable per language** the
-way the description is, and what its **character limit** actually is. The live name is 43
-characters, so the ceiling is at least that. Everything above is written to stay under 50
-on the assumption it is around there — check before pasting anything longer.
+**This replaces the v1.0.0 name** `Finnish weather for land and sea with waves`, which was
+English-only and excluded the lake stations. Changing it is a dashboard edit, not a new
+build.
+
+**The launcher name on the watch is a different string and does not change.**
+`AppName` is `FIWeatherWatch` in all three language packs
+(`watch/resources*/strings/strings.xml`), which is what appears on the device, in the
+glance carousel and in settings. The store name and the on-device name are allowed to
+differ and here they should: the store name sells, the launcher label identifies. Every
+other surface — the site, the repo, the artwork, the About page — says FIWeatherWatch, so
+that stays the product name.
 
 ---
 
