@@ -36,7 +36,9 @@ COVERAGE and the CC BY attribution are both still here, for the reasons noted be
 
 ## App name
 
-**Decided 2026-09-23.** The name is set per language, same as the description.
+**Decided 2026-09-23.** The name is set per language, same as the description, and the
+**limit is 50 characters** (confirmed in the dashboard). Both names below are 47, so there
+are three characters of headroom and no room for a fourth word.
 
 **Finnish:**
 
