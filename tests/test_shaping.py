@@ -1,4 +1,4 @@
-from app.main import _age_seconds, _latest
+from app.main import _age_seconds, _latest, _nearest_station_rows
 
 
 def test_latest_takes_most_recent_non_null_per_parameter():
@@ -97,3 +97,31 @@ def test_glance_and_observations_share_one_fetch_path():
     observations = inspect.getsource(main.observations)
     assert "timeseries(" not in observations
     assert "_observation_rows(" in observations
+
+
+def test_nearest_station_rows_keeps_one_station():
+    """`numberofstations` interleaves stations, so the rows must be narrowed
+    before `_latest` collapses them.
+
+    Otherwise a composite gets built from stations tens of kilometres apart —
+    here the far station's wind would be glued onto the near station's
+    temperature and presented as one place.
+    """
+    rows = [
+        {"epochtime": 100, "stationname": "Near", "distance": 4.5,
+         "temperature": 10.0, "windspeedms": None},
+        {"epochtime": 100, "stationname": "Far", "distance": 13.7,
+         "temperature": 9.0, "windspeedms": 3.0},
+    ]
+    kept = _nearest_station_rows(rows)
+    assert [r["stationname"] for r in kept] == ["Near"]
+    out, _ = _latest(kept, ["temperature", "windspeedms"])
+    assert out["temperature"] == 10.0
+    assert out["windspeedms"] is None, "must not borrow wind from the far station"
+
+
+def test_nearest_station_rows_passes_through_without_distances():
+    """The `fmisid` path targets one station and FMI returns no `distance`."""
+    rows = [{"epochtime": 100, "stationname": "Helsinki Harmaja", "temperature": 8.0}]
+    assert _nearest_station_rows(rows) == rows
+    assert _nearest_station_rows([]) == []

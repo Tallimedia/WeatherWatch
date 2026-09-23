@@ -50,6 +50,24 @@ Design reasoning lives in `RESEARCH.md` (owned by the `claude-docs` repo).
 
 ## Backend
 
+### 2026-09-24
+- **`/v1/observations` no longer 404s next to a single-purpose station.** Given a bare
+  `latlon`, FMI returns whichever station is *geometrically* nearest regardless of what
+  it measures — so a precipitation-only station a few kilometres away produced an empty
+  response and a 404, while a full station slightly further would have answered.
+  **`place=Kerava` and `place=Järvenpää` both failed this way in production**, which is two
+  commuter-belt towns of roughly 37 000 and 45 000 people seeing no current conditions at
+  all. The query now asks for several candidate stations (`numberofstations`, default 5,
+  `OBSERVATION_STATIONS`) and `_nearest_station_rows` keeps the closest one that actually
+  answered.
+- Narrowing to a single station before collapsing the series is the point, not a detail:
+  `numberofstations` interleaves rows from several stations, and coalescing across them
+  would build a composite reading from stations tens of kilometres apart and present it as
+  one place. `_latest_road` already had this problem and solved it the same way.
+- `/v1/glance` gets the fix for free — it shares `_observation_rows`.
+- Verified against production across 16 place names: identical station chosen everywhere
+  that already worked, plus the two that were broken now answering.
+
 ### 2026-09-20
 - `/v1/marine-series` — mean and gust for the last 12 hours from the same station
   record `/v1/marine` reads, sampled every 20 minutes. For the public page; the

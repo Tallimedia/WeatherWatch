@@ -62,6 +62,12 @@ TTL_ROAD_GEOMETRY = int(os.getenv("TTL_ROAD_GEOMETRY", "21600"))
 # it drives rather than freeze it at the last fetch.
 TTL_STATION_POSITIONS = int(os.getenv("TTL_STATION_POSITIONS", "86400"))
 
+#: How many candidate stations to ask FMI for on a land observation. One is not
+#: enough: FMI picks the geometrically nearest station whether or not it
+#: measures what was asked for, so a single-purpose station nearby yields an
+#: empty response. Five gives room to reach past a few of those.
+OBSERVATION_STATIONS = int(os.getenv("OBSERVATION_STATIONS", "5"))
+
 # Warnings. FMI reissue CAP alerts on a slow cadence and each one carries its
 # own onset/expires, so a few minutes of staleness changes nothing. The
 # Fintraffic message feed is 1.2 MB with no bbox parameter, so it is fetched

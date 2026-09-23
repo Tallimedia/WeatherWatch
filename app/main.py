@@ -169,6 +169,21 @@ def _latest(rows: list[dict], keys: list[str]) -> tuple[dict[str, Any], dict[str
     return out, at
 
 
+def _nearest_station_rows(rows: list[dict]) -> list[dict]:
+    """Keep only the closest station's rows.
+
+    ``numberofstations`` interleaves several stations, so this has to run
+    before :func:`_latest` — coalescing across all of them would quietly build
+    a composite reading from stations tens of kilometres apart and present it
+    as one place. Same reasoning as :func:`_latest_road`, which hit this first.
+    """
+    distances = [r.get("distance") for r in rows if r.get("distance") is not None]
+    if not distances:
+        return rows
+    nearest = min(distances)
+    return [r for r in rows if r.get("distance") == nearest] or rows
+
+
 async def _observation_rows(
     place: str | None = None,
     lat: float | None = None,
@@ -190,14 +205,24 @@ async def _observation_rows(
         query: dict[str, Any] = {"producer": "opendata", "starttime": "-60m"}
         if fmisid is not None:
             query["fmisid"] = fmisid
-        elif place is not None:
+            return await timeseries(_OBSERVATION_PARAMS, **query)
+        if place is not None:
             # Resolve the name first, then ask by coordinates — `lang` must not
             # be able to make a valid Finnish place name unresolvable (app/fmi.py).
             plat, plon, _ = await _resolve(place)
             query["latlon"] = f"{plat},{plon}"
         else:
             query["latlon"] = f"{lat},{lon}"
-        return await timeseries(_OBSERVATION_PARAMS, **query)
+        # Ask for several stations, not one. Given a bare `latlon` FMI returns
+        # whichever station is *geometrically* nearest regardless of what it
+        # measures, so a precipitation-only station next door produced an empty
+        # response and a 404 while a full station a few km further would have
+        # answered — `place=Kerava` and `place=Järvenpää` both did exactly that
+        # in production. `numberofstations` makes FMI skip the ones with no
+        # data for these parameters; `_nearest_station_rows` then picks the
+        # closest of whatever came back.
+        query["numberofstations"] = config.OBSERVATION_STATIONS
+        return _nearest_station_rows(await timeseries(_OBSERVATION_PARAMS, **query))
 
     return await cache.aget_or_set_entry(key, config.TTL_OBSERVATIONS, fetch)
 
