@@ -37,8 +37,9 @@ COVERAGE and the CC BY attribution are both still here, for the reasons noted be
 ```
 Suomen sää, tuuli ja aallot — maalla ja vesillä
 ```
-(47) — **"vesillä", not "merellä"**: 14 of the stations are on lakes, and *vesillä*
-covers both in a way *merellä* does not.
+(47) — **"vesillä", not "merellä"**: *vesillä* means on the water, sea and lakes alike,
+which *merellä* does not. 14 of the 54 stations are on lakes, so the distinction is real
+rather than stylistic. The English short description mirrors it with "land and water".
 
 Alternatives: `Ilmatieteen laitoksen sää ranteessasi` (37) ·
 `Sää, tuuli ja aallot Suomen omasta datasta` (42)
@@ -46,11 +47,12 @@ Alternatives: `Ilmatieteen laitoksen sää ranteessasi` (37) ·
 **English:**
 
 ```
-Finnish weather, wind and waves, land and sea
+Finnish weather, wind and waves, land and water
 ```
-(45)
+(47)
 
-Alternative: `FMI weather on your wrist — land and sea` (40)
+Alternatives: `Finnish weather, wind and waves, land and sea` (45, but *sea* excludes the
+lake stations the way *merellä* does) · `FMI weather on your wrist — land and water` (42)
 
 ---
 
