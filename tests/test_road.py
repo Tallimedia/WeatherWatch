@@ -377,3 +377,56 @@ def test_swedish_falls_back_to_english_not_finnish():
          "sensorValueDescriptionEn": "Dry", "sensorValueDescriptionFi": "Kuiva"},
     ]}
     assert sensor_map(data, "sv")["KELI_1"]["description"] == "Dry"
+
+
+def test_station_positions_are_latitude_first():
+    """`gml:pos` in fmi::ef::stations declares axisLabels="Lat Long", the
+    opposite of GeoJSON. Read the other way round every Finnish station lands
+    in Somalia — the same trap as the CAP polygons."""
+    from app.stations import parse_station_positions
+
+    xml = """<wfs:FeatureCollection xmlns:wfs="http://www.opengis.net/wfs/2.0"
+        xmlns:ef="http://inspire.ec.europa.eu/schemas/ef/4.0"
+        xmlns:gml="http://www.opengis.net/gml/3.2">
+      <wfs:member><ef:EnvironmentalMonitoringFacility>
+        <gml:identifier codeSpace="http://xml.fmi.fi/namespace/stationcode/fmisid">100971</gml:identifier>
+        <ef:representativePoint>
+          <gml:Point axisLabels="Lat Long"><gml:pos>60.17523 24.94459</gml:pos></gml:Point>
+        </ef:representativePoint>
+      </ef:EnvironmentalMonitoringFacility></wfs:member>
+    </wfs:FeatureCollection>"""
+    pos = parse_station_positions(xml)[100971]
+    assert 59 < pos[0] < 71, f"latitude looks like a longitude: {pos}"
+    assert 19 < pos[1] < 32
+
+
+def test_nearest_station_carries_its_coordinates():
+    """Without them the car cannot recompute its distance as it moves, and the
+    figure freezes at the last fetch — up to 2 km stale."""
+    stations = {"features": [
+        {"geometry": {"coordinates": [24.94, 60.17]},
+         "properties": {"id": 1, "name": "near", "collectionStatus": "GATHERING"}},
+    ]}
+    best = nearest_station(stations, 60.17, 24.94)
+    assert (best["lat"], best["lon"]) == (60.17, 24.94)
+
+
+def test_keli_code_is_language_independent():
+    """A client cannot tell "Kuura" (frost) from "Kuiva" (dry) without knowing
+    every language's wording, and matching localised text breaks silently when
+    a translation is edited. The numeric code is stable across fi/sv/en."""
+    from app.road import keli_code, sensor_map
+
+    data = {"sensorValues": [
+        {"name": "KELI_1", "value": 5.0,
+         "sensorValueDescriptionEn": "Frost", "sensorValueDescriptionFi": "Kuura"},
+    ]}
+    assert keli_code(sensor_map(data, "fi")["KELI_1"]) == 5
+    assert keli_code(sensor_map(data, "en")["KELI_1"]) == 5
+
+
+def test_keli_code_is_none_when_the_sensor_reports_nothing():
+    from app.road import keli_code
+
+    assert keli_code(None) is None
+    assert keli_code({"value": None}) is None

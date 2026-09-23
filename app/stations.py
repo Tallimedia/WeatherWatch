@@ -137,3 +137,47 @@ def by_distance(stations: tuple[Station, ...], lat: float, lon: float) -> list[t
     ranked = [(s, haversine_km(lat, lon, s.lat, s.lon)) for s in stations]
     ranked.sort(key=lambda pair: pair[1])
     return ranked
+
+
+# --------------------------------------------------------------------------
+# Every FMI observation station, by fmisid
+# --------------------------------------------------------------------------
+
+#: The curated lists above are marine only. The land observation endpoint
+#: picks whichever of ~440 stations is nearest, so the car needs the chosen
+#: station's position to recompute "x km from you" as it drives — otherwise
+#: the figure is frozen at the last fetch and can be 2 km stale, which on a
+#: 4 km reading is a 50% error (FIELD-NOTES, 2026-09-23).
+#:
+#: Station positions are geography: fetched once and held for a day.
+FMI_STATIONS_QUERY = "fmi::ef::stations"
+
+_EF = "{http://inspire.ec.europa.eu/schemas/ef/4.0}"
+_GML = "{http://www.opengis.net/gml/3.2}"
+_FMISID_CODESPACE = "stationcode/fmisid"
+
+
+def parse_station_positions(xml: str) -> dict[int, tuple[float, float]]:
+    """fmisid → (lat, lon) from the `fmi::ef::stations` stored query.
+
+    `gml:pos` is **latitude first** here (the Point declares
+    `axisLabels="Lat Long"`, EPSG:4258), unlike GeoJSON. Reading it the other
+    way round puts every Finnish station in Somalia.
+    """
+    import xml.etree.ElementTree as ET
+
+    out: dict[int, tuple[float, float]] = {}
+    root = ET.fromstring(xml)
+    for facility in root.iter(f"{_EF}EnvironmentalMonitoringFacility"):
+        ident = facility.find(f"{_GML}identifier")
+        if ident is None or _FMISID_CODESPACE not in (ident.get("codeSpace") or ""):
+            continue
+        point = facility.find(f"{_EF}representativePoint/{_GML}Point/{_GML}pos")
+        if point is None or not (point.text or "").strip():
+            continue
+        try:
+            lat, lon = (float(v) for v in point.text.split()[:2])
+            out[int(ident.text)] = (lat, lon)
+        except (TypeError, ValueError):
+            continue
+    return out

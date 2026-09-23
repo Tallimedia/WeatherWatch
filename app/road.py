@@ -244,6 +244,8 @@ def nearest_station(stations: dict, lat: float, lon: float) -> dict | None:
                 "id": props.get("id") or feature.get("id"),
                 "name": props.get("name"),
                 "distance_km": km,
+                "lat": slat,
+                "lon": slon,
             }
     if best is not None:
         best["distance_km"] = round(best["distance_km"], 1)
@@ -284,6 +286,23 @@ def nearest_section(sections: dict, lat: float, lon: float) -> dict | None:
 #: 2026-09-22: `vt3_Helsinki_Pirkkola` returned "The sensor has a fault" where
 #: a surface state belongs, and the app printed it as one.
 _FAULT_MARKERS = ("fault", "error")
+
+
+def keli_code(sensor: dict | None) -> int | None:
+    """The raw KELI value (0-9), for a client to colour or branch on.
+
+    Exists because matching a *localised* description string is fragile — it
+    breaks silently the moment a translation is edited, and a client cannot
+    tell "Kuura" (frost) from "Kuiva" (dry) without knowing every language's
+    wording. The code is stable across fi/sv/en and matches Digitraffic's own
+    published table at /api/weather/v1/sensors.
+    """
+    if not sensor or sensor.get("value") is None:
+        return None
+    try:
+        return int(sensor["value"])
+    except (TypeError, ValueError):
+        return None
 
 
 def is_fault(sensor: dict | None) -> bool:

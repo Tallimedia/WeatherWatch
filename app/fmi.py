@@ -219,3 +219,18 @@ async def resolve_place(place: str) -> tuple[float, float, str]:
             if row.get("latitude") is not None and row.get("longitude") is not None:
                 return float(row["latitude"]), float(row["longitude"]), row.get("name") or place
     raise UnknownPlace(place)
+
+
+async def wfs_raw(storedquery_id: str, **query: Any) -> str:
+    """The raw XML of a stored query.
+
+    `wfs_simple` and `wfs_timevaluepair` both shape observation results. The
+    station metadata document is neither — it is a facility register — so it
+    is parsed by its own caller (`stations.parse_station_positions`).
+    """
+    args = {"service": "WFS", "version": "2.0.0", "request": "getFeature",
+            "storedquery_id": storedquery_id, **query}
+    response = await client().get(config.FMI_WFS, params=args)
+    if response.status_code != 200:
+        raise FMIError(f"wfs {storedquery_id} {response.status_code}")
+    return response.text

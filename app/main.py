@@ -32,6 +32,7 @@ from .fmi import (
     resolve_place,
     timeseries,
     wave_observations,
+    wfs_raw as fmi_wfs_raw,
     wfs_simple,
     wfs_timevaluepair,
 )
@@ -393,6 +394,12 @@ async def observations(
     # FMI, which differs by up to the cache TTL.
     current["at"] = measured_at
     current["retrieved"] = retrieved
+    # So a moving client can recompute its distance to the station instead of
+    # displaying the one computed here, which is only true for the position
+    # this request carried.
+    position = await _station_position(current.get("fmisid"))
+    if position is not None:
+        current["station_lat"], current["station_lon"] = position
     current["attribution"] = ATTRIBUTION
     return current
 
@@ -494,6 +501,26 @@ async def _buoy_reading(
         except ValueError:
             out["observed_epoch"] = None
     return out
+
+
+async def _station_position(fmisid: int | None) -> tuple[float, float] | None:
+    """Where an FMI observation station physically is.
+
+    Served so the car can recompute "x km from you" against its live fix. The
+    distance the backend computes is correct only for the position it was
+    asked about, and the app reloads every 2 km — so a frozen figure can be
+    2 km out, which on a 4 km reading is half of it (FIELD-NOTES 2026-09-23).
+    """
+    if fmisid is None:
+        return None
+    try:
+        xml = await cache.aget_or_set(
+            "fmi:stations:positions", config.TTL_STATION_POSITIONS,
+            lambda: fmi_wfs_raw(stations.FMI_STATIONS_QUERY),
+        )
+    except FMIError:
+        return None
+    return stations.parse_station_positions(xml).get(int(fmisid))
 
 
 @app.get("/v1/warnings")
@@ -616,8 +643,17 @@ async def road_conditions(
             station = {
                 "name": nearest.get("name"),
                 "distance_km": nearest.get("distance_km"),
+                # Same reason as the observation station: let the car keep the
+                # distance honest as it drives.
+                "lat": nearest.get("lat"),
+                "lon": nearest.get("lon"),
                 "condition": None if keli_faulty else (keli or {}).get("description"),
                 "condition_fault": keli_faulty,
+                # The raw KELI code (0-9), so a client can colour or branch on
+                # meaning rather than string-matching a localised description —
+                # matching text is fragile and breaks silently the moment a
+                # translation changes.
+                "condition_code": None if keli_faulty else road.keli_code(keli),
                 "warning": (sensors.get("VAROITUS_1") or {}).get("description"),
                 "freezing_point_c": (sensors.get("JÄÄTYMISPISTE_1") or {}).get("value"),
                 "dew_point_margin_c": (sensors.get("KASTEPISTE_ERO_TIE") or {}).get("value"),

@@ -142,9 +142,19 @@ function roadV04() {
   const s = r.surface || {}, st = r.station || {};
   const [riskText, riskCls] = RISK[r.ice_risk?.level] || RISK.unknown;
 
+  // Same head row as the Sää tab: where and when, once, before the numbers.
+  let html = "";
+  if (st.name || s.station) {
+    const at = s.at?.road_temp_c;
+    html += row(esc(prettyStation(st.name || s.station)),
+      [[ "Tiesääasema", at ? `klo ${hhmm(at)}` : null,
+         `${fi1(st.distance_km ?? s.distance_km ?? 0)} km sijainnistasi`]
+        .filter(Boolean).join(" · ")], null);
+  }
+
   // Label first, value with it. A label placed last gets orphaned by the
   // divider and reads as a heading for the next row (Nico, 2026-09-23).
-  let html = row(`Tienpinta&nbsp;&nbsp;${tempC(s.road_temp_c)}`,
+  html += row(`Tienpinta&nbsp;&nbsp;${tempC(s.road_temp_c)}`,
     [`<span class="${riskCls}">${esc(riskText)}</span>`,
      `Ilma ${tempC(s.air_temp_c)} · Kastepiste ${tempC(s.dew_point_c)}`], null);
 
@@ -153,11 +163,6 @@ function roadV04() {
     [[st.freezing_point_c != null ? `Jäätyy ${tempC(st.freezing_point_c)}` : null,
       st.salt_g_m2 != null ? `suolaa ${fi1(st.salt_g_m2)} g/m²` : null]
       .filter(Boolean).join(" · ") || null], null);
-
-  if (st.name || s.station) {
-    html += row(esc(prettyStation(st.name || s.station)),
-      [`Lähin tiesääasema · ${fi1(st.distance_km ?? s.distance_km ?? 0)} km · ${age(s.age_seconds)}`], null);
-  }
 
   // 0h is type=OBSERVATION, not a forecast — a second "now" from a different
   // source. Dropped, which buys a fourth genuine forecast step.
@@ -202,8 +207,10 @@ function weatherV04() {
   const o = data.obs;
   if (!o) return `<p class="msg">No observation for this location.</p>`;
 
-  let html = row(`Sää nyt · ${esc(o.stationname || "")}`,
-    [`Klo ${hhmm(o.epochtime)} · ${fi1(o.distance ?? 0)} km sijainnistasi`], null);
+  // The tab is already called Sää and the row below already says Nyt, so a
+  // "Sää nyt" prefix here was saying it a third time (Nico, 2026-09-23).
+  let html = row(esc(o.stationname || "–"),
+    [`Havainto klo ${hhmm(o.epochtime)} · ${fi1(o.distance ?? 0)} km sijainnistasi`], null);
 
   const nowText = (data.fch || data.fc || [])[0]?.smartsymboltext;
   html += row(`Nyt&nbsp;&nbsp;&nbsp;&nbsp;${tempC(o.temperature)}`,
