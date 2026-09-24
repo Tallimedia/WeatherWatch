@@ -9,10 +9,12 @@
     a separate store entry — new URL, no carried-over installs or reviews.
 
     Correction 2026-09-24 (Nico): Connect IQ beta entries are creator-only —
-    not a multi-tester system — and they are DELETED once the app goes public,
-    not left idle under the old id. The id above no longer exists. Any further
-    beta testing needs a brand new id, generated fresh, same as a public
-    release does.
+    not a multi-tester system — and they are NOT auto-deleted when the app
+    goes public. The id above no longer exists because Nico deleted it
+    himself after v1.0.0 shipped; left alone, it would still be there today
+    as a standing side channel for testing new builds, entirely separate from
+    the public listing. If a beta is wanted again, check the dashboard before
+    assuming a fresh id is needed.
 
     Generate a fresh one with:  uuidgen | tr -d - | tr 'A-Z' 'a-z'
 
