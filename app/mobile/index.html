@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Finland Weather</title>
+<meta name="robots" content="noindex">
+<!-- iOS "Add to Home Screen": this is what actually sets the label under the
+     saved icon — <title> alone is not what iOS reads for that (2026-09-27). -->
+<meta name="apple-mobile-web-app-title" content="Finland Weather">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#f2f2f3">
+<!-- Browser tab icon and the iOS "Add to Home Screen" icon — the FIWeatherWatch
+     brand mark (same cloud glyph as the nav bar on weather.tallimedia.com),
+     rasterised from icon-source.svg via qlmanage since no SVG renderer was
+     available locally (2026-09-27). apple-touch-icon must be a flat PNG, no
+     transparency — iOS applies its own corner mask and ignores alpha. -->
+<link rel="icon" type="image/svg+xml" href="/public/icons/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/public/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/public/icons/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/public/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="/public/styles.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  /* Dark mode — this page's own, not styles.css's (shared with two other
+     sites that don't have one; scoping it here avoids touching them). Follows
+     system preference by default; the sun/moon toggle sets an explicit
+     `data-theme` that overrides it and is remembered (2026-09-27). Icon colours
+     (--cloud/--cloud-2/--s1/--s4/--muted) are defined here too — common.js's
+     icon() reads them with no fallback, so they were silently rendering
+     black everywhere before this; harmless in light mode's dark-on-light
+     text but would have made every weather icon invisible in dark mode. */
+  :root {
+    --color-input-bg: #fff;
+    --cloud: #55595e; --cloud-2: #7c8186; --s1: #5980a6; --s4: #eda100; --muted: #98989b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --color-bg: #16181a; --color-neutral-100: #232527; --color-input-bg: #1e2022;
+      --color-divider: color-mix(in srgb, #fff 14%, transparent);
+      --color-text: #f0f0f1; --color-neutral-300: #3a3c3e;
+      --color-neutral-500: #8b8b8e; --color-neutral-600: #a3a3a6;
+      --color-neutral-700: #c2c2c4; --color-neutral-800: #dcdcdd;
+      --color-accent-700: #94bce3;
+      --cloud: #9aa0a6; --cloud-2: #6b7075; --s1: #94bce3; --muted: #7a7a7d;
+    }
+  }
+  :root[data-theme="dark"] {
+    --color-bg: #16181a; --color-neutral-100: #232527; --color-input-bg: #1e2022;
+    --color-divider: color-mix(in srgb, #fff 14%, transparent);
+    --color-text: #f0f0f1; --color-neutral-300: #3a3c3e;
+    --color-neutral-500: #8b8b8e; --color-neutral-600: #a3a3a6;
+    --color-neutral-700: #c2c2c4; --color-neutral-800: #dcdcdd;
+    --color-accent-700: #94bce3;
+    --cloud: #9aa0a6; --cloud-2: #6b7075; --s1: #94bce3; --muted: #7a7a7d;
+  }
+
+  html, body { margin: 0; background: var(--color-bg); }
+  body { padding: max(16px, env(safe-area-inset-top)) 14px max(24px, env(safe-area-inset-bottom));
+         font-family: var(--font-body); }
+  * { box-sizing: border-box; }
+  .wrap { max-width: 480px; margin: 0 auto; }
+  .top { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .top input { flex: 1; font: inherit; font-size: 15px; padding: 8px 11px; border-radius: 9px;
+               border: 1px solid var(--color-neutral-300); background: var(--color-input-bg);
+               color: var(--color-text); min-width: 0; }
+  .theme-btn { display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
+               width: 36px; height: 36px; border-radius: 9px; border: 1px solid var(--color-neutral-300);
+               background: var(--color-input-bg); color: var(--color-neutral-700); cursor: pointer; padding: 0; }
+  .theme-btn svg { width: 18px; height: 18px; }
+  .theme-btn[aria-pressed="true"] { color: var(--color-accent-700); border-color: var(--color-accent-700); }
+  .panel { position: relative; background: var(--color-neutral-100); border: 1px solid var(--color-divider);
+           border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+  /* Only on boxes carrying an actual live reading (observations, marine
+     station, radar/lightning) — Today and the 3-day box are forecasts, not
+     live data, and deliberately don't get one (2026-09-27). */
+  .live-badge { position: absolute; top: 14px; right: 14px; display: flex; align-items: center;
+                gap: 5px; font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+                font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: #ff453a; }
+  .live-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #ff453a;
+                box-shadow: 0 0 6px rgba(255,69,58,.7); animation: live-pulse 2s ease-in-out infinite; }
+  @keyframes live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+  .lbl { font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 14px;
+         text-transform: uppercase; letter-spacing: .06em; color: var(--color-accent-700);
+         margin-bottom: 10px; }
+  .msg { color: var(--color-neutral-600); font-size: 16px; }
+  .ic { display: inline-block; vertical-align: -2px; margin-right: 4px;
+        width: 15px; height: 15px; color: var(--color-neutral-500); }
+
+  /* Live now */
+  .now { display: flex; align-items: center; gap: 14px; }
+  .now .temp { font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+               font-size: 58px; line-height: 1;
+               letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+  .now .desc { color: var(--color-neutral-800); font-size: 17px; font-weight: 500; }
+  .now .where { color: var(--color-neutral-500); font-size: 13px; margin-top: 3px; }
+  /* Wind/Rain given equal width and centred, rather than left-bunched with a
+     fixed gap — "spread evenly" (2026-09-27). */
+  .facts3 { display: flex; margin-top: 12px; padding-top: 12px;
+            border-top: 1px solid var(--color-divider); }
+  .facts3 > div { flex: 1; text-align: center; font-size: 14px; color: var(--color-neutral-700);
+                  font-weight: 500; }
+  .facts3 b { display: block; font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+              font-size: 23px; color: var(--color-text); font-variant-numeric: tabular-nums; }
+
+  /* Nearest road station, under the wind/rain facts (2026-09-27) */
+  .road-row { display: flex; margin-top: 10px; padding-top: 10px;
+              border-top: 1px solid var(--color-divider); }
+  .road-row > div { flex: 1; text-align: center; font-size: 14px; color: var(--color-neutral-700);
+                     font-weight: 500; }
+  .road-row b { display: block; font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+                font-size: 19px; color: var(--color-text); font-variant-numeric: tabular-nums; }
+  .road-station { font-size: 12px; color: var(--color-neutral-500); text-align: center; margin-top: 8px; }
+
+  /* Today strip — six columns, fixed, always fitting the panel width rather
+     than scrolling: shrink (not a fixed min-width) is what makes that true
+     regardless of screen width or font size (2026-09-27, the fixed 56px
+     minimum was overflowing the panel and clipping the last column). */
+  .hrow { display: flex; gap: 3px; }
+  .hrow .h { flex: 1 1 0; min-width: 0; text-align: center; font-size: 13px; }
+  .hrow .h .t { color: var(--color-neutral-600); display: flex; align-items: center;
+                justify-content: center; gap: 2px; font-weight: 500; }
+  .hrow .h .v { font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+                font-size: 20px; font-variant-numeric: tabular-nums; margin: 2px 0; }
+  .hrow .h .r { font-size: 12px; color: var(--color-neutral-500); font-weight: 500; }
+  .hrow .h .r.wet { color: var(--color-accent-700); font-weight: 700; }
+
+  /* 3-day general — one column per day, each with its own title and icon,
+     rather than a shared panel title (2026-09-27). */
+  .d3 { display: flex; gap: 8px; }
+  .d3 .day { flex: 1 1 0; text-align: center; padding: 10px 6px; border-radius: 10px;
+             background: var(--color-bg); border: 1px solid var(--color-divider); }
+  .d3 .wd { font-family: var(--font-heading); font-weight: var(--font-heading-weight); font-size: 13px;
+            text-transform: uppercase; color: var(--color-accent-700); margin-bottom: 6px; }
+  .d3 .hilo { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 16px; margin: 4px 0 6px; }
+  .d3 .hilo .lo { color: var(--color-neutral-500); font-weight: 500; }
+  .d3 .wind, .d3 .rain { display: flex; align-items: center; justify-content: center; gap: 3px;
+                          font-size: 12.5px; color: var(--color-neutral-700); margin-top: 3px; }
+  .d3 .rain.wet { color: var(--color-accent-700); font-weight: 700; }
+
+  /* Sea — four equal columns, same "spread evenly" treatment as facts3. */
+  .sea { display: flex; }
+  .sea > div { flex: 1; text-align: center; font-size: 14px; color: var(--color-neutral-700);
+               font-weight: 500; }
+  .sea b { display: block; font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+           font-size: 25px; font-variant-numeric: tabular-nums; }
+
+  /* Radar map */
+  .map-pick { margin-bottom: 10px; }
+  .map-pick select { font: inherit; font-size: 15px; padding: 8px 10px; border-radius: 8px;
+        border: 1px solid var(--color-neutral-300); background: var(--color-input-bg);
+        color: var(--color-text); width: 100%; }
+  #radar-map { height: 300px; border-radius: 10px; overflow: hidden;
+               border: 1px solid var(--color-divider); }
+  .map-note { font-size: 12px; color: var(--color-neutral-600); margin-top: 8px; }
+
+  .foot { text-align: center; font-size: 12px; color: var(--color-neutral-500); margin: 18px 0 0; }
+  .foot a { color: var(--color-neutral-600); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <input id="place" value="Tapiola" autocapitalize="words" autocomplete="off" spellcheck="false">
+    <button class="theme-btn" id="theme-light" type="button" aria-label="Light mode" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="4.5"/>
+        <path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>
+      </svg>
+    </button>
+    <button class="theme-btn" id="theme-dark" type="button" aria-label="Dark mode" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="panel">
+    <span class="live-badge">Live</span>
+    <div id="now-box"><p class="msg">Loading…</p></div>
+  </div>
+
+  <div class="panel">
+    <div class="lbl">Today</div>
+    <div id="today-box"><p class="msg">Loading…</p></div>
+  </div>
+
+  <div class="panel">
+    <div id="d3-box"><p class="msg">Loading…</p></div>
+  </div>
+
+  <div class="panel">
+    <span class="live-badge">Live</span>
+    <div class="lbl" id="sea-lbl">Sea</div>
+    <div id="sea-box"><p class="msg">Loading…</p></div>
+  </div>
+
+  <div class="panel">
+    <span class="live-badge">Live</span>
+    <div class="lbl">Rain radar &amp; lightning</div>
+    <div class="map-pick">
+      <select id="map-layer">
+        <option value="radar">Rain radar</option>
+        <option value="rainrate">Rain rate</option>
+        <option value="lightning">Lightning (last 3 h)</option>
+      </select>
+    </div>
+    <div id="radar-map"></div>
+    <p class="map-note" id="map-note"></p>
+  </div>
+
+  <p class="foot">FMI open data, CC BY 4.0 · <a href="https://weather.tallimedia.com">Full site</a></p>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="/web/common.js"></script>
+<script src="/public/mobile.js"></script>
+</body>
+</html>

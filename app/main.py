@@ -19,6 +19,7 @@ from datetime import datetime, timedelta
 from typing import Any, AsyncIterator
 
 import xml.etree.ElementTree as ET
+from zoneinfo import ZoneInfo
 
 import httpx
 from fastapi import FastAPI, HTTPException, Query, Request
@@ -369,13 +370,32 @@ async def forecast(
     Uses FMI's default producer (`pal_skandinavia`) — the post-processed,
     meteorologist-corrected product shown on ilmatieteenlaitos.fi, not raw
     model output (RESEARCH.md §3).
+
+    **B6 fix (2026-09-27):** FMI silently ignores the `hours=` parameter on
+    this producer — verified live, `hours=3` and `hours=240` return the
+    byte-identical 8 points (24h at the default 3h step) regardless. Explicit
+    `starttime`/`endtime` does not have this problem and was verified live
+    the same day to return the full requested span (24 points for 72h at a
+    3h step). `hours` stays the public parameter for backward compatibility
+    with the shipped watch app; it is converted to absolute bounds here
+    rather than forwarded as-is. FI-WEATHER-ROADMAP.md tracked this as B6 —
+    this is its backend half (C5b); harmless to ship ahead of any client
+    change, since a caller that only ever read the first few points still
+    does, and now simply has more it can choose to read.
     """
     if place is None and (lat is None or lon is None):
         place = config.DEFAULT_PLACE
     key = f"fc:{place}:{lat}:{lon}:{hours}:{step}:{lang}"
 
     async def fetch() -> list[dict]:
-        query: dict[str, Any] = {"timestep": step, "hours": hours, "lang": lang}
+        now = datetime.utcnow()
+        end = now + timedelta(hours=hours)
+        query: dict[str, Any] = {
+            "timestep": step,
+            "starttime": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "endtime": end.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "lang": lang,
+        }
         if place is not None:
             # Resolve the name first, then ask by coordinates — `lang` must not
             # be able to make a valid Finnish place name unresolvable (app/fmi.py).
@@ -390,6 +410,24 @@ async def forecast(
     except FMIError as exc:
         raise _fail(exc) from exc
     return {"place": place, "attribution": ATTRIBUTION, "points": rows}
+
+
+@app.get("/v1/geocode")
+async def geocode(place: str = Query(..., max_length=config.MAX_PLACE_LEN)) -> dict:
+    """Coordinates for a place name, exposed directly.
+
+    Every other endpoint resolves a place name internally (`_resolve`,
+    cached) and never hands the coordinates back — callers only ever see
+    place-shaped results. The mobile page needs the actual lat/lon client-side
+    to pick the nearest marine station to whatever land place is selected
+    (2026-09-27), rather than duplicating FMI's gazetteer server-side just
+    for that one lookup.
+    """
+    try:
+        lat, lon, resolved = await _resolve(place)
+    except UnknownPlace as exc:
+        raise _fail(exc) from exc
+    return {"place": place, "resolved": resolved, "lat": lat, "lon": lon}
 
 
 @app.get("/v1/observations")
@@ -602,13 +640,22 @@ async def warnings_and_notices(
 
 @app.get("/v1/road")
 async def road_conditions(
-    lat: float, lon: float,
+    lat: float | None = None,
+    lon: float | None = None,
+    place: str | None = Query(None, max_length=config.MAX_PLACE_LEN,
+                             description="Alternative to lat/lon, geocoded by FMI"),
     lang: str = Query("en", pattern="^(fi|sv|en)$"),
 ) -> dict:
     """Road surface conditions, ice risk and the hours ahead, for one point.
 
-    The car client's single endpoint. Three upstream sources are merged here so
-    the head unit makes one call and receives a few hundred bytes:
+    The car client's single endpoint — it always sends real GPS coordinates,
+    so `lat`/`lon` stay the primary path and behave exactly as before. `place`
+    is additive, for callers with a place name instead of a fix (the weather
+    demo page's picker, 2026-09-27) — resolved the same way `/v1/forecast`
+    resolves one, then handled identically from here on.
+
+    Three upstream sources are merged here so the caller makes one call and
+    receives a few hundred bytes:
 
     * FMI road stations — surface temperature and the numbers the ice risk is
       derived from;
@@ -625,6 +672,13 @@ async def road_conditions(
     keys are snapped to a coarse grid. The car app's Play Data safety
     declaration depends on this staying true (FIRoadWeather/PLAY-CONSOLE-SETUP.md §3).
     """
+    if lat is None or lon is None:
+        if place is None:
+            raise HTTPException(status_code=400, detail="need lat+lon or place")
+        try:
+            lat, lon, _ = await _resolve(place)
+        except UnknownPlace as exc:
+            raise _fail(exc) from exc
     if not (59.0 <= lat <= 70.5 and 19.0 <= lon <= 32.0):
         # Both data sources are Finland-only. Saying so beats four upstream
         # calls that can only come back empty.
@@ -715,6 +769,69 @@ async def road_conditions(
         "retrieved": retrieved,
         "attribution": ATTRIBUTION,
         "attribution_road": road.DIGITRAFFIC_ATTRIBUTION,
+    }
+
+
+# Whole-country box, CRS:84 (lon,lat) order — matches the WMS GetMap calls the
+# map overlay makes directly against FMI, so the two share one notion of
+# "Finland" (verified live 2026-09-27: this exact order and axis convention is
+# what makes the radar composite render in the right place at all — CRS:84 is
+# defined lon-first regardless of WMS version, unlike EPSG:4326).
+_FINLAND_BBOX = "19,59,32,70.5"
+
+
+@app.get("/v1/lightning")
+async def lightning(
+    hours: float = Query(3, ge=0.25, le=24, description="Look-back window, hours"),
+) -> dict:
+    """Recent lightning strikes across Finland, as points for a map overlay.
+
+    FMI's open radar WMS has no lightning layer at all — flashes only exist as
+    point observations from the ``flash`` producer (verified 2026-09-27:
+    ``bbox`` + absolute ``starttime``/``endtime`` returns ``epochtime``,
+    ``longitude``, ``latitude``, ``peak_current``, ``multiplicity``). So unlike
+    the radar layer, which the browser fetches directly from FMI as WMS tiles,
+    lightning is plotted as ordinary map markers — which also sidesteps the
+    radar layer's CRS restriction entirely, since marker positions are just
+    lat/lon regardless of what projection a basemap tile is in.
+
+    Relative offsets are unreliable on this producer (``starttime=-3h`` returns
+    flashes ending hours early — RESEARCH.md §7 for the equivalent FMI issue on
+    other producers), so bounds are computed as absolute timestamps here rather
+    than left to the query string.
+    """
+    end = datetime.utcnow()
+    start = end - timedelta(hours=hours)
+    key = f"flash:{int(hours * 4)}"  # quarter-hour buckets keep the cache small
+
+    async def fetch() -> list[dict]:
+        return await timeseries(
+            ["longitude", "latitude", "peak_current", "multiplicity"],
+            producer="flash",
+            bbox=_FINLAND_BBOX,
+            starttime=start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            endtime=end.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        )
+
+    try:
+        rows = await cache.aget_or_set(key, config.TTL_LIGHTNING, fetch)
+    except FMIError as exc:
+        raise _fail(exc) from exc
+
+    return {
+        "attribution": ATTRIBUTION,
+        "hours": hours,
+        "strikes": [
+            {
+                "lat": r["latitude"],
+                "lon": r["longitude"],
+                "epochtime": r.get("epochtime"),
+                "peak_current": r.get("peak_current"),
+                "multiplicity": r.get("multiplicity"),
+            }
+            for r in rows
+            if r.get("latitude") is not None and r.get("longitude") is not None
+        ],
     }
 
 
@@ -886,6 +1003,147 @@ async def glance(
         "sea_wind_dir": sea.get("windcompass8"),
         "sea_at": sea_at.get("windspeedms"),
         "age_seconds": _age_seconds(sea.get("epochtime")),
+    }
+
+
+_HELSINKI = ZoneInfo("Europe/Helsinki")
+
+
+def _sample_even(seq: list, n: int) -> list:
+    """At most `n` evenly-spaced items, always including the first and last.
+
+    Same logic as the mobile page's own `sampleEven` (site.js/mobile.js) —
+    duplicated here in Python rather than shared, since there's no code path
+    between a Garmin/JS frontend and this backend to share it through.
+    """
+    if len(seq) <= n:
+        return seq
+    return [seq[round(i * (len(seq) - 1) / (n - 1))] for i in range(n)]
+
+
+@app.get("/v1/glance-home")
+async def glance_home(
+    place: str = Query(config.DEFAULT_PLACE, max_length=config.MAX_PLACE_LEN),
+    lang: str = Query("en", pattern="^(fi|sv|en)$"),
+) -> dict:
+    """Live conditions, today, and a rough 1-2 day outlook — pre-aggregated
+    server-side for a home-dashboard widget (2026-09-27, Nico's Glance page).
+
+    Deliberately not a 7-day view (what the widget it replaces showed, from
+    Open-Meteo — not FMI at all): checked several times a day, so current
+    conditions and the rest of today matter far more than a week out. The
+    two days beyond today are summary-only (hi/lo/symbol/rain total), same
+    "outlook, not detail" reasoning the 8-day box on weather.kavaleff.com
+    uses past day 3 — forecast precision that far out doesn't support an
+    hourly presentation.
+
+    Aggregation happens here rather than in the widget's own template
+    language (see weather-7d.yml, the config this replaces) — a template
+    is a bad place to do date-grouping and min/max, so the widget itself
+    only has to render already-shaped JSON.
+    """
+    try:
+        plat, plon, resolved = await _resolve(place)
+    except UnknownPlace as exc:
+        raise _fail(exc) from exc
+
+    async def fetch_fc() -> list[dict]:
+        now = datetime.utcnow()
+        end = now + timedelta(hours=60)
+        return await timeseries(
+            _FORECAST_PARAMS,
+            latlon=f"{plat},{plon}",
+            # Hourly, not 3-hourly (2026-09-27, was 180): FMI's timestep is a
+            # fixed grid anchored to UTC, not relative to "now" — at 21:00
+            # local the next 3h slot is already 00:00 the next day, so a
+            # coarser step silently drops the last hour or two of "today"
+            # rather than just being less precise. Same reasoning the mobile
+            # page's own Today section already uses.
+            timestep=60,
+            starttime=now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            endtime=end.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            lang=lang,
+        )
+
+    try:
+        obs_rows, _ = await _observation_rows(place=place)
+        points = await cache.aget_or_set(
+            f"fc:home:{place}:{lang}", config.TTL_FORECAST, fetch_fc
+        )
+    except FMIError as exc:
+        raise _fail(exc) from exc
+
+    obs, _ = _latest(obs_rows, _OBSERVATION_PARAMS) if obs_rows else ({}, {})
+
+    def local_date(epoch: int) -> str:
+        return datetime.fromtimestamp(epoch, tz=_HELSINKI).date().isoformat()
+
+    def local_weekday(epoch: int) -> str:
+        return datetime.fromtimestamp(epoch, tz=_HELSINKI).strftime("%a")
+
+    today_str = local_date(int(time.time()))
+    by_date: dict[str, list[dict]] = {}
+    for p in points:
+        if p.get("epochtime") is None:
+            continue
+        by_date.setdefault(local_date(p["epochtime"]), []).append(p)
+
+    today_sample = _sample_even(by_date.get(today_str, []), 6)
+    cur = today_sample[0] if today_sample else None
+
+    outlook = []
+    for d in sorted(d for d in by_date if d != today_str)[:2]:
+        pts = by_date[d]
+        temps = [p["temperature"] for p in pts if p.get("temperature") is not None]
+        rains = [p["precipitation1h"] for p in pts if p.get("precipitation1h") is not None]
+        # Midday's symbol reads as "the day's weather" better than the first
+        # point — same reasoning as the mobile page's own daySummary().
+        midday = min(
+            pts,
+            key=lambda p: abs(
+                datetime.fromtimestamp(p["epochtime"], tz=_HELSINKI).hour - 13
+            ),
+        )
+        outlook.append({
+            "date": d,
+            "weekday": local_weekday(pts[0]["epochtime"]),
+            "hi": max(temps) if temps else None,
+            "lo": min(temps) if temps else None,
+            "rain_mm": round(sum(rains), 1) if rains else 0.0,
+            "smartsymbol": midday.get("smartsymbol"),
+        })
+
+    return {
+        "place": resolved or place,
+        "attribution": ATTRIBUTION,
+        "now": {
+            "temperature": obs.get("temperature"),
+            "station": obs.get("stationname"),
+            "distance_km": obs.get("distance"),
+            "age_seconds": _age_seconds(obs.get("epochtime")),
+            "windspeedms": obs.get("windspeedms"),
+            "windgust": obs.get("windgust"),
+            "smartsymbol": cur.get("smartsymbol") if cur else None,
+            "smartsymboltext": cur.get("smartsymboltext") if cur else None,
+            "precipitation1h": cur.get("precipitation1h") if cur else None,
+            "pop": cur.get("pop") if cur else None,
+        },
+        "today": [
+            {
+                "epochtime": p["epochtime"],
+                # Pre-formatted Helsinki-local "HH:MM" rather than leaving the
+                # client to parse epochtime itself — Glance's own template
+                # functions have no documented timezone behaviour for a unix
+                # timestamp, exactly the kind of silent-offset bug this whole
+                # project has repeatedly hit with FMI's own local-time field.
+                "time": datetime.fromtimestamp(p["epochtime"], tz=_HELSINKI).strftime("%H:%M"),
+                "temperature": p.get("temperature"),
+                "smartsymbol": p.get("smartsymbol"),
+                "precipitation1h": p.get("precipitation1h"),
+            }
+            for p in today_sample
+        ],
+        "outlook": outlook,
     }
 
 
@@ -1313,11 +1571,26 @@ if config.ENABLE_CHARTS:
 
 if config.ENABLE_PUBLIC:
 
+    #: Nico's own mobile-first page — a fourth site on this one container,
+    #: same pattern as ROADWEATHER_HOSTS/WEATHER_HOSTS: the Host header picks
+    #: the template, not a path.
+    MOBILE_HOSTS = {"weather.kavaleff.com"}
+
+    def _is_mobile(request: Request) -> bool:
+        return _hostname(request) in MOBILE_HOSTS
+
+    def _mobile_page() -> HTMLResponse:
+        html = (_HERE / "mobile" / "index.html").read_text(encoding="utf-8")
+        html = re.sub(r'((?:src|href)="/[^"]+?\.(?:js|css))"', r'\1?v=' + ASSET_V + '"', html)
+        return HTMLResponse(html, headers={"Cache-Control": "no-cache, must-revalidate"})
+
     @app.get("/")
     async def public_index(request: Request) -> HTMLResponse:
         host = _hostname(request)
         if host in ROADWEATHER_HOSTS:
             return _roadweather_placeholder()
+        if host in MOBILE_HOSTS:
+            return _mobile_page()
         return _page("public", "weather" if host in WEATHER_HOSTS else "app")
 
     app.mount("/public", StaticFiles(directory=_HERE / "public", html=True), name="public")

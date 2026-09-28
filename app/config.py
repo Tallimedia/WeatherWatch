@@ -44,6 +44,9 @@ MAX_PLACE_LEN = int(os.getenv("MAX_PLACE_LEN", "64"))
 TTL_FORECAST = int(os.getenv("TTL_FORECAST", "900"))
 TTL_OBSERVATIONS = int(os.getenv("TTL_OBSERVATIONS", "300"))
 TTL_MARINE = int(os.getenv("TTL_MARINE", "600"))
+# FMI's flash producer updates continuously; five minutes matches the demo
+# page's own refresh interval, so the map is never staler than the rest of it.
+TTL_LIGHTNING = int(os.getenv("TTL_LIGHTNING", "300"))
 # A name FMI does not know will not start being known in the next few minutes,
 # and each attempt costs four upstream calls.
 TTL_UNKNOWN_PLACE = int(os.getenv("TTL_UNKNOWN_PLACE", "600"))
@@ -98,6 +101,12 @@ WEATHER_URL = os.getenv("WEATHER_URL", "https://weather.tallimedia.com")
 
 # The app site, for the weather page to link back to.
 APP_URL = os.getenv("APP_URL", "https://weatherapp.tallimedia.com")
+
+# Nico's own personal, mobile-first weather page — same container, own
+# hostname, own stripped-down template (no pitch, no picker chrome, a single
+# glance + today + 3-day + sea view). Requires a Cloudflare Tunnel Public
+# Hostname route added by hand; nothing here can create that route itself.
+MOBILE_URL = os.getenv("MOBILE_URL", "https://weather.kavaleff.com")
 
 DEFAULT_PLACE = os.getenv("DEFAULT_PLACE", "Helsinki")
 DEFAULT_SEA_FMISID = int(os.getenv("DEFAULT_SEA_FMISID", "100996"))  # Helsinki Harmaja
