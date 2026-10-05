@@ -860,21 +860,26 @@ async def _nowcast(lat: float, lon: float) -> dict:
     return await cache.aget_or_set(f"nc:{rlat}:{rlon}", config.TTL_NOWCAST, fetch)
 
 
-async def _forecast_now(lat: float, lon: float) -> dict | None:
-    """First FMI forecast row for a point — the fallback when the Nowcast is out."""
+async def _forecast_rows(lat: float, lon: float) -> list[dict]:
+    """Hourly FMI forecast for a point, the current hour plus the next three.
+
+    Feeds two things: the fallback when the Nowcast is out (the first row), and
+    the device's temperature/rain graph (all of them). One cached fetch serves
+    both. The first row is the current clock hour, so it may be a few minutes old.
+    """
     rlat, rlon = bike.round_position(lat, lon)
 
     async def fetch() -> list[dict]:
         now = datetime.utcnow()
         return await timeseries(
-            ["temperature", "windspeedms", "hourlymaximumgust", "winddirection"],
+            ["temperature", "windspeedms", "hourlymaximumgust", "winddirection",
+             "precipitation1h"],
             latlon=f"{rlat},{rlon}", timestep=60,
             starttime=now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            endtime=(now + timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            endtime=(now + timedelta(hours=4)).strftime("%Y-%m-%dT%H:%M:%SZ"),
         )
 
-    rows = await cache.aget_or_set(f"bf:{rlat}:{rlon}", config.TTL_FORECAST, fetch)
-    return rows[0] if rows else None
+    return await cache.aget_or_set(f"bf:{rlat}:{rlon}", config.TTL_FORECAST, fetch)
 
 
 @app.get("/v1/bike")
@@ -912,12 +917,12 @@ async def bike_conditions(
     except (FMIError, httpx.HTTPError, ValueError, KeyError):
         nowcast = None
 
-    forecast_row: dict | None = None
-    if nowcast is None or nowcast.get("temp_c") is None:
-        try:
-            forecast_row = await _forecast_now(lat, lon)
-        except FMIError:
-            forecast_row = None
+    forecast_rows: list[dict] = []
+    try:
+        forecast_rows = await _forecast_rows(lat, lon)
+    except FMIError:
+        forecast_rows = []
+    forecast_row = forecast_rows[0] if forecast_rows else None
 
     strike: dict | None = None
     try:
@@ -940,7 +945,8 @@ async def bike_conditions(
     except (road.RoadDataError, httpx.HTTPError, ET.ParseError):
         warning = None
 
-    return bike.shape(nowcast, forecast_row, strike, warning, rain_mmh, int(time.time()))
+    return bike.shape(nowcast, forecast_row, strike, warning, rain_mmh, int(time.time()),
+                      forecast_rows)
 
 
 @app.get("/v1/bike/radar")

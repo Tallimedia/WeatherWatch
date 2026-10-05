@@ -154,6 +154,40 @@ def round_position(lat: float, lon: float, places: int = 2) -> tuple[float, floa
     return round(lat, places), round(lon, places)
 
 
+def forecast_block(rows: list[dict] | None) -> dict | None:
+    """The next few hours of hourly forecast, as parallel arrays.
+
+    For the rain/temperature graph on the device. Arrays rather than a list of
+    objects: four points of three values is ~100 bytes this way and the device
+    parses it without allocating a dictionary per hour. ``t0`` is the epoch of
+    the first point and ``step`` the spacing in seconds, so the device places
+    each point on its own clock and works out the hour labels itself. Rain is
+    integer tenths of mm/h, like the nowcast series. The first point is the
+    current hour, so it can be a few minutes in the past.
+
+    ``None`` when there are fewer than two usable points: one hour is not a
+    trend, and the device draws no graph rather than a blank one.
+    """
+    pts = [r for r in (rows or []) if r.get("epochtime") is not None]
+    if len(pts) < 2:
+        return None
+    step = int(pts[1]["epochtime"] - pts[0]["epochtime"])
+    if step <= 0:
+        return None
+
+    def col(key: str, scale: float = 1.0, digits: int = 1):
+        out = []
+        for r in pts:
+            v = r.get(key)
+            out.append(None if v is None else round(v * scale, digits))
+        return out
+
+    rain = [None if r.get("precipitation1h") is None else round(r["precipitation1h"] * 10)
+            for r in pts]
+    return {"t0": int(pts[0]["epochtime"]), "step": step,
+            "temp": col("temperature"), "wind": col("windspeedms"), "rain": rain}
+
+
 def shape(
     nowcast: dict | None,
     forecast_row: dict | None,
@@ -161,6 +195,7 @@ def shape(
     warning: dict | None,
     rain_threshold_mmh: float,
     retrieved: int,
+    forecast_rows: list[dict] | None = None,
 ) -> dict[str, Any]:
     """Assemble the payload. Every source is optional; absent ones are ``null``.
 
@@ -172,6 +207,7 @@ def shape(
         "temp": None, "wind": None, "gust": None, "wdir": None,
         "rain_now": None, "mtr": None, "rain": [], "step": 5,
         "strike": strike, "warn": warning,
+        "fc": forecast_block(forecast_rows),
         "src": "none", "retrieved": retrieved,
     }
     if forecast_row:

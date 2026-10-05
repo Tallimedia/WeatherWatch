@@ -171,3 +171,49 @@ def test_cap_picks_the_requested_language():
 
 def test_cap_without_a_language_keeps_the_old_first_block_behaviour():
     assert warn.parse_cap(_CAP_XML)[0]["event"] == "Tuulivaroitus"
+
+
+# --- hourly forecast block -------------------------------------------------
+
+def _hours(n=4, t0=1_791_226_800):
+    return [{"epochtime": t0 + i * 3600, "temperature": 13.8 + i * 0.2, "windspeedms": 9.0 + i,
+             "precipitation1h": 0.1 * i, "hourlymaximumgust": 15.0, "winddirection": 220.0}
+            for i in range(n)]
+
+
+def test_forecast_block_is_parallel_arrays_with_a_clock():
+    fc = bike.forecast_block(_hours())
+    assert fc["t0"] == 1_791_226_800 and fc["step"] == 3600
+    assert fc["temp"] == [13.8, 14.0, 14.2, 14.4]
+    assert fc["wind"] == [9.0, 10.0, 11.0, 12.0]
+    assert fc["rain"] == [0, 1, 2, 3]            # integer tenths of mm/h
+
+
+def test_forecast_block_needs_two_points_for_a_trend():
+    assert bike.forecast_block(_hours(1)) is None
+    assert bike.forecast_block([]) is None
+    assert bike.forecast_block(None) is None
+
+
+def test_forecast_block_keeps_gaps_as_none():
+    rows = _hours()
+    rows[2]["temperature"] = None
+    rows[1]["precipitation1h"] = None
+    fc = bike.forecast_block(rows)
+    assert fc["temp"][2] is None and fc["rain"][1] is None
+
+
+def test_shape_carries_the_forecast_without_disturbing_the_rest():
+    rows = _hours()
+    out = bike.shape(bike.parse_nowcast(_doc([0.0] * 5)), rows[0], None, None, 0.5, 1, rows)
+    assert out["fc"]["step"] == 3600 and out["rain"] == [0] * 5
+    assert bike.shape(None, None, None, None, 0.5, 1)["fc"] is None
+
+
+def test_payload_with_forecast_stays_small():
+    import json
+    rows = _hours()
+    out = bike.shape(bike.parse_nowcast(_doc([1.5] * 24)), rows[0],
+                     {"km": 12.3, "dir": "NE", "age_min": 4},
+                     {"level": "orange", "event": "Thunderstorm warning"}, 0.5, 1791207668, rows)
+    assert len(json.dumps(out)) < 800
