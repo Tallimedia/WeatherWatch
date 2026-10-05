@@ -47,6 +47,14 @@ STR = {
     k1:"Sivu 1", k2:"Sivu 2", k3:"Sivu 3", k4:"Asetukset", hScreens:"Jokainen näyttö", capLand:"Maa", capSea:"Meri", capWaves:"Aallot", capGlance:"Vilkaisu", capAbout:"Tietoja", capSmall:"Forerunner 255s",
     privacy:"Tietosuoja", terms:"Käyttöehdot",
     coast:"Rannikko", lakes:"Sisävedet", trend:"Tuuli, 12 viime tuntia", mean:"Keskituuli", noTrend:"Ei tuulihistoriaa saatavilla", rain:"Sade", rainNone:"ei sadetta", justNow:"juuri nyt", minAgo:"min sitten", hAgo:"h sitten", retrieved:"Haettu", loading:"Ladataan…",
+    h3Forecast3:"8 päivän ennuste", h3Radarmap:"Sadetutka ja salamat", h3Road:"Tien sää",
+    optRadar:"Sadetutka", optRainrate:"Sateen voimakkuus", optLightning:"Salamat (3 viime tuntia)",
+    mapNoteRadar:"Ilmatieteen laitoksen tutkamosaiikki, päivittyy 5 minuutin välein.",
+    mapNoteRainrate:"Ilmatieteen laitoksen sateen voimakkuus, päivittyy 5 minuutin välein.",
+    mapNoteLightning:"Ilmatieteen laitoksen salamahavainnot. Pilviväläystä ei näytetä erikseen — piste on isku joko pilvestä maahan tai pilvien välillä.",
+    mapNoteCloud:"Pilvi-/satelliittikuvaa ei ole saatavilla Ilmatieteen laitoksen avoimessa datassa — vain tutka ja salamat.",
+    dayLoading:"Ladataan…", roadStation:"Lähin tieasema", roadCondition:"Tien tila", roadSurface:"Tien pinta",
+    roadAir:"Ilma", roadFreezing:"Jäätymispiste", roadNoData:"Tietoja ei juuri nyt saatavilla.",
   },
   sv: {
     heroA:"Finlands väder,", heroB:"på land och till havs.",
@@ -94,6 +102,14 @@ STR = {
     k1:"Sida 1", k2:"Sida 2", k3:"Sida 3", k4:"Inställningar", hScreens:"Varje skärm", capLand:"Land", capSea:"Hav", capWaves:"Vågor", capGlance:"Överblick", capAbout:"Om appen", capSmall:"Forerunner 255s",
     privacy:"Integritet", terms:"Villkor",
     coast:"Kusten", lakes:"Insjöar", trend:"Vind, senaste 12 timmarna", mean:"Medelvind", noTrend:"Ingen vindhistorik tillgänglig", rain:"Nederbörd", rainNone:"inget regn", justNow:"just nu", minAgo:"min sedan", hAgo:"h sedan", retrieved:"Hämtad", loading:"Laddar…",
+    h3Forecast3:"8 dagars prognos", h3Radarmap:"Regnradar och blixtar", h3Road:"Väderdata för vägen",
+    optRadar:"Regnradar", optRainrate:"Nederbördsintensitet", optLightning:"Blixtar (senaste 3 h)",
+    mapNoteRadar:"Meteorologiska institutets radarmosaik, uppdateras var 5:e minut.",
+    mapNoteRainrate:"Meteorologiska institutets nederbördsintensitet, uppdateras var 5:e minut.",
+    mapNoteLightning:"Meteorologiska institutets blixtobservationer. Molnblixtar visas inte separat — en punkt är antingen ett moln-till-mark- eller ett moln-till-moln-utslag.",
+    mapNoteCloud:"Moln-/satellitbild finns inte i Meteorologiska institutets öppna data — endast radar och blixtar.",
+    dayLoading:"Laddar…", roadStation:"Närmaste vägstation", roadCondition:"Väglag", roadSurface:"Vägbanans temperatur",
+    roadAir:"Luft", roadFreezing:"Fryspunkt", roadNoData:"Ingen data tillgänglig just nu.",
   },
   en: {
     heroA:"Finnish weather,", heroB:"land and sea.",
@@ -141,6 +157,14 @@ STR = {
     k1:"Page 1", k2:"Page 2", k3:"Page 3", k4:"Settings", hScreens:"Every screen", capLand:"Land", capSea:"Sea", capWaves:"Waves", capGlance:"Glance", capAbout:"About", capSmall:"Forerunner 255s",
     privacy:"Privacy", terms:"Terms",
     coast:"Coast", lakes:"Inland lakes", trend:"Wind, last 12 hours", mean:"Mean", noTrend:"No wind history available", rain:"Rain", rainNone:"no rain", justNow:"just now", minAgo:"min ago", hAgo:"h ago", retrieved:"Retrieved", loading:"Loading…",
+    h3Forecast3:"8-day forecast", h3Radarmap:"Rain radar & lightning", h3Road:"On the road",
+    optRadar:"Rain radar", optRainrate:"Rain rate", optLightning:"Lightning (last 3 h)",
+    mapNoteRadar:"FMI's national radar composite, updates every 5 minutes.",
+    mapNoteRainrate:"FMI's rain-rate composite, updates every 5 minutes.",
+    mapNoteLightning:"FMI's own lightning detections. Cloud-to-cloud strikes aren't shown separately — a point is either a cloud-to-ground or cloud-to-cloud flash.",
+    mapNoteCloud:"Cloud/satellite imagery isn't available in FMI's open data — only radar and lightning are.",
+    dayLoading:"Loading…", roadStation:"Nearest road station", roadCondition:"Road condition", roadSurface:"Road surface",
+    roadAir:"Air", roadFreezing:"Freezing point", roadNoData:"No data available right now.",
   },
 };
 function storedLang() { try { return localStorage.getItem("fiw-lang"); } catch (_) { return null; } }
@@ -163,12 +187,37 @@ async function jget(path) {
 }
 
 function rainCell(mm) {
-  if (mm === null || mm === undefined) return `<div class="r"></div>`;
-  if (mm < 0.05) {
-    return `<div class="r" title="${T("rainNone")}"><span class="dry">·</span></div>`;
+  if (mm === null || mm === undefined) return `<div class="r">${RAIN_ICON}—</div>`;
+  const wet = mm >= 0.05;
+  return `<div class="r${wet ? " wet" : ""}" title="${T("rain")} ${mm.toFixed(1)} mm"
+    >${RAIN_ICON}${mm.toFixed(1)}<span class="u">mm</span></div>`;
+}
+
+/* Small inline glyphs for the facts row and the hourly strip — plain currentColor
+   SVGs so they inherit each context's own text colour, same as the weather
+   icons in common.js but simpler: these mark a category, not a condition. */
+const WIND_ICON = `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="2" stroke-linecap="round" aria-hidden="true">
+  <path d="M3 8h10a3 3 0 1 0-3-3"/><path d="M3 12h14a3 3 0 1 1-3 3"/><path d="M3 16h8"/></svg>`;
+const RAIN_ICON = `<svg class="ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+  <path d="M12 2C8 8 5 11.5 5 15a7 7 0 0 0 14 0c0-3.5-3-7-7-13z"/></svg>`;
+const CLOCK_ICON = `<svg class="ci" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>`;
+const THERMO_ICON = `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M10 13.5V5a2 2 0 1 1 4 0v8.5a4 4 0 1 1-4 0Z"/></svg>`;
+
+/* Evenly-spaced sample of at most `n` items, always including the first and
+   last — used to turn "every hour left today" into a fixed-width strip
+   regardless of how many hours that actually is. */
+function sampleEven(arr, n) {
+  if (arr.length <= n) return arr;
+  const out = [];
+  for (let i = 0; i < n; i += 1) {
+    out.push(arr[Math.round((i * (arr.length - 1)) / (n - 1))]);
   }
-  return `<div class="r wet" title="${T("rain")} ${mm.toFixed(1)} mm"
-    >${mm.toFixed(1)}<span class="u">mm</span></div>`;
+  return out;
 }
 
 function ageText(seconds) {
@@ -186,11 +235,26 @@ async function loadNow(place) {
       jget(`/v1/forecast?place=${encodeURIComponent(place)}&hours=24&step=60&lang=${LANG}`),
     ]);
     const now = Math.floor(Date.now() / 1000);
-    const ahead = (fc.points || []).filter((p) => p.epochtime >= now - 1800).slice(0, 12);
+    // The rest of today, and only today — tomorrow onward is the 8-day box's
+    // job now (2026-09-27). Bounded by the calendar date, so the *span*
+    // covered always ends at midnight, whatever time this loads. But holding
+    // the *count* fixed at 6 rather than the span is what actually avoids
+    // the 1am problem (~23 h remaining): six points spread evenly from now
+    // to midnight, at 14:00 that's roughly hourly, at 01:00 roughly every
+    // four hours — the strip never grows wider than six columns, so it never
+    // needs a scrollbar, and it always genuinely spans the rest of today
+    // rather than an arbitrary cut-off point partway through it.
+    const todayStr = localDate(now);
+    const todayPoints = (fc.points || [])
+      .filter((p) => p.epochtime >= now - 1800 && localDate(p.epochtime) === todayStr);
+    const ahead = sampleEven(todayPoints, 6);
     const sym = symbolInfo(ahead.length ? ahead[0].smartsymbol : null);
     const text = ahead.length && ahead[0].smartsymboltext
       ? ahead[0].smartsymboltext.replace(/^./, (m) => m.toUpperCase())
       : (sym ? sym.t : "—");
+    // No precipitation field on the observation station itself — the nearest
+    // forecast point is the closest thing to "rain right now" available.
+    const rainNow = ahead.length ? ahead[0].precipitation1h : null;
 
     host.innerHTML = `
       <div class="now">
@@ -202,12 +266,14 @@ async function loadNow(place) {
             ${ageText(obs.age_seconds)}</div>
         </div>
         <div class="facts">
-          <div>${T("wind")}<b>${fmt(obs.windspeedms, 1)} m/s</b>
+          <div>${WIND_ICON}${T("wind")}<b>${fmt(obs.windspeedms, 1)} m/s</b>
             <span class="at">${dirArrow(obs.winddirection, 15)}
               ${dirLabel(obs.winddirection) || (obs.windcompass8 ?? "")} ·
               ${at(obs, "windspeedms")}</span></div>
           <div>${T("gust")}<b>${fmt(obs.windgust, 1)} m/s</b>
             <span class="at">${at(obs, "windgust")}</span></div>
+          <div>${RAIN_ICON}${T("rain")}<b>${fmt(rainNow, 1)} mm</b>
+            <span class="at">${ahead.length ? localTime(ahead[0].epochtime) : "–"}</span></div>
           <div>${T("humidity")}<b>${fmt(obs.humidity, 0)}%</b>
             <span class="at">${at(obs, "humidity")}</span></div>
           <div>${T("pressure")}<b>${fmt(obs.pressure, 0)} hPa</b>
@@ -218,10 +284,10 @@ async function loadNow(place) {
         ${ahead.map((p) => {
           const i = symbolInfo(p.smartsymbol);
           return `<div class="h" title="${i ? i.t : ""}">
-            <div class="t">${localHour(p.epochtime)}</div>
+            <div class="t">${CLOCK_ICON}${localHour(p.epochtime)}</div>
             ${icon(i ? i.c : "unknown", i ? i.night : false, 30)}
-            <div class="v">${fmt(p.temperature, 0)}°</div>
-            <div class="w">${fmt(p.windspeedms, 0)}<span style="opacity:.6">/${fmt(p.hourlymaximumgust, 0)}</span></div>
+            <div class="v">${THERMO_ICON}${fmt(p.temperature, 0)}°</div>
+            <div class="w">${WIND_ICON}${fmt(p.windspeedms, 0)}<span style="opacity:.6">/${fmt(p.hourlymaximumgust, 0)}</span></div>
             ${rainCell(p.precipitation1h)}
           </div>`;
         }).join("")}
@@ -271,6 +337,231 @@ async function loadMarine(fmisid, buoy) {
          ${T("retrieved")} ${m.retrieved ? localTime(m.retrieved) : "—"}.</p>`;
   } catch (err) {
     host.innerHTML = `<p class="msg">Sea conditions are briefly unavailable (${err.message}).</p>`;
+  }
+}
+
+/* --- Next 3 days, then a 5-day overview (8 days total) -------------------
+   Reuses /v1/forecast at a wide window (200h ≈ 8 days) rather than a new
+   endpoint — B6 (FI-WEATHER-ROADMAP.md) used to cap every request at 24h
+   regardless of the `hours` value asked for; fixed backend-side 2026-09-27
+   by using explicit start/end bounds instead of the parameter FMI ignores,
+   verified live to return the full 8-day horizon at a 3h step.
+
+   Today is dropped deliberately (2026-09-27) — it is already shown in full,
+   at finer resolution, by the current-conditions strip above; repeating its
+   tail end here just to fill a first, partial column added noise without
+   adding information. The next three FULL days get the detailed columns, at
+   a 6h step (00/06/12/18) rather than every 3h — coarser on purpose, so
+   three columns of four rows each stay glanceable rather than needing a
+   scroll. The five days after that are a single compact overview row: a
+   daily hi/lo summary only, deliberately without hourly detail — a forecast
+   eight days out is not precise enough to defend an hour-by-hour presentation,
+   so implying otherwise would be more confidence than the source justifies. */
+
+function groupIntoDays(points) {
+  const byDate = new Map();
+  for (const p of points) {
+    const d = localDate(p.epochtime);
+    if (!byDate.has(d)) byDate.set(d, []);
+    byDate.get(d).push(p);
+  }
+  return byDate;   // Map, insertion order == chronological order
+}
+
+function daySummary(pts) {
+  const temps = pts.map((p) => p.temperature).filter((v) => v != null);
+  const midday = pts.reduce((best, p) =>
+    Math.abs(Number(localHour(p.epochtime)) - 13) < Math.abs(Number(localHour(best.epochtime)) - 13) ? p : best,
+    pts[0]);
+  return {
+    hi: temps.length ? Math.max(...temps) : null,
+    lo: temps.length ? Math.min(...temps) : null,
+    symbol: symbolInfo(midday.smartsymbol),
+  };
+}
+
+function renderSlot(p) {
+  const i = symbolInfo(p.smartsymbol);
+  return `<div class="slot" title="${i ? i.t : ""}">
+    <span class="st">${localHour(p.epochtime)}</span>
+    ${icon(i ? i.c : "unknown", i ? i.night : false, 20)}
+    <span class="sv">${fmt(p.temperature, 0)}°</span>
+    <span class="sw">${fmt(p.windspeedms, 0)}</span>
+    <span class="sr2">${fmt(p.precipitation1h, 1)}</span>
+  </div>`;
+}
+
+/* Column-header icons (2026-09-28) label what sv/sw/sr2 mean once per card,
+   so renderSlot no longer repeats a thermometer/wind/droplet glyph on every
+   single row. 00:00 dropped on purpose — three rows (06/12/18) rather than
+   four, less crowded and 00:00 is the least useful of the four for a page
+   checked during the day. */
+function renderDay(date, pts) {
+  const s = daySummary(pts);
+  const slots = pts.filter((p) => [6, 12, 18].includes(Number(localHour(p.epochtime))));
+  return `<div class="d">
+    <div class="wd">${localWeekday(pts[0].epochtime)}
+      <span class="hilo">${fmt(s.hi, 0)}°<span class="lo"> ${fmt(s.lo, 0)}°</span></span>
+    </div>
+    <div class="slothead">
+      <span class="sh-t"></span>
+      <span class="sh-i"></span>
+      <span class="sh-v">${THERMO_ICON}</span>
+      <span class="sh-w">${WIND_ICON}</span>
+      <span class="sh-r">${RAIN_ICON}</span>
+    </div>
+    ${slots.map(renderSlot).join("")}
+  </div>`;
+}
+
+function renderOverviewDay(date, pts) {
+  const s = daySummary(pts);
+  const i = s.symbol;
+  // Daily total, not the hourly rate — sums the 3h-step points' precipitation1h
+  // across the day, same approach the /v1/glance-home backend uses for its
+  // own daily outlook (2026-09-28: mm/day here, deliberately not a pop %,
+  // which this endpoint doesn't even carry).
+  const rains = pts.map((p) => p.precipitation1h).filter((v) => v != null);
+  const rainSum = rains.length ? rains.reduce((a, b) => a + b, 0) : null;
+  return `<div class="o" title="${i ? i.t : ""}">
+    <div class="otop">
+      <span class="ow">${localWeekday(pts[0].epochtime)}</span>
+      ${icon(i ? i.c : "unknown", false, 22)}
+      <span class="ohl">${fmt(s.hi, 0)}°<span class="lo">/${fmt(s.lo, 0)}°</span></span>
+    </div>
+    <div class="orain">${RAIN_ICON}${rainSum !== null ? rainSum.toFixed(1) : "0.0"}<span class="u">mm</span></div>
+  </div>`;
+}
+
+async function loadForecast3(place) {
+  const host = $("#forecast3");
+  if (!host) return;
+  try {
+    const fc = await jget(`/v1/forecast?place=${encodeURIComponent(place)}&hours=200&step=180&lang=${LANG}`);
+    const byDate = groupIntoDays(fc.points || []);
+    byDate.delete(localDate(Math.floor(Date.now() / 1000)));   // scrap today
+    const entries = [...byDate.entries()];
+    const detailed = entries.slice(0, 3);
+    const overview = entries.slice(3, 8);
+    host.innerHTML = detailed.length
+      ? `<div class="days">${detailed.map(([d, p]) => renderDay(d, p)).join("")}</div>
+         ${overview.length ? `<div class="ovrow">${overview.map(([d, p]) => renderOverviewDay(d, p)).join("")}</div>` : ""}`
+      : `<p class="msg">${T("unavailable")}.</p>`;
+  } catch (err) {
+    host.innerHTML = err.status === 404
+      ? `<p class="msg">${T("noPlace")} “${place}”. ${T("tryNearby")}</p>`
+      : `<p class="msg">${T("unavailable")} (${err.message}).</p>`;
+  }
+}
+
+/* --- On the road ----------------------------------------------------------
+   Follows the same place picker as the land box above, via /v1/road's new
+   `place=` parameter (2026-09-27) — the same endpoint FIRoadWeather's car
+   app calls with lat/lon, extended to also resolve a place name the way
+   /v1/forecast already does, so this box tracks whatever place is selected
+   rather than a fixed point. */
+async function loadRoad(place) {
+  const host = $("#roadbox");
+  if (!host) return;
+  try {
+    const r = await jget(`/v1/road?place=${encodeURIComponent(place)}&lang=${LANG}`);
+    const s = r.surface || {};
+    const st = r.station || {};
+    const distance = st.distance_km ?? s.distance_km;
+    host.innerHTML = `
+      <div class="grid">
+        <div><span>${T("roadAir")}</span><b>${fmt(s.air_temp_c, 1)}°C</b></div>
+        <div><span>${T("roadSurface")}</span><b>${fmt(s.road_temp_c, 1)}°C</b></div>
+        <div><span>${T("wind")}</span><b>${fmt(s.wind_ms, 1)} m/s</b></div>
+        <div><span>${T("roadCondition")}</span><b>${st.condition ?? "—"}</b></div>
+        <div><span>${T("roadFreezing")}</span><b>${fmt(st.freezing_point_c, 1)}°C</b></div>
+      </div>
+      <p class="note">${T("roadStation")}: ${st.name ?? s.station ?? "—"}
+        ${distance != null ? `(${fmt(distance, 1)} ${T("away")})` : ""} ·
+        ${T("footData")} ${r.attribution_road || r.attribution}</p>`;
+  } catch (err) {
+    host.innerHTML = err.status === 404 && /place/.test(err.message || "")
+      ? `<p class="msg">${T("noPlace")} “${place}”. ${T("tryNearby")}</p>`
+      : `<p class="msg">${T("roadNoData")}</p>`;
+  }
+}
+
+/* --- Rain radar & lightning map --------------------------------------------
+   Two very different mechanisms behind one selector:
+   - Radar/rain-rate are FMI's own WMS tiles, fetched directly by the browser
+     as a Leaflet tileLayer.wms. FMI's capabilities only declare EPSG:3067 and
+     CRS:84 support, but GeoServer reprojects on the fly — EPSG:3857 (what
+     every slippy-map basemap uses) was verified live 2026-09-27 to return
+     real (non-exception) tiles, so no reprojection plugin is needed.
+   - Lightning has no WMS layer at all (FMI's radar service carries no such
+     product), so it comes from /v1/lightning as point coordinates and is
+     drawn as ordinary Leaflet markers — which sidesteps the CRS question
+     entirely, since a marker's lat/lon means the same thing regardless of
+     what projection the basemap tiles are in.
+   Cloud/satellite imagery was asked for too, but FMI's open WMS has no such
+   layer (checked against the full capabilities document, 2026-09-27) — the
+   note under the map says so rather than silently omitting the option. */
+let radarMap = null, radarLayer = null, rainrateLayer = null, lightningLayer = null;
+
+const FMI_WMS = "https://openwms.fmi.fi/geoserver/Radar/wms";
+const FMI_WMS_ATTR = "FMI, CC BY 4.0";
+
+function initRadarMap() {
+  const el = document.getElementById("radar-map");
+  if (!el || !window.L || radarMap) return;
+  radarMap = L.map(el, { scrollWheelZoom: false }).setView([60.3, 25.0], 8);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "&copy; OpenStreetMap contributors", maxZoom: 12,
+  }).addTo(radarMap);
+
+  radarLayer = L.tileLayer.wms(FMI_WMS, {
+    layers: "Radar:suomi_dbz_eureffin", format: "image/png", transparent: true,
+    opacity: 0.75, attribution: FMI_WMS_ATTR,
+  });
+  rainrateLayer = L.tileLayer.wms(FMI_WMS, {
+    layers: "Radar:suomi_rr_eureffin", format: "image/png", transparent: true,
+    opacity: 0.75, attribution: FMI_WMS_ATTR,
+  });
+  lightningLayer = L.layerGroup();
+  radarLayer.addTo(radarMap);
+
+  const sel = document.getElementById("map-layer");
+  if (sel) sel.addEventListener("change", () => setMapLayer(sel.value));
+}
+
+function setMapLayer(which) {
+  if (!radarMap) return;
+  for (const layer of [radarLayer, rainrateLayer, lightningLayer]) {
+    if (layer && radarMap.hasLayer(layer)) radarMap.removeLayer(layer);
+  }
+  if (which === "rainrate") rainrateLayer.addTo(radarMap);
+  else if (which === "lightning") { lightningLayer.addTo(radarMap); loadLightning(); }
+  else radarLayer.addTo(radarMap);
+  updateMapNote();
+}
+
+function updateMapNote() {
+  const note = $("#map-note");
+  const sel = $("#map-layer");
+  if (!note) return;
+  const which = sel ? sel.value : "radar";
+  note.textContent = which === "rainrate" ? T("mapNoteRainrate")
+    : which === "lightning" ? T("mapNoteLightning") : T("mapNoteRadar");
+}
+
+async function loadLightning() {
+  if (!lightningLayer) return;
+  lightningLayer.clearLayers();
+  try {
+    const data = await jget("/v1/lightning?hours=3");
+    for (const s of data.strikes || []) {
+      L.circleMarker([s.lat, s.lon], { radius: 4, color: "#c2410c", weight: 1, fillOpacity: 0.7 })
+        .bindTooltip(`${localTime(s.epochtime)}${s.peak_current != null ? " · " + Math.round(s.peak_current) + " kA" : ""}`)
+        .addTo(lightningLayer);
+    }
+  } catch (_) {
+    // The note under the map already says what this layer is; a failed fetch
+    // just leaves it empty rather than needing its own error message.
   }
 }
 
@@ -366,7 +657,7 @@ function applyStrings() {
   // the sea half on the app page, stuck at "Loading…" forever because that
   // page deliberately does not fetch.
   const hide = WEATHER_ONLY
-    ? ["#app", "#screens", "#nav-app", "#tag-dev"]
+    ? ["#app", "#screens", "#nav-app", "#tag-dev", "#nav-what", "#nav-cta"]
     : ["#live", "#live-sea"];
   for (const id of hide) {
     const e = $(id);
@@ -382,7 +673,10 @@ function applyStrings() {
   }
   set("#nav-live","navLive"); set("#nav-what","navWhat"); set("#nav-data","navData");
   set("#tag-dev","tagDev"); set("#tag-area","tagArea");
-  set("#hero-a","heroA"); set("#hero-b","heroB"); set("#lede","lede");
+  set("#hero-a","heroA"); set("#hero-b","heroB");
+  // The weather page's lede must not be overwritten by the app's (which ends
+  // "Available now on the Connect IQ Store").
+  set("#lede", WEATHER_ONLY ? "ledeWeather" : "lede");
   set("#h-land","onLand"); set("#sub-land","onLandSub");
   set("#h-sea","atSea"); set("#sub-sea","atSeaSub");
   set("#l-place","place"); set("#l-station","station"); set("#l-buoy","buoy");
@@ -393,6 +687,9 @@ function applyStrings() {
   set("#h-setup","hSetup"); set("#h-req","hReq"); set("#h-contact","hContact");
   for (const i of [1,2,3]) { set(`#s${i}k`,`s${i}k`); set(`#s${i}t`,`s${i}t`); set(`#s${i}`,`s${i}`); }
   for (const i of [1,2,3,4,5]) { set(`#r${i}t`,`r${i}t`); set(`#r${i}`,`r${i}`); }
+  set("#h-forecast3","h3Forecast3"); set("#h-radarmap","h3Radarmap"); set("#h-road","h3Road");
+  set("#opt-radar","optRadar"); set("#opt-rainrate","optRainrate"); set("#opt-lightning","optLightning");
+  updateMapNote();
   set("#c-mail","cMail");
   set("#cap-land","capLand"); set("#cap-sea","capSea"); set("#cap-waves","capWaves");
   set("#cap-glance","capGlance"); set("#cap-about","capAbout");
@@ -570,12 +867,42 @@ function refresh() {
   // The app page does not show the data, so it should not fetch it — that
   // would be four upstream calls per visit for something nobody sees.
   if (!WEATHER_ONLY) { return; }
-  loadNow($("#place").value.trim() || "Helsinki");
+  const place = $("#place").value.trim() || "Tapiola";
+  loadNow(place);
+  loadForecast3(place);
   loadMarine($("#station").value, $("#buoy").value);
   loadMarineTrend($("#station").value);
+  loadRoad(place);
+  if (radarMap && $("#map-layer").value === "lightning") loadLightning();
+}
+
+/* Dark is the default look (2026-09-28, index.html's :root); this toggle is
+   purely an opt-OUT into light, the reverse of weather.kavaleff.com's
+   system-preference-first model. Remembered in localStorage; a fresh visit
+   with nothing stored is dark. */
+function initTheme() {
+  const btn = $("#theme-toggle");
+  if (!btn) return;
+  let stored = null;
+  try { stored = localStorage.getItem("fiw-site-theme"); } catch (_) {}
+  const apply = (light) => {
+    if (light) document.documentElement.setAttribute("data-theme", "light");
+    else document.documentElement.removeAttribute("data-theme");
+    btn.setAttribute("aria-pressed", String(!!light));
+  };
+  apply(stored === "light");
+  btn.addEventListener("click", () => {
+    const light = document.documentElement.getAttribute("data-theme") !== "light";
+    try {
+      if (light) localStorage.setItem("fiw-site-theme", "light");
+      else localStorage.removeItem("fiw-site-theme");
+    } catch (_) {}
+    apply(light);
+  });
 }
 
 (async function init() {
+  initTheme();
   // The language control is wired first, before any network call or any
   // element that might not be on this page. It used to come last, after the
   // station pickers — and once those were stripped from the app page, the
@@ -626,6 +953,7 @@ function refresh() {
   }
 
   wireThumbnails();
+  if (WEATHER_ONLY) initRadarMap();
   refresh();
   setInterval(refresh, 300000);   // matches the observation cache TTL
 })();

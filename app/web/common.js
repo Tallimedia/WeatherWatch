@@ -42,6 +42,15 @@ const localHour = (epoch) => _hour.format(new Date(epoch * 1000));
 const localTime = (epoch) => _hhmm.format(new Date(epoch * 1000));
 const localStamp = (epoch) => _daytime.format(new Date(epoch * 1000));
 
+/* Calendar day and weekday, both in Finnish local time regardless of the
+   viewer's own timezone (same reasoning as the rest of this file) — used to
+   group an hourly forecast into day cards without a date library. */
+const _ymd = new Intl.DateTimeFormat("en-CA",
+  { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" });
+const _wd = new Intl.DateTimeFormat("en-GB", { timeZone: TZ, weekday: "short" });
+const localDate = (epoch) => _ymd.format(new Date(epoch * 1000));
+const localWeekday = (epoch) => _wd.format(new Date(epoch * 1000));
+
 
 /* Weather icons — one per SmartSymbol category, day and night variants where it
    matters. Inline SVG so the page keeps its no-dependency, no-build property. */
