@@ -1387,11 +1387,18 @@ if config.ENABLE_PUBLIC or config.ENABLE_CHARTS:
     #: app's policy URL, so it has to be the car app's policy.
     ROADWEATHER_HOSTS = {"roadweather.tallimedia.com"}
 
+    #: The Edge bike app's hostname (same container). Until the app ships its
+    #: root is a holding page, and /privacy and /terms are its own documents.
+    BIKEWEATHER_HOSTS = {"bikeweather.tallimedia.com"}
+
     def _hostname(request: Request) -> str:
         return (request.headers.get("host") or "").split(":")[0].lower()
 
     def _is_roadweather(request: Request) -> bool:
         return _hostname(request) in ROADWEATHER_HOSTS
+
+    def _is_bikeweather(request: Request) -> bool:
+        return _hostname(request) in BIKEWEATHER_HOSTS
 
     # The legal pages the store listing has to link to. Rendered from the
     # repo's own Markdown, so the published policy and the committed one can
@@ -1526,6 +1533,8 @@ if config.ENABLE_PUBLIC or config.ENABLE_CHARTS:
 
     @app.get("/privacy")
     async def privacy(request: Request) -> HTMLResponse:
+        if _is_bikeweather(request):
+            return _legal_page("BIKEWEATHER-PRIVACY", "Bike Weather")
         return (
             _legal_page("ROADWEATHER-PRIVACY", "Finnish RoadWeather")
             if _is_roadweather(request)
@@ -1534,6 +1543,8 @@ if config.ENABLE_PUBLIC or config.ENABLE_CHARTS:
 
     @app.get("/terms")
     async def terms(request: Request) -> HTMLResponse:
+        if _is_bikeweather(request):
+            return _legal_page("BIKEWEATHER-TERMS", "Bike Weather")
         return (
             _legal_page("ROADWEATHER-TERMS", "Finnish RoadWeather")
             if _is_roadweather(request)
@@ -1731,11 +1742,17 @@ if config.ENABLE_PUBLIC:
         html = re.sub(r'((?:src|href)="/[^"]+?\.(?:js|css))"', r'\1?v=' + ASSET_V + '"', html)
         return HTMLResponse(html, headers={"Cache-Control": "no-cache, must-revalidate"})
 
+    def _bikeweather_placeholder() -> HTMLResponse:
+        html = (_HERE / "bikeweather" / "index.html").read_text(encoding="utf-8")
+        return HTMLResponse(html, headers={"Cache-Control": "no-cache, must-revalidate"})
+
     @app.get("/")
     async def public_index(request: Request) -> HTMLResponse:
         host = _hostname(request)
         if host in ROADWEATHER_HOSTS:
             return _roadweather_placeholder()
+        if host in BIKEWEATHER_HOSTS:
+            return _bikeweather_placeholder()
         if host in MOBILE_HOSTS:
             return _mobile_page()
         return _page("public", "weather" if host in WEATHER_HOSTS else "app")

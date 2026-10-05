@@ -85,3 +85,21 @@ def test_asset_fingerprint_covers_nested_static_files():
         assert fingerprint(covered) != before
     finally:
         preview.write_bytes(original)
+
+
+BIKE = ("BIKEWEATHER-PRIVACY", "BIKEWEATHER-TERMS")
+
+
+@pytest.mark.parametrize("name", BIKE)
+def test_bike_documents_are_the_bike_app(name):
+    title, body = legal.document(name)
+    assert "Bike Weather" in title
+    assert "FIWeatherWatch" not in title and "RoadWeather" not in title
+
+
+def test_bike_policy_describes_location_and_the_nowcast_provider():
+    """The bike app sends the rider's position and its backend queries MET Norway
+    with it (rounded). A policy that said neither would be inaccurate."""
+    _, body = legal.document("BIKEWEATHER-PRIVACY")
+    assert "position" in body.lower() or "location" in body.lower()
+    assert "MET Norway" in body
