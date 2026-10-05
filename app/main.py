@@ -22,14 +22,15 @@ import xml.etree.ElementTree as ET
 from zoneinfo import ZoneInfo
 
 import httpx
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, HTTPException, Query, Request, Response
 
-from . import config, legal, road, stations, warnings as warn
+from . import bike, config, radar, legal, road, stations, warnings as warn
 from .cache import cache
 from .fmi import (
     FMIError,
     UnknownPlace,
     aclose as fmi_aclose,
+    client as fmi_client,
     resolve_place,
     timeseries,
     wave_observations,
@@ -780,6 +781,28 @@ async def road_conditions(
 _FINLAND_BBOX = "19,59,32,70.5"
 
 
+async def _flash_rows(hours: float) -> list[dict]:
+    """National flash observations for the last ``hours``, cached.
+
+    Shared by ``/v1/lightning`` and ``/v1/bike``: the feed is one request for
+    the whole country whichever caller asks, so both read the same cache entry.
+    """
+    end = datetime.utcnow()
+    start = end - timedelta(hours=hours)
+    key = f"flash:{int(hours * 4)}"  # quarter-hour buckets keep the cache small
+
+    async def fetch() -> list[dict]:
+        return await timeseries(
+            ["longitude", "latitude", "peak_current", "multiplicity"],
+            producer="flash",
+            bbox=_FINLAND_BBOX,
+            starttime=start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            endtime=end.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        )
+
+    return await cache.aget_or_set(key, config.TTL_LIGHTNING, fetch)
+
+
 @app.get("/v1/lightning")
 async def lightning(
     hours: float = Query(3, ge=0.25, le=24, description="Look-back window, hours"),
@@ -800,21 +823,8 @@ async def lightning(
     other producers), so bounds are computed as absolute timestamps here rather
     than left to the query string.
     """
-    end = datetime.utcnow()
-    start = end - timedelta(hours=hours)
-    key = f"flash:{int(hours * 4)}"  # quarter-hour buckets keep the cache small
-
-    async def fetch() -> list[dict]:
-        return await timeseries(
-            ["longitude", "latitude", "peak_current", "multiplicity"],
-            producer="flash",
-            bbox=_FINLAND_BBOX,
-            starttime=start.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            endtime=end.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        )
-
     try:
-        rows = await cache.aget_or_set(key, config.TTL_LIGHTNING, fetch)
+        rows = await _flash_rows(hours)
     except FMIError as exc:
         raise _fail(exc) from exc
 
@@ -833,6 +843,143 @@ async def lightning(
             if r.get("latitude") is not None and r.get("longitude") is not None
         ],
     }
+
+
+async def _nowcast(lat: float, lon: float) -> dict:
+    """MET Norway Nowcast for a point, parsed and cached per ~1 km cell."""
+    rlat, rlon = bike.round_position(lat, lon)
+
+    async def fetch() -> dict:
+        response = await fmi_client().get(
+            config.MET_NOWCAST, params={"lat": rlat, "lon": rlon}
+        )
+        if response.status_code != 200:
+            raise FMIError(f"nowcast {response.status_code}")
+        return bike.parse_nowcast(response.json())
+
+    return await cache.aget_or_set(f"nc:{rlat}:{rlon}", config.TTL_NOWCAST, fetch)
+
+
+async def _forecast_now(lat: float, lon: float) -> dict | None:
+    """First FMI forecast row for a point — the fallback when the Nowcast is out."""
+    rlat, rlon = bike.round_position(lat, lon)
+
+    async def fetch() -> list[dict]:
+        now = datetime.utcnow()
+        return await timeseries(
+            ["temperature", "windspeedms", "hourlymaximumgust", "winddirection"],
+            latlon=f"{rlat},{rlon}", timestep=60,
+            starttime=now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            endtime=(now + timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        )
+
+    rows = await cache.aget_or_set(f"bf:{rlat}:{rlon}", config.TTL_FORECAST, fetch)
+    return rows[0] if rows else None
+
+
+@app.get("/v1/bike")
+async def bike_conditions(
+    lat: float, lon: float,
+    rain_mmh: float = Query(0.5, ge=0.1, le=20, description="Rain-rate threshold, mm/h"),
+    strike_min: int = Query(20, ge=5, le=60, description="Lightning recency, minutes"),
+    lang: str = Query("en", pattern="^(fi|sv|en)$"),
+) -> dict:
+    """Everything an Edge data field shows, for the rider's position, in one call.
+
+    Four numbers (temperature, wind, rain rate, minutes to rain), the nearest
+    recent lightning strike, and the most severe official warning at the point.
+    The payload is well under a kilobyte; the data field has 128 kB of memory.
+
+    The rain series is also returned, as integer tenths of mm/h in five-minute
+    steps, so the device can re-apply a changed threshold without asking again.
+    ``mtr`` is minutes until rain reaches ``rain_mmh``: ``0`` means raining now,
+    ``null`` with a non-empty ``rain`` means dry for the whole horizon, and
+    ``null`` with an empty ``rain`` means no radar data — those must not be
+    shown as the same thing.
+
+    Every source is optional. A missing one is ``null`` rather than an error,
+    because a bike computer is more use with partial data than with a failure.
+
+    **Coordinates are never logged and never persisted.** Caches hold weather
+    keyed by a position rounded to ~1 km, in process memory only.
+    """
+    if not (59.0 <= lat <= 70.5 and 19.0 <= lon <= 32.0):
+        raise HTTPException(status_code=404, detail="outside Finland")
+
+    nowcast: dict | None = None
+    try:
+        nowcast = await _nowcast(lat, lon)
+    except (FMIError, httpx.HTTPError, ValueError, KeyError):
+        nowcast = None
+
+    forecast_row: dict | None = None
+    if nowcast is None or nowcast.get("temp_c") is None:
+        try:
+            forecast_row = await _forecast_now(lat, lon)
+        except FMIError:
+            forecast_row = None
+
+    strike: dict | None = None
+    try:
+        rows = await _flash_rows(strike_min / 60 + 0.25)
+        strike = bike.nearest_strike(
+            [{"lat": r.get("latitude"), "lon": r.get("longitude"),
+              "epochtime": r.get("epochtime")} for r in rows],
+            lat, lon, time.time(), strike_min,
+        )
+    except FMIError:
+        strike = None
+
+    warning: dict | None = None
+    try:
+        xml = await cache.aget_or_set(f"cap:{lang}", config.TTL_CAP,
+                                      lambda: warn.fetch_cap(lang))
+        warning = bike.warning_level(
+            warn.alerts_at(warn.parse_cap(xml, warn.CAP_LANG[lang]), lat, lon)
+        )
+    except (road.RoadDataError, httpx.HTTPError, ET.ParseError):
+        warning = None
+
+    return bike.shape(nowcast, forecast_row, strike, warning, rain_mmh, int(time.time()))
+
+
+@app.get("/v1/bike/radar")
+async def bike_radar(
+    lat: float, lon: float,
+    radius_km: float = Query(50, ge=10, le=150, description="Snapped to 25, 50 or 100"),
+    size: int = Query(360, ge=120, le=480, description="Square tile, pixels"),
+) -> Response:
+    """Radar tile centred on the rider: a PNG of a few kilobytes.
+
+    FMI's Finnish radar composite over a grey land-and-water basemap, a marker
+    at the rider's position and the frame time (Finnish local) in the corner.
+    The marker is drawn per request from the true position; only the unmarked
+    base image is cached, on a ~5 km grid, so the cache does not grow with
+    every step the rider takes.
+
+    Past frames only — FMI publishes no forward radar. The rain in the next two
+    hours comes from ``/v1/bike`` as numbers.
+
+    **Coordinates are never logged and never persisted.**
+    """
+    if not (59.0 <= lat <= 70.5 and 19.0 <= lon <= 32.0):
+        raise HTTPException(status_code=404, detail="outside Finland")
+    radius = radar.snap_radius(radius_km)
+    clat, clon = radar.snap_centre(lat, lon)
+    try:
+        frame = await cache.aget_or_set("radar:frame", config.TTL_RADAR,
+                                        radar.fetch_latest_frame)
+        base = await cache.aget_or_set(
+            f"radar:{frame:%Y%m%d%H%M}:{clat:.2f}:{clon:.2f}:{radius}:{size}",
+            config.TTL_RADAR * 2,
+            lambda: radar.fetch_base(clat, clon, radius, size, frame),
+        )
+    except (FMIError, httpx.HTTPError) as exc:
+        raise _fail(exc if isinstance(exc, FMIError) else FMIError(str(exc))) from exc
+    px, py = radar.marker_pixel(lat, lon, clat, clon, radius, size)
+    png = radar.draw(base, px, py, frame)
+    return Response(content=png, media_type="image/png",
+                    headers={"Cache-Control": "max-age=120"})
 
 
 @app.get("/v1/marine")

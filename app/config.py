@@ -47,6 +47,22 @@ TTL_MARINE = int(os.getenv("TTL_MARINE", "600"))
 # FMI's flash producer updates continuously; five minutes matches the demo
 # page's own refresh interval, so the map is never staler than the rest of it.
 TTL_LIGHTNING = int(os.getenv("TTL_LIGHTNING", "300"))
+# MET Norway's Nowcast — a radar-based, five-minute, two-hour point forecast
+# that covers Finland (FIBikeWeather/RESEARCH.md §6). Free, no key, but MET
+# require an identifying User-Agent. Their own Expires header is ~3 minutes.
+MET_NOWCAST = os.getenv(
+    "MET_NOWCAST", "https://api.met.no/weatherapi/nowcast/2.0/complete"
+)
+TTL_NOWCAST = int(os.getenv("TTL_NOWCAST", "180"))
+
+# FMI's radar WMS, with the Natural Earth grey basemap served from the same
+# GeoServer so one GetMap returns land, lakes and rain together.
+FMI_RADAR_WMS = os.getenv("FMI_RADAR_WMS", "https://openwms.fmi.fi/geoserver/wms")
+FMI_RADAR_CAPS = os.getenv("FMI_RADAR_CAPS", "https://openwms.fmi.fi/geoserver/Radar/wms")
+# Radar frames arrive every five minutes; a tile is never fresher than that, and
+# the capabilities document that names the newest frame is 400 kB.
+TTL_RADAR = int(os.getenv("TTL_RADAR", "240"))
+
 # A name FMI does not know will not start being known in the next few minutes,
 # and each attempt costs four upstream calls.
 TTL_UNKNOWN_PLACE = int(os.getenv("TTL_UNKNOWN_PLACE", "600"))
