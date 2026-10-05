@@ -50,6 +50,21 @@ Design reasoning lives in `RESEARCH.md` (owned by the `claude-docs` repo).
 
 ## Backend
 
+### 2026-10-05
+- **`/v1/bike` and `/v1/bike/radar`** for the FIBikeWeather Edge apps (`kavaleff/fibikeweather`), on the
+  `bikeweather.tallimedia.com` host. `/v1/bike` returns temperature, wind, gust, rain rate, minutes to rain,
+  the nearest recent lightning strike and the most severe FMI warning at the point, from MET Norway
+  Nowcast (5-minute steps for ~2 h) with the FMI forecast as fallback. `/v1/bike/radar` returns a small
+  palette PNG of FMI's radar composite centred on the rider, drawn per request.
+- **`fc`** — the next hours of hourly forecast (temperature, wind, rain tenths of mm/h) as parallel arrays
+  with a clock (`t0`, `step`). Additive; the watch app ignores it.
+- Both endpoints answer **404 outside Finland**. Coordinates are never logged or persisted; caches key on a
+  position rounded to ~1 km.
+- `/v1/warnings`'s CAP parser takes a language, so the warning text arrives in `fi`, `sv` or `en`
+  (`/v1/warnings` itself is unchanged and still returns Finnish).
+- A placeholder page and own privacy/terms texts on the `bikeweather.` host
+  (`BIKEWEATHER-PRIVACY.md`, `BIKEWEATHER-TERMS.md`).
+
 ### 2026-09-24
 - **`/v1/observations` no longer 404s next to a single-purpose station.** Given a bare
   `latlon`, FMI returns whichever station is *geometrically* nearest regardless of what
