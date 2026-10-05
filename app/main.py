@@ -1414,10 +1414,18 @@ if config.ENABLE_PUBLIC or config.ENABLE_CHARTS:
             title, body = legal.document(name)
         except FileNotFoundError:
             raise HTTPException(status_code=404, detail="not found")
+        # FIWeatherWatch's own icon on its pages; the Tallimedia mark on the
+        # other apps' pages, which have no icon of their own yet.
+        pre = "/public/icons/" + ("" if back == "FIWeatherWatch" else "tm-")
+        icons = (
+            f'<link rel="icon" type="image/png" sizes="32x32" href="{pre}favicon-32.png">'
+            f'<link rel="icon" type="image/png" sizes="16x16" href="{pre}favicon-16.png">'
+            f'<link rel="apple-touch-icon" href="{pre}apple-touch-icon.png">'
+        )
         return HTMLResponse(
             f"<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">"
             f"<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
-            f"<title>{title}</title>"
+            f"<title>{title}</title>{icons}"
             f"<style>body{{{_LEGAL_CSS}}}h1{{font-size:28px;margin:0 0 4px}}"
             f"h2{{font-size:18px;margin:32px 0 8px}}a{{color:#416180}}"
             f"em{{color:#6b6e70}}li{{margin:4px 0}}"
