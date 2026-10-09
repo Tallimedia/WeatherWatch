@@ -82,7 +82,7 @@ that stays the product name.
 
 ---
 
-## Description — Finnish (1583 chars)
+## Description — Finnish (2098 chars)
 
 Nico's wording, 2026-09-23. Two changes from the first draft: the *"ei globaalin mallin
 arvausta Suomesta"* clause is gone, and `Garmin IQ Connect Mobilessa` was corrected to
@@ -98,13 +98,13 @@ Suomen sää, maalla ja merellä.
 FIWeatherWatch näyttää sen, mitä Ilmatieteen laitoksen omat mittarit raportoivat juuri nyt.
 
 MAA
-Lämpötila ja tuuli lähimmältä havaintoasemalta, asema ja sen etäisyys näkyvissä. Ennuste kuuden tunnin välein loppupäivälle.
+Lämpötila ja tuuli lähimmältä havaintoasemalta, asema ja sen etäisyys näkyvissä. Ennuste kuuden tunnin välein loppupäivälle. Liukkaan tien varoitus näkyy samalla sivulla, kun Ilmatieteen laitos sellaisen antaa.
 
 MERI
-Tuuli, puuskat ja suunta 40 rannikkoasemalta ja 14 sisävesiasemalta — Harmajasta Märketiin, Saimaalta Näsijärvelle.
+Tuuli, puuskat ja suunta 40 rannikkoasemalta ja 14 sisävesiasemalta — Harmajasta Märketiin, Saimaalta Näsijärvelle. Tuulivaroitus näkyy samalla sivulla, kun on voimassa.
 
 AALLOT
-Merkitsevä aallonkorkeus, jakso, suunta ja veden lämpötila Ilmatieteen laitoksen aaltopoijuilta. Poijut nostetaan talveksi pois vedestä; silloin sovellus kertoo sen ja näyttää mallidataa selvästi merkittynä.
+Merkitsevä aallonkorkeus, jakso, suunta ja veden lämpötila Ilmatieteen laitoksen aaltopoijuilta. Poijut nostetaan talveksi pois vedestä; silloin sovellus kertoo sen ja näyttää mallidataa selvästi merkittynä. Aallokkovaroitus näkyy samalla sivulla, kun on voimassa.
 
 VAROITUKSET
 Ilmatieteen laitoksen viralliset varoitukset näkyvät suoraan sillä sivulla, jota ne koskevat: liukkaan tien varoitus Maalla, tuulivaroitus Merellä, aallokkovaroitus Aalloilla. Ei erillistä varoitussivua selattavaksi — varoitus on siinä missä lukemakin, eikä näy ollenkaan kun ei ole mitään varoitettavaa.
@@ -129,7 +129,7 @@ Säädata: Ilmatieteen laitos, CC BY 4.0 -lisenssillä. FIWeatherWatch on itsen�
 
 ---
 
-## Description — English (1788 chars)
+## Description — English (2276 chars)
 
 ```
 Finnish weather, land and sea.
@@ -137,13 +137,13 @@ Finnish weather, land and sea.
 FIWeatherWatch shows what the Finnish Meteorological Institute's own instruments are reporting right now — not a global model's guess at Finland.
 
 LAND
-Temperature and wind from the nearest reporting station, with the station and its distance shown. A six-hourly forecast covers the rest of the day.
+Temperature and wind from the nearest reporting station, with the station and its distance shown. A six-hourly forecast covers the rest of the day. An icy-road warning appears on this same page when FMI issues one.
 
 SEA
-Wind, gusts and direction from 40 coastal and 14 inland lake stations — Harmaja to Märket, Saimaa to Näsijärvi.
+Wind, gusts and direction from 40 coastal and 14 inland lake stations — Harmaja to Märket, Saimaa to Näsijärvi. A wind warning appears on this same page when one is in effect.
 
 WAVES
-Significant wave height, period, direction and water temperature from FMI's wave buoys. The buoys are lifted out for the winter; when none is reporting the app says so and falls back to model output, clearly labelled.
+Significant wave height, period, direction and water temperature from FMI's wave buoys. The buoys are lifted out for the winter; when none is reporting the app says so and falls back to model output, clearly labelled. A wave warning appears on this same page when one is in effect.
 
 WARNINGS
 Official FMI warnings appear right on the page they're about: an icy-road warning on Land, a wind warning on Sea, a wave warning on Waves. No separate warnings tab to check — the warning sits next to the reading it qualifies, and is simply absent when there's nothing to warn about.
