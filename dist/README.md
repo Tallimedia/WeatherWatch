@@ -3,17 +3,27 @@
 **Everything shippable lives here.** Not the Desktop, not a temp folder — one
 place, so there is never a question of which file is current.
 
+**Only the current release's files sit at this top level.** Every previous
+release's `.iq`/`.prg`/`-settings.json` moves to `archive/` the moment a new
+one lands here — `git mv`, not delete, so history is still there if an old
+build is ever needed again, but a listing of this folder never makes you
+guess which file is the one to upload today.
+
 | File | What |
 |---|---|
-| `FIWeatherWatch-v1.0.0.iq` | the store upload |
-| `FIWeatherWatch-v1.0.0.prg` | sideload — copy to `GARMIN/APPS/` |
-| `FIWeatherWatch-v1.0.0-settings.json` | its settings — copy to `GARMIN/APPS/SETTINGS/` |
+| `FIWeatherWatch-v1.1.0.iq` | the store upload |
+| `FIWeatherWatch-v1.1.0.prg` | sideload — copy to `GARMIN/APPS/` |
+| `FIWeatherWatch-v1.1.0-settings.json` | its settings — copy to `GARMIN/APPS/SETTINGS/` |
 | `hero-1440x720.png` | store banner |
 | `cover-500x500.png` | store tile |
 | `screenshots/` | the store gallery, framed in the device |
-| `FIWeatherWatch-Peter-v0.1.4.zip` | an old tester build, kept for reference |
+| `archive/` | every superseded release — nothing current lives here |
 
 The listing copy is in [`../watch/store-listing.md`](../watch/store-listing.md).
+
+`watch/bin/` follows the same rule but is gitignored (it's raw build output,
+not a release) — the current build's files sit at its top level, everything
+older is in `watch/bin/archive/`.
 
 `.prg` files are built for `fenix847mm`, which covers quatix 8 — the two are
 API-identical and quatix has no separate simulator profile.
