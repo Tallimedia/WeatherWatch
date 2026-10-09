@@ -321,6 +321,15 @@ module Api {
                 "wPer"    => f(pick(wv, "wave_period_s")),
                 "wDir"    => f(pick(wv, "wave_direction_deg")),
                 "wTemp"   => f(pick(wv, "water_temp_c")),
+                // Independent of "wMeas" (wave height) — a buoy's water
+                // sensor can be silent while its wave sensor isn't, and the
+                // backend's hydrodyn fallback fills water_temp_c in that
+                // case without that making the wave height itself modelled
+                // (RESEARCH.md §26). Defaults true so a response from an
+                // older backend without this field reads as "measured" —
+                // the pre-v1.2 behaviour — rather than wrongly labelling
+                // every water reading "modelled".
+                "wTempMeas" => pick(wv, "water_measured") != false,
                 "wAt"     => n(pick(wv, "observed_epoch")),
                 "windWarn" => s(pick(data, "wind_warning")),
                 "waveWarn" => s(pick(data, "wave_warning"))

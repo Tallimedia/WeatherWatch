@@ -584,6 +584,11 @@ async def _buoy_reading(
             # Wave height reports roughly every 30 min while water temperature
             # reports every 5, so these genuinely differ (RESEARCH.md §4).
             at[target] = entry["time"]
+    # Independent of the wave-height `measured` flag above: a buoy's water
+    # sensor can simply not be reporting while its wave sensor still is
+    # (RESEARCH.md §26) — the caller fills water_temp_c from the hydrodyn
+    # model in that case and must know to mark it as such.
+    out["water_measured"] = "TWATER" in readings
     out["at"] = at
     newest = max(at.values()) if at else None
     out["observed_at"] = newest
@@ -596,6 +601,55 @@ async def _buoy_reading(
         except ValueError:
             out["observed_epoch"] = None
     return out
+
+
+async def _hydrodyn_water_temp(lat: float, lon: float) -> float | None:
+    """Modelled sea temperature at a point, from FMI's NEMO Baltic model.
+
+    Fills the specific gap where a buoy reports wave height but its water-
+    temperature sensor isn't (they report independently, RESEARCH.md §26), or
+    where there's no buoy at all and the WAM wave fallback already applies.
+    Runs ~1-1.5 C warm versus a real buoy reading at the same moment,
+    verified against four buoys — a real, systematic offset, which is why a
+    measured reading is always preferred and this is only ever a fallback.
+
+    The producer is ``nemo`` and the parameter is ``TemperatureSea`` —
+    confirmed live 2026-10-09 against FMI's own stored-query response; an
+    earlier name for this model ("hydrodyn") no longer resolves as a
+    producer in the timeseries API, only as the underlying WFS stored query
+    id, which carries the same parameter name.
+
+    Returns None outside the Baltic grid (inland lake coordinates give NaN,
+    which FMI's JSON serialises as null) and on any fetch failure — a
+    silent, non-fatal absence, the same pattern the buoy and WAM fallbacks
+    already use.
+    """
+    # A zero-width "-0h"/"-0h" window — the pattern the WAM wave fallback
+    # above uses — returns nothing for this producer, found 2026-10-09 while
+    # testing this function against the live API: nemo only publishes
+    # forward steps from its next model run, not a continuous nowcast, so a
+    # window that doesn't reach forward at all can land between runs and
+    # come back empty. A 6 h forward window reliably catches the nearest
+    # published step; take the first (earliest) row, not the last.
+    now = datetime.utcnow()
+    try:
+        rows = await cache.aget_or_set(
+            f"hydrodyn:{lat:.3f}:{lon:.3f}",
+            config.TTL_MARINE,
+            lambda: timeseries(
+                ["TemperatureSea"],
+                producer="nemo",
+                latlon=f"{lat},{lon}",
+                starttime=now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                endtime=(now + timedelta(hours=6)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                precision="double",
+            ),
+        )
+    except FMIError:
+        return None
+    if not rows:
+        return None
+    return rows[0].get("TemperatureSea")
 
 
 async def _station_position(fmisid: int | None) -> tuple[float, float] | None:
@@ -1071,6 +1125,7 @@ async def marine(
                 "wave_direction_deg": point.get("WaveDirection"),
                 "wave_period_s": point.get("WavePeriod"),
                 "water_temp_c": None,
+                "water_measured": False,
                 "observed_at": point.get("epochtime"),
             }
             mode = "model"
@@ -1093,6 +1148,20 @@ async def marine(
         buoy_station = stations.by_id(waves.get("fmisid"))
         if buoy_station is not None:
             wave_point = buoy_station
+
+    # v1.2: the hydrodyn (NEMO) water-temperature fallback, RESEARCH.md §26.
+    # Fills water_temp_c from the model at wave_point's coordinates whenever
+    # the buoy/WAM branch above left it null — a buoy whose wave sensor is
+    # reporting but whose water sensor isn't, or the WAM fallback, which
+    # never carries a water reading at all. Silently does nothing outside
+    # the Baltic grid (inland water, or any fetch failure) — waves stays
+    # exactly as the buoy/WAM branch left it.
+    if waves is not None and waves.get("water_temp_c") is None:
+        modelled = await _hydrodyn_water_temp(wave_point.lat, wave_point.lon)
+        if modelled is not None:
+            waves["water_temp_c"] = modelled
+            waves["water_measured"] = False
+
     wind_warning = await _sea_warning(station.lat, station.lon, "seaWind", lang)
     wave_warning = await _sea_warning(wave_point.lat, wave_point.lon, "seaWaveHeight", lang)
 

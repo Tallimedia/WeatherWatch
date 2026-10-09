@@ -354,7 +354,8 @@ async function loadMarine(fmisid, buoy) {
              ? dirLabel(w.wave_direction_deg) + " (" + Math.round(w.wave_direction_deg) + "°)"
              : ""}</span></div>
          <div><span>${T("water")}</span><b>${fmt(w.water_temp_c, 1)}°C</b>
-           <span class="at">${w.measured && w.distance_km != null ? w.distance_km + " " + T("away") : ""}</span></div>`;
+           <span class="at">${w.water_measured === false ? T("modelled")
+             : (w.measured && w.distance_km != null ? w.distance_km + " " + T("away") : "")}</span></div>`;
     host.innerHTML = `
       <div class="grid">
         <div><span>${T("wind")}</span><b>${fmt(s.windspeedms, 1)} m/s

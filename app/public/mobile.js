@@ -240,7 +240,15 @@ async function loadSea(place) {
       </div>
       ${warnLine("wind", m.wind_warning)}
       ${warnLine("wave", m.wave_warning)}
-      <p class="msg" style="margin-top:8px">${s.name}${w && w.measured ? "" : w ? " · modelled" : " · no buoy"}</p>`;
+      <p class="msg" style="margin-top:8px">${s.name}${
+        !w ? " · no buoy"
+        : !w.measured ? " · modelled"
+        // Wave height can be live while water temp specifically isn't — a
+        // buoy's two sensors report independently (RESEARCH.md §26) — so
+        // this is a second, narrower case the first check doesn't catch.
+        : w.water_measured === false ? " · water modelled"
+        : ""
+      }</p>`;
   } catch (err) {
     host.innerHTML = `<p class="msg">Sea data unavailable (${err.message}).</p>`;
   }

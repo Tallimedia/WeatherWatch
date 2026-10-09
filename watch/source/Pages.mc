@@ -359,8 +359,17 @@ module Pages {
 
         var water = Api.v(m, "wTemp");
         if (water != null) {
-            iconRow(dc, :temp, Graphics.FONT_XTINY,
-                    res(Rez.Strings.WaterTemp) + " " + Fmt.temp(water), Theme.DIM, 4);
+            // Independent of the header's own "· Modelled" above, which
+            // speaks to wave height (wMeas) — a buoy can report live waves
+            // while its water sensor is silent and the backend fills this
+            // one value from the hydrodyn model instead (RESEARCH.md §26).
+            // Silent when measured, same "speaks up only when not the
+            // normal case" rule the rest of the app already follows.
+            var waterText = res(Rez.Strings.WaterTemp) + " " + Fmt.temp(water);
+            if (Api.v(m, "wTempMeas") != true) {
+                waterText = waterText + " · " + res(Rez.Strings.Modelled);
+            }
+            iconRow(dc, :temp, Graphics.FONT_XTINY, waterText, Theme.DIM, 4);
         }
 
         drawSeaWarning(dc, Api.v(m, "waveWarn"), Rez.Strings.SeaWaveModerate,
