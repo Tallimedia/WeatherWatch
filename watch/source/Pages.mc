@@ -189,6 +189,16 @@ module Pages {
         Icons.clock(dc, (x0 - ih - 2).toNumber(), top + 1, (ih * 0.7).toNumber(), Theme.FAINT);
         var count = times.size() < slots ? times.size() : slots;
         var lineH = dc.getFontHeight(Graphics.FONT_XTINY);
+        // Tried a row-label temp icon here under the clock icon, 2026-10-09
+        // — reverted. Icons.temp()'s minimum-width floors (stem >=3px, bulb
+        // >=stem/2+1) collapse at this icon's actual size (~13px, ih*0.7) to
+        // stem=4/bulb=3 — barely any bulb-over-stem differentiation left, so
+        // it rendered as an unrecognisable blob rather than a thermometer.
+        // Not a colour problem (tried Theme.FAINT_WARM first) — the
+        // silhouette itself needs more room than this strip has. The clock
+        // icon survives here because a circle holds up fine this small; a
+        // thermometer's whole identity depends on a contrast this size can't
+        // carry.
         for (var i = 0; i < count; i += 1) {
             var x = (x0 + (span / slots) * i + (span / slots) / 2).toNumber();
             dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
