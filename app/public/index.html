@@ -150,6 +150,15 @@
   .pick select, .pick input { font: inherit; padding: 8px 11px; border-radius: 9px;
         border: 1px solid var(--color-neutral-300); background: var(--color-input-bg); color: var(--color-text); }
   .msg { color: var(--color-neutral-600); }
+  /* FMI's own road-ice / marine warning, when one is active — orange for a
+     moderate one, red once it crosses into severe, same two-tier colouring
+     as the watch app (Theme.OVER / Theme.HOT, RESEARCH.md §16). The icon
+     carries the shape, not just the colour, so the line still reads for a
+     colour-blind visitor or in the greyscale print styles. */
+  .warn { display: flex; align-items: center; gap: 8px; margin: 10px 0 0;
+          font-weight: 600; color: #e8622c; }
+  .warn.severe { color: #d64545; }
+  .warn .ic { width: 18px; height: 18px; flex: none; }
   .note { color: var(--color-neutral-600); font-size: 13px; margin-top: 14px; }
   @media (max-width: 760px) { .temp { font-size: 48px } .facts { margin-left: 0 } }
   /* Sub-boxes under the current+hourly widget: 3-day, map, road. Same .panel

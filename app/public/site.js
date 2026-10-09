@@ -55,6 +55,9 @@ STR = {
     mapNoteCloud:"Pilvi-/satelliittikuvaa ei ole saatavilla Ilmatieteen laitoksen avoimessa datassa — vain tutka ja salamat.",
     dayLoading:"Ladataan…", roadStation:"Lähin tieasema", roadCondition:"Tien tila", roadSurface:"Tien pinta",
     roadAir:"Ilma", roadFreezing:"Jäätymispiste", roadNoData:"Tietoja ei juuri nyt saatavilla.",
+    IcyRoadWarning:"Liukas tie", BlackIceWarning:"Mustaa jäätä",
+    SeaWindModerate:"Kova tuuli", SeaWindSevere:"Myrskyvaroitus",
+    SeaWaveModerate:"Suuri aallokko", SeaWaveSevere:"Vaarallinen aallokko",
   },
   sv: {
     heroA:"Finlands väder,", heroB:"på land och till havs.",
@@ -110,6 +113,9 @@ STR = {
     mapNoteCloud:"Moln-/satellitbild finns inte i Meteorologiska institutets öppna data — endast radar och blixtar.",
     dayLoading:"Laddar…", roadStation:"Närmaste vägstation", roadCondition:"Väglag", roadSurface:"Vägbanans temperatur",
     roadAir:"Luft", roadFreezing:"Fryspunkt", roadNoData:"Ingen data tillgänglig just nu.",
+    IcyRoadWarning:"Halt väglag", BlackIceWarning:"Svart is",
+    SeaWindModerate:"Hård vind", SeaWindSevere:"Stormvarning",
+    SeaWaveModerate:"Hög sjö", SeaWaveSevere:"Mycket hög sjö",
   },
   en: {
     heroA:"Finnish weather,", heroB:"land and sea.",
@@ -165,6 +171,9 @@ STR = {
     mapNoteCloud:"Cloud/satellite imagery isn't available in FMI's open data — only radar and lightning are.",
     dayLoading:"Loading…", roadStation:"Nearest road station", roadCondition:"Road condition", roadSurface:"Road surface",
     roadAir:"Air", roadFreezing:"Freezing point", roadNoData:"No data available right now.",
+    IcyRoadWarning:"Icy road warning", BlackIceWarning:"Black ice warning",
+    SeaWindModerate:"Strong wind warning", SeaWindSevere:"Gale warning",
+    SeaWaveModerate:"Rough seas", SeaWaveSevere:"High wave warning",
   },
 };
 function storedLang() { try { return localStorage.getItem("fiw-lang"); } catch (_) { return null; } }
@@ -207,6 +216,21 @@ const CLOCK_ICON = `<svg class="ci" viewBox="0 0 24 24" fill="none" stroke="curr
 const THERMO_ICON = `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <path d="M10 13.5V5a2 2 0 1 1 4 0v8.5a4 4 0 1 1-4 0Z"/></svg>`;
+const WARN_ICON = `<svg class="ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+  <path d="M12 3 2 20h20L12 3Z"/></svg>`;
+
+/* One line: FMI's own road-ice or marine warning, when one is active — same
+   pairing of icon + plain-language label as the watch app (RESEARCH.md §16),
+   never colour alone. Absent entirely when `level` is null/"none"/"low"/
+   "unknown" — "moderate"/"high" (road) and "Moderate"/"Severe"/"Extreme"
+   (marine, FMI's own CAP severity scale) are the only levels that render. */
+function warnLine(level, moderateKey, severeKey) {
+  const severe = level === "high" || level === "Severe" || level === "Extreme";
+  const moderate = level === "moderate" || level === "Moderate";
+  if (!severe && !moderate) return "";
+  const text = T(severe ? severeKey : moderateKey);
+  return `<p class="warn${severe ? " severe" : ""}">${WARN_ICON}${text}</p>`;
+}
 
 /* Evenly-spaced sample of at most `n` items, always including the first and
    last — used to turn "every hour left today" into a fixed-width strip
@@ -256,6 +280,15 @@ async function loadNow(place) {
     // forecast point is the closest thing to "rain right now" available.
     const rainNow = ahead.length ? ahead[0].precipitation1h : null;
 
+    // Fetched separately from obs/fc above and never allowed to fail the Land
+    // box: a road-ice hiccup should not blank out the temperature and wind
+    // that box exists to show.
+    let iceLevel = null;
+    try {
+      const r = await jget(`/v1/road?place=${encodeURIComponent(place)}&lang=${LANG}`);
+      iceLevel = r.ice_risk ? r.ice_risk.level : null;
+    } catch (err) { iceLevel = null; }
+
     host.innerHTML = `
       <div class="now">
         <div>${icon(sym ? sym.c : "unknown", sym ? sym.night : false, 70)}</div>
@@ -279,6 +312,7 @@ async function loadNow(place) {
           <div>${T("pressure")}<b>${fmt(obs.pressure, 0)} hPa</b>
             <span class="at">${at(obs, "pressure")}</span></div>
         </div>
+        ${warnLine(iceLevel, "IcyRoadWarning", "BlackIceWarning")}
       </div>
       <div class="today">
         ${ahead.map((p) => {
@@ -303,7 +337,7 @@ async function loadNow(place) {
 async function loadMarine(fmisid, buoy) {
   const host = $("#marine");
   try {
-    const m = await jget(`/v1/marine?fmisid=${fmisid}` + (buoy ? `&buoy_fmisid=${buoy}` : ""));
+    const m = await jget(`/v1/marine?fmisid=${fmisid}&lang=${LANG}` + (buoy ? `&buoy_fmisid=${buoy}` : ""));
     const s = m.station, w = m.waves;
     // `mode` says whether waves are measured or modelled; never present a model
     // value as if a buoy had reported it (RESEARCH.md §16).
@@ -333,6 +367,8 @@ async function loadMarine(fmisid, buoy) {
           <span class="at">${at(s, "temperature")}</span></div>
         ${wavesBlock}
       </div>
+      ${warnLine(m.wind_warning, "SeaWindModerate", "SeaWindSevere")}
+      ${warnLine(m.wave_warning, "SeaWaveModerate", "SeaWaveSevere")}
       <p class="note">${s.name}${w && w.measured ? ` · waves from ${w.name}` : ""}.
          ${T("retrieved")} ${m.retrieved ? localTime(m.retrieved) : "—"}.</p>`;
   } catch (err) {

@@ -87,6 +87,12 @@
   .msg { color: var(--color-neutral-600); font-size: 16px; }
   .ic { display: inline-block; vertical-align: -2px; margin-right: 4px;
         width: 15px; height: 15px; color: var(--color-neutral-500); }
+  /* FMI's own road-ice / marine warning, when one is active — same two-tier
+     orange/red as the main site and the watch app (RESEARCH.md §16). */
+  .warn { display: flex; align-items: center; gap: 8px; margin: 8px 0 0;
+          font-weight: 600; font-size: 15px; color: #e8622c; }
+  .warn.severe { color: #d64545; }
+  .warn .ic { width: 18px; height: 18px; margin-right: 0; color: inherit; }
 
   /* Live now */
   .now { display: flex; align-items: center; gap: 14px; }

@@ -39,6 +39,26 @@ const WIND_ICON = `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="curre
   <path d="M3 8h10a3 3 0 1 0-3-3"/><path d="M3 12h14a3 3 0 1 1-3 3"/><path d="M3 16h8"/></svg>`;
 const RAIN_ICON = `<svg class="ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
   <path d="M12 2C8 8 5 11.5 5 15a7 7 0 0 0 14 0c0-3.5-3-7-7-13z"/></svg>`;
+const WARN_ICON = `<svg class="ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+  <path d="M12 3 2 20h20L12 3Z"/></svg>`;
+
+/* One line: FMI's own road-ice or marine warning, when one is active — no
+   i18n on this page (English only, see the file header), so labels are
+   hardcoded rather than pulled from site.js's STR table. Mirrors the watch
+   app's wording exactly (RESEARCH.md §16). Absent entirely unless `level`
+   is one of the levels that actually warrant a line. */
+const WARN_LABELS = {
+  road: { moderate: "Icy road warning", severe: "Black ice warning" },
+  wind: { moderate: "Strong wind warning", severe: "Gale warning" },
+  wave: { moderate: "Rough seas", severe: "High wave warning" },
+};
+function warnLine(kind, level) {
+  const severe = level === "high" || level === "Severe" || level === "Extreme";
+  const moderate = level === "moderate" || level === "Moderate";
+  if (!severe && !moderate) return "";
+  const labels = WARN_LABELS[kind];
+  return `<p class="warn${severe ? " severe" : ""}">${WARN_ICON}${labels[severe ? "severe" : "moderate"]}</p>`;
+}
 
 async function loadNow(place) {
   const host = $("#now-box");
@@ -69,7 +89,8 @@ async function loadNow(place) {
           <div>Road surface<b>${fmt(rs.road_temp_c, 1)}°C</b></div>
           <div>Road condition<b>${rst && !rst.condition_fault && rst.condition ? rst.condition : "—"}</b></div>
         </div>
-        <div class="road-station">${rs.station ?? rst?.name ?? "—"}</div>`
+        <div class="road-station">${rs.station ?? rst?.name ?? "—"}</div>
+        ${warnLine("road", road.ice_risk ? road.ice_risk.level : null)}`
       : "";
 
     host.innerHTML = `
@@ -205,7 +226,7 @@ async function loadSea(place) {
       // necessarily the nearest one, rather than the box going blank over a
       // geocoding hiccup.
     }
-    const m = await jget(`/v1/marine?fmisid=${fmisid}`);
+    const m = await jget(`/v1/marine?fmisid=${fmisid}&lang=en`);
     const s = m.station, w = m.waves;
     const lbl = $("#sea-lbl");
     if (lbl) lbl.textContent = `Sea — ${s.name}`;
@@ -216,6 +237,8 @@ async function loadSea(place) {
         <div>Gust<b>${fmt(s.windgust, 1)} m/s</b></div>
         <div>Sea<b>${w && w.water_temp_c != null ? fmt(w.water_temp_c, 1) + "°C" : "—"}</b></div>
       </div>
+      ${warnLine("wind", m.wind_warning)}
+      ${warnLine("wave", m.wave_warning)}
       <p class="msg" style="margin-top:8px">${s.name}${w && w.measured ? "" : w ? " · modelled" : " · no buoy"}</p>`;
   } catch (err) {
     host.innerHTML = `<p class="msg">Sea data unavailable (${err.message}).</p>`;
