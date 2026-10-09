@@ -22,13 +22,50 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 HERE = Path(__file__).parent
-HERO = HERE / "hero-1440x720.png"
-COVER = HERE / "cover-500x500.png"
+SHOTS = Path(__file__).resolve().parents[2] / "Screenshots"
 
-# The Sea page with a live warning, straight from the simulator at the shipped
-# build — v1.1.0's headline feature belongs in the store art, not just the
-# gallery (RESEARCH.md §16, 2026-10-09; same reasoning as pg2.png/pg3.png).
-CAPTURE = Path(__file__).resolve().parents[2] / "Screenshots" / "pg2.png"
+# Per-language art. Finnish is the store's primary listing language
+# (store-listing.md), so it gets its own hero/cover with a Finnish capture and
+# translated copy, not a relabelled English one. Both read from the Sea page
+# with a live warning — v1.1.0's headline feature belongs in the store art,
+# not just the gallery (RESEARCH.md §16, 2026-10-09; same reasoning as
+# pg2.png/pg3.png in the screenshot gallery).
+LANGS = {
+    "en": dict(
+        hero=HERE / "hero-1440x720.png",
+        cover=HERE / "cover-500x500.png",
+        capture=SHOTS / "pg2.png",
+        subtitle=["Finnish weather, land and sea —", "straight from the source."],
+        bullets=[
+            "Forecasts and live observations",
+            "Marine wind from 40 coastal and 14 lake stations",
+            "Wave height and water temperature from FMI buoys",
+            "Official FMI warnings on the page they're about",
+            "Your own wind, gust and wave limits",
+        ],
+        attribution=[
+            "Weather data: Finnish Meteorological Institute, CC BY 4.0.",
+            "Independent project — not affiliated with FMI or Garmin.",
+        ],
+    ),
+    "fi": dict(
+        hero=HERE / "hero-1440x720-fi.png",
+        cover=HERE / "cover-500x500-fi.png",
+        capture=SHOTS / "pg2-fin-warning.png",
+        subtitle=["Suomen sää, maalla ja merellä —", "suoraan lähteeltä."],
+        bullets=[
+            "Ennusteet ja reaaliaikaiset havainnot",
+            "Merituuli 40 rannikko- ja 14 sisävesiasemalta",
+            "Aallonkorkeus ja veden lämpötila FMI:n poijuilta",
+            "Viralliset FMI-varoitukset sillä sivulla, jota ne koskevat",
+            "Omat tuuli-, puuska- ja aaltorajasi",
+        ],
+        attribution=[
+            "Säädata: Ilmatieteen laitos, CC BY 4.0.",
+            "Itsenäinen projekti — ei Ilmatieteen laitoksen eikä Garminin tukema.",
+        ],
+    ),
+}
 
 # Palette — VolvoWatch's, deliberately. Two apps from one shelf.
 BG_TOP = (9, 13, 26)
@@ -99,12 +136,12 @@ def skin_cutout() -> Image.Image:
     return _cutout
 
 
-def device(height: int) -> Image.Image:
+def device(height: int, capture: Path) -> Image.Image:
     """The watch, screen filled with the real capture, scaled to `height`."""
-    if not CAPTURE.exists():
-        raise SystemExit(f"no capture at {CAPTURE} — take one from the simulator first")
+    if not capture.exists():
+        raise SystemExit(f"no capture at {capture} — take one from the simulator first")
     skin = skin_cutout().copy()
-    shot = Image.open(CAPTURE).convert("RGBA")
+    shot = Image.open(capture).convert("RGBA")
 
     x, y, w, h = SCREEN_RECT
     if shot.size != (w, h):
@@ -135,11 +172,11 @@ def glow(img: Image.Image, cx: int, cy: int, radius: int, steps: int = 60) -> Im
     return Image.alpha_composite(img.convert("RGBA"), layer).convert("RGB")
 
 
-def make_hero() -> None:
+def make_hero(cfg: dict) -> None:
     W, H = 1440, 720
     img = glow(vertical_gradient((W, H), BG_TOP, BG_BOTTOM), 1080, 360, 250)
 
-    watch = device(620)
+    watch = device(620, cfg["capture"])
     img.paste(watch, (1080 - watch.size[0] // 2, 360 - watch.size[1] // 2), watch)
 
     d = ImageDraw.Draw(img)
@@ -151,49 +188,43 @@ def make_hero() -> None:
         size -= 2
     d.text((x, 186), title, font=font(size, "bold"), fill=WHITE)
 
-    d.text((x, 286), "Finnish weather, land and sea —", font=font(31), fill=GREY)
-    d.text((x, 328), "straight from the source.", font=font(31), fill=GREY)
+    d.text((x, 286), cfg["subtitle"][0], font=font(31), fill=GREY)
+    d.text((x, 328), cfg["subtitle"][1], font=font(31), fill=GREY)
 
-    bullets = [
-        "Forecasts and live observations",
-        "Marine wind from 40 coastal and 14 lake stations",
-        "Wave height and water temperature from FMI buoys",
-        "Official FMI warnings on the page they're about",
-        "Your own wind, gust and wave limits",
-    ]
     # Five bullets instead of the original four's room — tighter line pitch
     # (38px, was 44) and an earlier start so the last one still clears the
     # attribution text instead of running into it.
     by = 396
-    for line in bullets:
+    for line in cfg["bullets"]:
         d.ellipse([x + 4, by + 10, x + 14, by + 20], fill=ACCENT)
         d.text((x + 32, by - 2), line, font=font(23), fill=WHITE)
         by += 38
 
-    d.text((x, 616), "Weather data: Finnish Meteorological Institute, CC BY 4.0.",
-           font=font(19), fill=DIM)
-    d.text((x, 646), "Independent project — not affiliated with FMI or Garmin.",
-           font=font(19), fill=DIM)
+    d.text((x, 616), cfg["attribution"][0], font=font(19), fill=DIM)
+    d.text((x, 646), cfg["attribution"][1], font=font(19), fill=DIM)
 
-    img.save(HERO, "PNG")
-    print(f"{HERO.name}  {img.size[0]}x{img.size[1]}  {HERO.stat().st_size:,} bytes")
+    hero = cfg["hero"]
+    img.save(hero, "PNG")
+    print(f"{hero.name}  {img.size[0]}x{img.size[1]}  {hero.stat().st_size:,} bytes")
 
 
-def make_cover() -> None:
+def make_cover(cfg: dict) -> None:
     """500x500 tile. Read at thumbnail size, so: fewer words, bigger device."""
     S = 500
     img = glow(vertical_gradient((S, S), BG_TOP, BG_BOTTOM), S // 2, 228, 150, steps=50)
 
-    watch = device(404)
+    watch = device(404, cfg["capture"])
     img.paste(watch, (S // 2 - watch.size[0] // 2, 228 - watch.size[1] // 2), watch)
 
     d = ImageDraw.Draw(img)
     centered(d, S // 2, 462, "FIWeatherWatch", font(30, "bold"), WHITE)
 
-    img.save(COVER, "PNG")
-    print(f"{COVER.name}  {img.size[0]}x{img.size[1]}  {COVER.stat().st_size:,} bytes")
+    cover = cfg["cover"]
+    img.save(cover, "PNG")
+    print(f"{cover.name}  {img.size[0]}x{img.size[1]}  {cover.stat().st_size:,} bytes")
 
 
 if __name__ == "__main__":
-    make_hero()
-    make_cover()
+    for lang, cfg in LANGS.items():
+        make_hero(cfg)
+        make_cover(cfg)
