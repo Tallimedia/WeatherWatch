@@ -25,8 +25,10 @@ HERE = Path(__file__).parent
 HERO = HERE / "hero-1440x720.png"
 COVER = HERE / "cover-500x500.png"
 
-# The Land page, straight from the simulator at the shipped build.
-CAPTURE = Path(__file__).resolve().parents[2] / "Screenshots" / "pg1.png"
+# The Sea page with a live warning, straight from the simulator at the shipped
+# build — v1.1.0's headline feature belongs in the store art, not just the
+# gallery (RESEARCH.md §16, 2026-10-09; same reasoning as pg2.png/pg3.png).
+CAPTURE = Path(__file__).resolve().parents[2] / "Screenshots" / "pg2.png"
 
 # Palette — VolvoWatch's, deliberately. Two apps from one shelf.
 BG_TOP = (9, 13, 26)
@@ -156,13 +158,17 @@ def make_hero() -> None:
         "Forecasts and live observations",
         "Marine wind from 40 coastal and 14 lake stations",
         "Wave height and water temperature from FMI buoys",
+        "Official FMI warnings on the page they're about",
         "Your own wind, gust and wave limits",
     ]
-    by = 410
+    # Five bullets instead of the original four's room — tighter line pitch
+    # (38px, was 44) and an earlier start so the last one still clears the
+    # attribution text instead of running into it.
+    by = 396
     for line in bullets:
-        d.ellipse([x + 4, by + 12, x + 14, by + 22], fill=ACCENT)
-        d.text((x + 32, by), line, font=font(25), fill=WHITE)
-        by += 44
+        d.ellipse([x + 4, by + 10, x + 14, by + 20], fill=ACCENT)
+        d.text((x + 32, by - 2), line, font=font(23), fill=WHITE)
+        by += 38
 
     d.text((x, 616), "Weather data: Finnish Meteorological Institute, CC BY 4.0.",
            font=font(19), fill=DIM)
