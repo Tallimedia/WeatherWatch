@@ -9,6 +9,22 @@ Design reasoning lives in `RESEARCH.md` (owned by the `claude-docs` repo).
 
 ## Watch app
 
+### v1.1.0 — 2026-10-09
+- **Official FMI warnings, shown on the page they're about.** An icy-road warning
+  on the Land page (FMI's own ice-risk assessment for the nearest road), a wind
+  warning on Sea and a wave warning on Waves (FMI's marine CAP feed, matched to
+  the station/buoy by point-in-polygon). No separate warnings tab — the warning
+  sits next to the reading it qualifies, and is absent entirely when there isn't
+  one.
+- Each warning row pairs a dedicated icon (a snowflake for ice, a triangle for
+  the marine warnings — never colour alone, so it still reads on a 1-bit screen)
+  with a plain-language label the watch owns per language, not FMI's own prose.
+  Two severity tiers: orange for Moderate, red for Severe/Extreme.
+- Promoted from `beta/v1.1-road-ice` after a full simulator and real-hardware
+  pass across all three severity/language combinations.
+- Finnish page titles corrected: **Maasää** / **Merisää**, not the ambiguous
+  "Maa" ("land" as in *ground*, not as in *country* vs. *sea*).
+
 ### v0.1.4 — 2026-09-20
 - **About page**, carrying the FMI attribution CC BY 4.0 requires in the app itself,
   plus the app name and build. Page count goes from 3 to 4; About is last in both

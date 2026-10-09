@@ -1,10 +1,17 @@
-# Connect IQ Store listing copy — v1.0.0
+# Connect IQ Store listing copy — v1.1.0
 
 Paste-ready text for <https://apps-developer.garmin.com>. Keep in sync with
 `../CHANGELOG.md`.
 
-The beta (v0.1.x) is unlisted and needs no copy. This is the copy that shipped as the
-public v1.0.0 entry.
+The beta (v0.1.x, v1.1.x pre-release) is unlisted and needs no copy. This is the copy
+for the public listing, updated for the v1.1.0 release (road-ice and marine
+warnings, 2026-10-09) on top of what shipped as v1.0.0.
+
+**v1.1.0 is the first release where the listing has something concrete to put
+first.** FMI's own warnings, shown directly on the page they're about, are the
+single biggest capability jump since launch — nothing else in the description
+changed, but the WARNINGS section and the What's New block both lead with it
+rather than burying it in a bullet list.
 
 **Live on the Connect IQ Store since 2026-09-22** (submitted 2026-09-21, approved in
 a day). Public listing:
@@ -99,6 +106,9 @@ Tuuli, puuskat ja suunta 40 rannikkoasemalta ja 14 sisävesiasemalta — Harmaja
 AALLOT
 Merkitsevä aallonkorkeus, jakso, suunta ja veden lämpötila Ilmatieteen laitoksen aaltopoijuilta. Poijut nostetaan talveksi pois vedestä; silloin sovellus kertoo sen ja näyttää mallidataa selvästi merkittynä.
 
+VAROITUKSET
+Ilmatieteen laitoksen viralliset varoitukset näkyvät suoraan sillä sivulla, jota ne koskevat: liukkaan tien varoitus Maalla, tuulivaroitus Merellä, aallokkovaroitus Aalloilla. Ei erillistä varoitussivua selattavaksi — varoitus on siinä missä lukemakin, eikä näy ollenkaan kun ei ole mitään varoitettavaa.
+
 OMAT RAJASI
 Aseta tuulen, puuskan ja aallonkorkeuden rajat, niin lukema korostuu kun raja ylittyy.
 
@@ -134,6 +144,9 @@ Wind, gusts and direction from 40 coastal and 14 inland lake stations — Harmaj
 
 WAVES
 Significant wave height, period, direction and water temperature from FMI's wave buoys. The buoys are lifted out for the winter; when none is reporting the app says so and falls back to model output, clearly labelled.
+
+WARNINGS
+Official FMI warnings appear right on the page they're about: an icy-road warning on Land, a wind warning on Sea, a wave warning on Waves. No separate warnings tab to check — the warning sits next to the reading it qualifies, and is simply absent when there's nothing to warn about.
 
 YOUR OWN LIMITS
 Set the wind, gust and wave heights that matter to you, and a reading is highlighted when it crosses one.
@@ -202,6 +215,36 @@ fenix screens. Ship at least one monochrome capture in the same release, so nobo
 on the strength of a picture their watch cannot draw. Confirm in the dashboard whether
 screenshots can be attached **per device** or are a single shared set — that decides
 whether Instinct gets its own or the shared set has to include one.
+
+---
+
+## What's new — v1.1.0
+
+**Leads with the warnings, not buried as a bullet** — it's the biggest capability
+jump since launch, and the "what's new" text is read by existing users deciding
+whether to update, which is exactly who most needs to know about it.
+
+**Finnish:**
+
+```
+Viralliset FMI-varoitukset, suoraan oikealla sivulla.
+
+• Liukkaan tien varoitus Maa-sivulla — Ilmatieteen laitoksen oma jäätymisriskiarvio lähimmälle tielle
+• Tuulivaroitus Meri-sivulla, aallokkovaroitus Aallot-sivulla — Ilmatieteen laitoksen viralliset merivaroitukset
+• Varoitus näkyy siinä missä lukemakin — ei erillistä varoitussivua selattavaksi
+• Selkeämmät otsikot: Maasää ja Merisää
+```
+
+**English:**
+
+```
+Official FMI warnings, right on the page they're about.
+
+• Icy-road warning on the Land page — FMI's own ice-risk assessment for the nearest road
+• Wind warning on Sea, wave warning on Waves — FMI's official marine warnings
+• The warning sits next to the reading it qualifies — no separate tab to check
+• Clearer page titles: Maasää and Merisää in Finnish
+```
 
 ---
 
@@ -275,17 +318,28 @@ device skin, already under the store's 300 kB limit:
 | File | Shows |
 |---|---|
 | `pg1.png` | Land — temperature, wind, forecast strip |
-| `pg2.png` | Sea — station wind, gust, direction |
-| `pg3.png` | Waves — height, period, direction, water temperature |
+| `pg2.png` | Sea — station wind, gust, direction, **gale warning live** |
+| `pg3.png` | Waves — height, period, direction, water temperature, **wave warning live** |
 | `glance.png` | Glance carousel |
+
+**Updated for v1.1.0, 2026-10-09**: `pg2.png` and `pg3.png` now show a live
+warning row (Hammarland Märket, Severe wind / Moderate wave — real FMI data, not
+staged) rather than an unremarkable reading. Source captures are
+`Screenshots/pg2-eng-warning.png` / `pg3-eng-warning.png`, reframed over the
+previous pg1/pg2/pg3 set via `python3 Screenshots/frame.py`. A warning row is
+the single biggest thing this release adds, so the gallery preview (image one,
+`pg2.png`) should be the one showing it, not a quiet default reading.
 
 ### Priority order, so the cap decides itself
 
 Take the top N for whatever N the dashboard allows. Colour first — it is the large
 majority of supported devices and the gallery preview shows image one.
 
-1. **`pg2.png` Sea** — the differentiator. Nobody else serves FMI marine stations
-2. **`pg3.png` Waves** — the unique data, live buoys
+1. **`pg2.png` Sea, warning live** — the differentiator twice over: FMI marine
+   stations nobody else serves, now also showing the warning feature in the very
+   first image a browser sees
+2. **`pg3.png` Waves, warning live** — the unique data, live buoys, same warning
+   row shown on its other page
 3. **`pg1.png` Land** — the everyday page, and the one that says "this is a weather app"
 4. **`glance.png` Glance** — convenience, and the feature most users will actually live in
 5. **Monochrome capture** — *add with the Instinct release, not before.* See below
