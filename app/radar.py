@@ -37,6 +37,14 @@ RADII_KM = (25, 50, 100)
 #: cutting the file to a fraction of a truecolour PNG.
 PALETTE_COLOURS = 32
 
+#: The Edge's phone link fails ("error 0") on a large image: a 420 px tile of dense rain
+#: is ~48 kB, while the 15-20 kB tiles of a quiet day always arrived. FMI's composite is
+#: a ~1 km grid, so the picture is shrunk to its real resolution and scaled back up in
+#: blocks, using the smallest block size that keeps the file under this many bytes: sharp
+#: when it is dry, blockier when the whole tile is rain. Nothing real is lost.
+MAX_TILE_BYTES = 20_000
+BLOCK_STEPS = (1, 2, 3, 4, 5, 6)
+
 _FRAME_RE = re.compile(
     r"<Name>suomi_dbz_eureffin</Name>.*?<Dimension name=\"time\"[^>]*>([^<]+)</Dimension>",
     re.S,
@@ -124,8 +132,27 @@ async def fetch_base(clat: float, clon: float, radius_km: float, size: int,
 
 
 def draw(base_png: bytes, px: float, py: float, frame: datetime) -> bytes:
-    """Add the rider marker and frame time, then reduce to a small palette PNG."""
-    image = Image.open(io.BytesIO(base_png)).convert("RGB")
+    """Add the rider marker and frame time, then reduce to a small palette PNG.
+
+    The largest block factor in BLOCK_STEPS is tried from the smallest up until the file
+    fits MAX_TILE_BYTES (see the note there); the last one is returned if none does.
+    """
+    original = Image.open(io.BytesIO(base_png)).convert("RGB")
+    out = b""
+    for factor in BLOCK_STEPS:
+        out = _encode(original, factor, px, py, frame)
+        if len(out) <= MAX_TILE_BYTES:
+            break
+    return out
+
+
+def _encode(original: Image.Image, factor: int, px: float, py: float, frame: datetime) -> bytes:
+    image = original
+    if factor > 1:
+        small = original.resize(
+            (max(1, original.width // factor), max(1, original.height // factor)), Image.NEAREST
+        )
+        image = small.resize(original.size, Image.NEAREST)
     d = ImageDraw.Draw(image)
     size = image.width
 
@@ -144,8 +171,8 @@ def draw(base_png: bytes, px: float, py: float, frame: datetime) -> bytes:
     d.rectangle((0, size - th - pad * 3, tw + pad * 3, size), fill=(255, 255, 255))
     d.text((pad, size - th - pad * 2 - box[1]), label, fill=(0, 0, 0), font=font)
 
-    out = io.BytesIO()
+    buf = io.BytesIO()
     image.quantize(PALETTE_COLOURS, method=Image.Quantize.MEDIANCUT).save(
-        out, format="PNG", optimize=True
+        buf, format="PNG", optimize=True
     )
-    return out.getvalue()
+    return buf.getvalue()
