@@ -79,11 +79,16 @@ class FIWeatherGlanceView extends WatchUi.GlanceView {
     //! apart anyway — the caption ("Maan lämp" vs "Merituuli") already does
     //! that job, so the icon's only job here is "something's active".
     //!
-    //! Colour follows the exact same severity mapping as drawRoadIce() /
+    //! Colour: marine warnings follow the exact same severity mapping as
     //! drawSeaWarning() on the full pages — Theme.OVER for moderate,
-    //! Theme.HOT once it crosses into high/Severe/Extreme — since a flat
-    //! Theme.DIM icon said "warning" without saying how urgent, and this is
-    //! a warning, not a neutral row label.
+    //! Theme.HOT once it crosses into Severe/Extreme. Road ice is the one
+    //! exception, 2026-10-09: always Theme.COLD (the same blue the app
+    //! already uses for a cold temperature reading) regardless of
+    //! moderate/high, rather than matching drawRoadIce()'s own OVER/HOT —
+    //! Nico's call after comparing both in the sim. Blue reads as "ice"
+    //! category at a glance, which matters more here than the severity
+    //! distinction does, precisely because there's no icon shape left to
+    //! carry that distinction once the snowflake had to go.
     //!
     //! Icon sizing matches Pages.mc's own `iconRow` at FONT_XTINY
     //! (`fh * 0.62`) rather than inventing a new size — that proportion is
@@ -91,8 +96,7 @@ class FIWeatherGlanceView extends WatchUi.GlanceView {
     hidden function warnColour(which as Number) as Number? {
         if (which == 0) {
             var lvl = Api.road != null ? Api.v(Api.road, "level") : null;
-            if (lvl != null && lvl.equals("high")) { return Theme.HOT; }
-            if (lvl != null && lvl.equals("moderate")) { return Theme.OVER; }
+            if (lvl != null && (lvl.equals("high") || lvl.equals("moderate"))) { return Theme.COLD; }
         } else if (which == 2 || which == 3) {
             var w = Api.marine != null ? Api.v(Api.marine, "windWarn") : null;
             if (w != null && (w.equals("Severe") || w.equals("Extreme"))) { return Theme.HOT; }
