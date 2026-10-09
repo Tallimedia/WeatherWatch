@@ -116,6 +116,11 @@ def parse_cap(xml: str, language: str | None = None) -> list[dict]:
     root = ET.fromstring(xml)
     alerts: list[dict] = []
     for alert in root.iter(f"{_CAP}alert"):
+        # A withdrawn warning stays in the feed as a `Cancel` message rather
+        # than disappearing — found 2026-10-09, unfiltered since this module
+        # was written. Left in, a stale sea warning renders as a live one.
+        if alert.findtext(f"{_CAP}msgType") == "Cancel":
+            continue
         infos = alert.findall(f"{_CAP}info")
         info = next(
             (i for i in infos if language and i.findtext(f"{_CAP}language") == language),
@@ -131,8 +136,17 @@ def parse_cap(xml: str, language: str | None = None) -> list[dict]:
             desc = area.findtext(f"{_CAP}areaDesc")
             if desc:
                 areas.append(desc)
+        event_code = None
+        code_el = info.find(f"{_CAP}eventCode")
+        if code_el is not None:
+            event_code = code_el.findtext(f"{_CAP}value")
         alerts.append({
             "event": info.findtext(f"{_CAP}event"),
+            # Machine-readable and language-independent, unlike `event` text
+            # (fi/sv/en feeds are fetched separately, so the prose differs).
+            # FIWeatherWatch v1.1 filters on this — "seaWind"/"seaWaveHeight"
+            # — rather than matching Finnish strings (2026-10-09).
+            "event_code": event_code,
             "severity": info.findtext(f"{_CAP}severity"),
             "urgency": info.findtext(f"{_CAP}urgency"),
             "headline": info.findtext(f"{_CAP}headline"),

@@ -65,6 +65,12 @@
     <string id="PageLand">Land</string>
     <string id="PageSea">Sea</string>
     <string id="PageBuoy">Waves</string>
+    <string id="IcyRoadWarning">Icy road warning</string>
+    <string id="BlackIceWarning">Black ice warning</string>
+    <string id="SeaWindModerate">Strong wind warning</string>
+    <string id="SeaWindSevere">Gale warning</string>
+    <string id="SeaWaveModerate">Rough seas</string>
+    <string id="SeaWaveSevere">High wave warning</string>
     <string id="Gust">gust</string>
     <string id="WaterTemp">Water</string>
     <string id="Period">Period</string>

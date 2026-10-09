@@ -479,6 +479,37 @@ _BUOY_FIELDS = {
     "TWATER": "water_temp_c",
 }
 
+#: FMI's CAP severity scale, highest first — used to pick one alert when a
+#: point happens to be covered by more than one live warning.
+_SEVERITY_RANK = {"Extreme": 3, "Severe": 2, "Moderate": 1, "Minor": 0}
+
+
+async def _sea_warning(lat: float, lon: float, event_code: str, lang: str) -> str | None:
+    """The most severe live warning of one type at a point, or None.
+
+    Reuses FIRoadWeather's CAP pipeline (`app/warnings.py`) exactly as built —
+    same cache entry (`cap:{lang}`, `TTL_CAP`), same point-in-polygon matching
+    — filtered here by `event_code` (`seaWind` for the Sea page, `seaWaveHeight`
+    for Waves) rather than by area, since a wind warning and a wave warning
+    for the same point are two different rows, not one (RESEARCH.md §16, found
+    2026-10-09). Never fails the caller: a CAP outage degrades to "no
+    warning", the same way a missing buoy or road station already does.
+    """
+    try:
+        xml = await cache.aget_or_set(f"cap:{lang}", config.TTL_CAP,
+                                      lambda: warn.fetch_cap(lang))
+        alerts = warn.alerts_at(
+            warn.parse_cap(xml, warn.CAP_LANG.get(lang)), lat, lon
+        )
+    except (road.RoadDataError, httpx.HTTPError, ET.ParseError):
+        return None
+
+    matches = [a for a in alerts if a.get("event_code") == event_code]
+    if not matches:
+        return None
+    best = max(matches, key=lambda a: _SEVERITY_RANK.get(a.get("severity"), -1))
+    return best.get("severity")
+
 
 async def _buoy_reading(
     lat: float,
@@ -992,6 +1023,7 @@ async def bike_radar(
 async def marine(
     fmisid: int = Query(config.DEFAULT_SEA_FMISID, description="Marine station id"),
     buoy_fmisid: int | None = Query(None, description="Override; omit for nearest"),
+    lang: str = Query("en", pattern="^(fi|sv|en)$"),
 ) -> dict:
     """Sea conditions: station wind plus waves.
 
@@ -1050,8 +1082,24 @@ async def marine(
             # nothing.
             mode = "none"
 
+    # Wind warning at the wind station itself; wave warning at wherever the
+    # wave reading actually came from — the buoy, when there is one, not the
+    # station, since those two points can be tens of km apart (RESEARCH.md
+    # §16, 2026-10-09). The land-sea split already exists on the Land page
+    # for the same reason weather at your place differs from weather at the
+    # station reporting it.
+    wave_point = station
+    if mode == "waves" and waves is not None:
+        buoy_station = stations.by_id(waves.get("fmisid"))
+        if buoy_station is not None:
+            wave_point = buoy_station
+    wind_warning = await _sea_warning(station.lat, station.lon, "seaWind", lang)
+    wave_warning = await _sea_warning(wave_point.lat, wave_point.lon, "seaWaveHeight", lang)
+
     return {
         "mode": mode,
+        "wind_warning": wind_warning,
+        "wave_warning": wave_warning,
         "station": {
             "fmisid": station.fmisid,
             "name": station.name,

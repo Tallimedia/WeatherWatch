@@ -65,6 +65,12 @@
     <string id="PageLand">Land</string>
     <string id="PageSea">Hav</string>
     <string id="PageBuoy">Vågor</string>
+    <string id="IcyRoadWarning">Halt väglag</string>
+    <string id="BlackIceWarning">Svart is</string>
+    <string id="SeaWindModerate">Hård vind</string>
+    <string id="SeaWindSevere">Stormvarning</string>
+    <string id="SeaWaveModerate">Hög sjö</string>
+    <string id="SeaWaveSevere">Mycket hög sjö</string>
     <string id="Gust">by</string>
     <string id="WaterTemp">Vatten</string>
     <string id="Period">Period</string>

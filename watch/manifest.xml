@@ -1,6 +1,9 @@
 <?xml version="1.0"?>
 <!--
-    This id belongs to the PUBLIC store entry (1.0.0, 2026-09-21).
+    This id belongs to the PUBLIC store entry (1.0.0, 2026-09-21; 1.1.0,
+    2026-10-09 — road-ice warnings on Land and FMI marine wind/wave warnings
+    on Sea and Waves, promoted from beta/v1.1-road-ice after a full sim and
+    real-hardware pass in all three languages, see CHANGELOG.md).
 
     The beta entry used a7c41e2b9d364f158e0b73a2c65d9f04 (0.1.0–0.1.8). Garmin
     will not promote a beta to a public listing: "If you want to publish your
@@ -29,7 +32,7 @@
         type="widget"
         name="@Strings.AppName"
         entry="FIWeatherWatchApp"
-        version="1.0.0"
+        version="1.1.0"
         launcherIcon="@Drawables.LauncherIcon"
         minApiLevel="3.4.0">
 

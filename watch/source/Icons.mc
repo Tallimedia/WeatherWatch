@@ -158,6 +158,54 @@ module Icons {
         dc.setPenWidth(1);
     }
 
+    //! Ice: a six-spoke snowflake, three lines through the centre 60° apart
+    //! with a short branch near each outer end.
+    //!
+    //! A snowflake reads as "ice" at a glance without a word attached, which
+    //! matters here specifically: the road-ice row always pairs the icon with
+    //! text (RESEARCH.md §16), because the icon alone would read as "icy
+    //! outside" rather than "icy road" — this glyph is the flag, the word
+    //! next to it is what says *road*. Branches kept short; at 10-16 px a
+    //! full ice-crystal outline smears into a blob the way the wind glyph's
+    //! first attempt did with straight lines (see wind() above).
+    function ice(dc as Graphics.Dc, x as Number, y as Number, s as Number, colour as Number) as Void {
+        dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
+        var pen = (s * 0.12).toNumber();
+        if (pen < 2) { pen = 2; }
+        dc.setPenWidth(pen);
+
+        var cx = x + s / 2;
+        var cy = y + s / 2;
+        var r = s * 0.44;
+        var branchAt = r * 0.58;
+        var branchLen = r * 0.28;
+        var angles = [0.0, 60.0, 120.0];
+
+        for (var i = 0; i < 3; i += 1) {
+            var rad = angles[i] * Math.PI / 180.0;
+            var dx = Math.cos(rad) * r;
+            var dy = Math.sin(rad) * r;
+            dc.drawLine((cx - dx).toNumber(), (cy - dy).toNumber(),
+                        (cx + dx).toNumber(), (cy + dy).toNumber());
+
+            var pRad = rad + Math.PI / 3;
+            var pdx = Math.cos(pRad) * branchLen;
+            var pdy = Math.sin(pRad) * branchLen;
+            var bx = Math.cos(rad) * branchAt;
+            var by = Math.sin(rad) * branchAt;
+            // A short V at each outer end, both directions along the arm.
+            dc.drawLine((cx + bx).toNumber(), (cy + by).toNumber(),
+                        (cx + bx + pdx).toNumber(), (cy + by + pdy).toNumber());
+            dc.drawLine((cx + bx).toNumber(), (cy + by).toNumber(),
+                        (cx + bx - pdx).toNumber(), (cy + by - pdy).toNumber());
+            dc.drawLine((cx - bx).toNumber(), (cy - by).toNumber(),
+                        (cx - bx + pdx).toNumber(), (cy - by + pdy).toNumber());
+            dc.drawLine((cx - bx).toNumber(), (cy - by).toNumber(),
+                        (cx - bx - pdx).toNumber(), (cy - by - pdy).toNumber());
+        }
+        dc.setPenWidth(1);
+    }
+
     //! Pin, marking the reporting station's distance.
     function station(dc as Graphics.Dc, x as Number, y as Number, s as Number, colour as Number) as Void {
         dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
@@ -168,5 +216,36 @@ module Icons {
         dc.drawCircle(cx, cy, r);
         dc.drawLine(cx, cy + r, cx, y + s);
         dc.setPenWidth(1);
+    }
+
+    //! Warning triangle with an exclamation mark — the FMI marine warning row
+    //! on the Sea and Waves pages. Reusing :wind or :wave here would sit right
+    //! below that page's own normal reading and read as a second number, not
+    //! an alert; the universal triangle avoids any ambiguity about what kind
+    //! of row this is, the same reason road-ice got its own glyph rather than
+    //! reusing :temp.
+    function warning(dc as Graphics.Dc, x as Number, y as Number, s as Number, colour as Number) as Void {
+        dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
+        var cx = x + s / 2;
+        var top = y + (s * 0.04).toNumber();
+        var bottom = y + s;
+        var halfW = (s * 0.5).toFloat();
+        dc.fillPolygon([
+            [cx, top],
+            [(cx + halfW).toNumber(), bottom],
+            [(cx - halfW).toNumber(), bottom],
+        ]);
+        // The exclamation mark is cut out of the filled triangle rather than
+        // drawn in a second colour, so it survives a 1-bit screen (§24) —
+        // same reasoning as every other glyph in this module.
+        dc.setColor(Theme.BG, Graphics.COLOR_TRANSPARENT);
+        var stemW = (s * 0.09).toNumber();
+        if (stemW < 2) { stemW = 2; }
+        var stemTop = y + (s * 0.32).toNumber();
+        var stemBottom = y + (s * 0.68).toNumber();
+        dc.fillRectangle(cx - stemW / 2, stemTop, stemW, stemBottom - stemTop);
+        var dotR = (stemW * 0.65).toNumber();
+        if (dotR < 1) { dotR = 1; }
+        dc.fillCircle(cx, y + (s * 0.84).toNumber(), dotR);
     }
 }

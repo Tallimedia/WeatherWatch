@@ -165,6 +165,7 @@ module Pages {
                     + " " + Fmt.compass(dir),
                 Theme.windColour(ms, gust, Config.landWind(), Config.landGust()), 4);
 
+        drawRoadIce(dc);
         forecastStrip(dc, _y);
 
         // One age per page here rather than two: the earlier "8 min · 8 min"
@@ -198,6 +199,31 @@ module Pages {
             dc.drawText(x, top + lineH - 2, Graphics.FONT_XTINY, Fmt.zero(t),
                         Graphics.TEXT_JUSTIFY_CENTER);
         }
+    }
+
+    //! Exception row: present only when the nearest FMI road station reports
+    //! `ice_risk` moderate or higher, absent otherwise — v1.1, RESEARCH.md
+    //! §16. Icon and word together, never the icon alone: a bare snowflake
+    //! beside air temperature and wind reads as "icy outside", and the one
+    //! thing this row must say is "icy road". `moderate` and `high` get
+    //! different words, not just different colours, since colour alone
+    //! disappears on a 1-bit screen (§24) and a mono port is a live
+    //! possibility for this app.
+    function drawRoadIce(dc as Graphics.Dc) as Void {
+        var level = Api.v(Api.road, "level");
+        if (level == null) { return; }
+
+        var text = null;
+        var colour = Theme.OVER;
+        if (level.equals("high")) {
+            text = res(Rez.Strings.BlackIceWarning);
+            colour = Theme.HOT;
+        } else if (level.equals("moderate")) {
+            text = res(Rez.Strings.IcyRoadWarning);
+        }
+        if (text == null) { return; }
+
+        iconRow(dc, :ice, Graphics.FONT_XTINY, text, colour, 4);
     }
 
     // ----------------------------------------------------------------- sea
@@ -237,7 +263,31 @@ module Pages {
 
         iconRow(dc, :temp, Graphics.FONT_XTINY, Fmt.temp(Api.v(m, "stTemp")), Theme.DIM, 0);
 
+        drawSeaWarning(dc, Api.v(m, "windWarn"), Rez.Strings.SeaWindModerate,
+                       Rez.Strings.SeaWindSevere);
+
         updated(dc, Fmt.age(Api.v(m, "stAt")), Api.marineState);
+    }
+
+    //! Exception row: FMI marine warning (CAP feed), present only when one is
+    //! live for this point, absent otherwise — v1.1, RESEARCH.md §16, same
+    //! icon-plus-word pattern as the road-ice row. Shared by the Sea page
+    //! (wind) and the Waves page (wave height); `severity` is the raw CAP
+    //! string ("Moderate"/"Severe"/"Extreme"/"Minor") the backend passes
+    //! through unshaped, same as `ice_risk.level`.
+    function drawSeaWarning(dc as Graphics.Dc, severity as String?,
+                            moderateRes as ResourceId, severeRes as ResourceId) as Void {
+        if (severity == null) { return; }
+        var text = null;
+        var colour = Theme.OVER;
+        if (severity.equals("Severe") || severity.equals("Extreme")) {
+            text = res(severeRes);
+            colour = Theme.HOT;
+        } else if (severity.equals("Moderate")) {
+            text = res(moderateRes);
+        }
+        if (text == null) { return; }
+        iconRow(dc, :warning, Graphics.FONT_XTINY, text, colour, 4);
     }
 
     // ---------------------------------------------------------------- buoy
@@ -300,8 +350,11 @@ module Pages {
         var water = Api.v(m, "wTemp");
         if (water != null) {
             iconRow(dc, :temp, Graphics.FONT_XTINY,
-                    res(Rez.Strings.WaterTemp) + " " + Fmt.temp(water), Theme.DIM, 0);
+                    res(Rez.Strings.WaterTemp) + " " + Fmt.temp(water), Theme.DIM, 4);
         }
+
+        drawSeaWarning(dc, Api.v(m, "waveWarn"), Rez.Strings.SeaWaveModerate,
+                       Rez.Strings.SeaWaveSevere);
 
         updated(dc, Fmt.age(Api.v(m, "wAt")), Api.marineState);
     }
@@ -368,6 +421,8 @@ module Pages {
         else if (kind == :wind)    { Icons.wind(dc, left, iy, size, Theme.DIM); }
         else if (kind == :wave)    { Icons.wave(dc, left, iy, size, Theme.DIM); }
         else if (kind == :clock)   { Icons.clock(dc, left, iy, size, Theme.DIM); }
+        else if (kind == :ice)     { Icons.ice(dc, left, iy, size, Theme.DIM); }
+        else if (kind == :warning) { Icons.warning(dc, left, iy, size, Theme.DIM); }
         dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
         dc.drawText(left + drawnW + gap, _y, font, text, Graphics.TEXT_JUSTIFY_LEFT);
         _y += fh + gapAfter;
