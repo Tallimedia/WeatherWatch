@@ -1,5 +1,5 @@
 <strings>
-    <string id="AppName">FIWeatherWatch</string>
+    <string id="AppName">FIW Beta</string>
 
     <!-- Setting groups -->
     <string id="GroupLand">Maa</string>
@@ -62,9 +62,15 @@
     <string id="NoPlace">Paikkaa ei löydy</string>
     <string id="Refreshing">Päivitetään…</string>
     <string id="Offline">Viimeisin lukema</string>
-    <string id="PageLand">Maa</string>
-    <string id="PageSea">Meri</string>
+    <string id="PageLand">Maasää</string>
+    <string id="PageSea">Merisää</string>
     <string id="PageBuoy">Aallot</string>
+    <string id="IcyRoadWarning">Liukas tie</string>
+    <string id="BlackIceWarning">Mustaa jäätä</string>
+    <string id="SeaWindModerate">Kova tuuli</string>
+    <string id="SeaWindSevere">Myrskyvaroitus</string>
+    <string id="SeaWaveModerate">Suuri aallokko</string>
+    <string id="SeaWaveSevere">Vaarallinen aallokko</string>
     <string id="Gust">puuska</string>
     <string id="WaterTemp">Vesi</string>
     <string id="Period">Jakso</string>

@@ -1,4 +1,5 @@
 import Toybox.Application;
+import Toybox.Attention;
 import Toybox.Communications;
 import Toybox.Lang;
 import Toybox.PersistedContent;
@@ -24,11 +25,24 @@ module Api {
 
     var land as Dictionary? = null;
     var forecast as Dictionary? = null;
+    var road as Dictionary? = null;
     var marine as Dictionary? = null;
 
     var landState = STATE_IDLE;
     var forecastState = STATE_IDLE;
+    var roadState = STATE_IDLE;
     var marineState = STATE_IDLE;
+
+    //! Roads more than this from the nearest FMI road station are not "your
+    //! roads" any more than a wave buoy 50 km out is "your sea" (RESEARCH.md
+    //! §16) — provisional, easy to retune, not yet validated against a wide
+    //! spread of towns.
+    const ROAD_ICE_MAX_KM = 30.0;
+
+    //! Fires at most once per app process. Not reset by a manual refresh —
+    //! the buzz is a launch-time flag, not a per-refresh alert (RESEARCH.md
+    //! §16: "once per launch, never per draw").
+    var _roadBuzzed = false;
 
     //! Why the last request failed, so the page can say something true rather
     //! than blaming the phone for everything.
@@ -145,9 +159,11 @@ module Api {
     function restore() as Void {
         land = load("f_land");
         forecast = load("f_fc");
+        road = load("f_road");
         marine = load("f_marine");
         if (land != null) { landState = STATE_OK; }
         if (forecast != null) { forecastState = STATE_OK; }
+        if (road != null) { roadState = STATE_OK; }
         if (marine != null) { marineState = STATE_OK; }
     }
 
@@ -221,14 +237,62 @@ module Api {
             forecastState = STATE_ERROR;
         }
         WatchUi.requestUpdate();
+        fetchRoad();
+    }
+
+    // ---------------------------------------------------------------- road
+
+    //! No GPS by design (RESEARCH.md §16), so this asks by the same
+    //! configured land place as fetchLand()/fetchForecast() — the backend
+    //! resolves it the same way `/v1/forecast` already does.
+    function fetchRoad() as Void {
+        roadState = STATE_LOADING;
+        Communications.makeWebRequest(
+            Config.BASE_URL + "/v1/road",
+            { "place" => Config.landPlace(), "lang" => lang() },
+            options(), new Lang.Method(Api, :onRoad));
+    }
+
+    function onRoad(code as Number,
+                    data as Dictionary or String or PersistedContent.Iterator or Null) as Void {
+        var level = null;
+        if (code == 200 && data instanceof Dictionary) {
+            var dist = f(pickIn(data, "surface", "distance_km"));
+            // Beyond the cap this is not "your road" any more than a distant
+            // buoy is "your sea" — treated the same as no data at all.
+            if (dist == null || dist <= ROAD_ICE_MAX_KM) {
+                level = s(pickIn(data, "ice_risk", "level"));
+            }
+            road = { "level" => level };
+            roadState = STATE_OK;
+            save("f_road", road);
+        } else {
+            roadState = STATE_ERROR;
+        }
+        maybeBuzzRoad(level);
+        WatchUi.requestUpdate();
         fetchMarine();
+    }
+
+    //! Once per app process, not per refresh — a launch-time flag that
+    //! something needs attention on a page the user may not be looking at,
+    //! not a repeated alert every time Select is pressed (RESEARCH.md §16).
+    function maybeBuzzRoad(level as String?) as Void {
+        if (_roadBuzzed) { return; }
+        _roadBuzzed = true;
+        if (level == null) { return; }
+        if (!(level.equals("moderate") || level.equals("high"))) { return; }
+        if (!(Attention has :vibrate)) { return; }
+        try {
+            Attention.vibrate([new Attention.VibeProfile(50, 300)]);
+        } catch (e) { }
     }
 
     // ------------------------------------------------------------- marine
 
     function fetchMarine() as Void {
         marineState = STATE_LOADING;
-        var params = { "fmisid" => Config.seaStation() };
+        var params = { "fmisid" => Config.seaStation(), "lang" => lang() };
         var buoy = Config.seaBuoy();
         if (buoy > 0) { params["buoy_fmisid"] = buoy; }
         Communications.makeWebRequest(
@@ -257,7 +321,9 @@ module Api {
                 "wPer"    => f(pick(wv, "wave_period_s")),
                 "wDir"    => f(pick(wv, "wave_direction_deg")),
                 "wTemp"   => f(pick(wv, "water_temp_c")),
-                "wAt"     => n(pick(wv, "observed_epoch"))
+                "wAt"     => n(pick(wv, "observed_epoch")),
+                "windWarn" => s(pick(data, "wind_warning")),
+                "waveWarn" => s(pick(data, "wave_warning"))
             };
             marine = flat;
             marineState = STATE_OK;
@@ -284,15 +350,16 @@ module Api {
 
     //! Force a refresh regardless of the floor — Select, or a settings change.
     //!
-    //! All three states go to LOADING up front, not as each request starts.
+    //! All four states go to LOADING up front, not as each request starts.
     //! The fetches are chained, so marking them one at a time would leave the
-    //! Sea page showing nothing for two round trips after Select was pressed,
-    //! which is the silence this was meant to fix. A refresh of all three is
-    //! genuinely under way the moment the chain starts.
+    //! Sea page showing nothing for three round trips after Select was
+    //! pressed, which is the silence this was meant to fix. A refresh of all
+    //! four is genuinely under way the moment the chain starts.
     function refreshNow() as Void {
         lastRefresh = Time.now().value();
         landState = STATE_LOADING;
         forecastState = STATE_LOADING;
+        roadState = STATE_LOADING;
         marineState = STATE_LOADING;
         fetchLand();
     }
