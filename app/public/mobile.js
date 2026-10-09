@@ -236,6 +236,7 @@ async function loadSea(place) {
         <div>Wind<b>${fmt(s.windspeedms, 1)} m/s</b></div>
         <div>Gust<b>${fmt(s.windgust, 1)} m/s</b></div>
         <div>Sea<b>${w && w.water_temp_c != null ? fmt(w.water_temp_c, 1) + "°C" : "—"}</b></div>
+        <div>Wave<b>${w && w.wave_height_m != null ? fmt(w.wave_height_m, 1) + " m" : "—"}</b></div>
       </div>
       ${warnLine("wind", m.wind_warning)}
       ${warnLine("wave", m.wave_warning)}
