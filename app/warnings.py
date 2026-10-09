@@ -102,11 +102,16 @@ def point_in_polygon(lat: float, lon: float, ring: list[tuple[float, float]]) ->
     return inside
 
 
-def parse_cap(xml: str) -> list[dict]:
+def parse_cap(xml: str, language: str | None = None) -> list[dict]:
     """Every alert in the feed, with its polygons kept for point matching.
 
     The CAP document is embedded in each Atom entry, so the whole feed is one
     request rather than one per alert.
+
+    Each alert carries one ``<info>`` block per language (fi, sv, en), whichever
+    feed was requested. With ``language`` (a CAP tag such as ``en-GB``) the
+    matching block is used; without it the first is, which is Finnish — the
+    behaviour callers had before the argument existed.
     """
     root = ET.fromstring(xml)
     alerts: list[dict] = []
@@ -116,7 +121,11 @@ def parse_cap(xml: str) -> list[dict]:
         # was written. Left in, a stale sea warning renders as a live one.
         if alert.findtext(f"{_CAP}msgType") == "Cancel":
             continue
-        info = alert.find(f"{_CAP}info")
+        infos = alert.findall(f"{_CAP}info")
+        info = next(
+            (i for i in infos if language and i.findtext(f"{_CAP}language") == language),
+            infos[0] if infos else None,
+        )
         if info is None:
             continue
         params = _params(info)

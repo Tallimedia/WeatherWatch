@@ -497,7 +497,9 @@ async def _sea_warning(lat: float, lon: float, event_code: str, lang: str) -> st
     try:
         xml = await cache.aget_or_set(f"cap:{lang}", config.TTL_CAP,
                                       lambda: warn.fetch_cap(lang))
-        alerts = warn.alerts_at(warn.parse_cap(xml), lat, lon)
+        alerts = warn.alerts_at(
+            warn.parse_cap(xml, warn.CAP_LANG.get(lang)), lat, lon
+        )
     except (road.RoadDataError, httpx.HTTPError, ET.ParseError):
         return None
 
