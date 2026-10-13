@@ -24,6 +24,7 @@ STR = {
     footNote:"FIWeatherWatch on itsenäinen projekti, ei Ilmatieteen laitoksen eikä Garminin tukema. Ajat Suomen aikaa. Palaute on tervetullutta.",
     unavailable:"Sää ei ole hetkellisesti saatavilla", noPlace:"Paikkakunnalle ei löytynyt havaintoasemaa", tryNearby:"Kokeile lähikaupunkia.",
     noBuoy:"ei havaitsevaa poijua", noBuoyArea:"Ei poijua alueella", modelled:"WAM-malli — ei mitattu", away:"km päässä",
+    windRoad:"tiesääasema", windForecast:"ennuste",
     navApp:"Sovellus", navWeather:"Säätiedot", navLiveWeather:"Live-sää", brandWeather:"Sää", tagLive:"Live-data", navApp2:"Sovellus",
     ledeWeather:"Ennusteet, merituuli ja live-aaltodata — suoraan Ilmatieteen laitoksen omasta avoimesta datasta, ei globaalista mallista. Kaikki alla on live-dataa juuri nyt.", hApp:"Ranteessasi",
     appLede:"Sama data kellossasi — maasään ennuste, merituuli rannikkoasemilta ja aaltotiedot Ilmatieteen laitoksen poijuilta. Ei tiliä, ei kirjautumista.",
@@ -82,6 +83,7 @@ STR = {
     footNote:"FIWeatherWatch är ett fristående projekt, utan koppling till Meteorologiska institutet eller Garmin. Tider i finsk lokaltid. Återkoppling välkomnas.",
     unavailable:"Vädret är tillfälligt otillgängligt", noPlace:"Ingen väderstation hittades för", tryNearby:"Prova en närliggande ort.",
     noBuoy:"ingen aktiv boj", noBuoyArea:"Ingen boj i området", modelled:"WAM-modell — inte uppmätt", away:"km bort",
+    windRoad:"vägväderstation", windForecast:"prognos",
     navApp:"Appen", navWeather:"Väderdata", navLiveWeather:"Live-väder", brandWeather:"Väder", tagLive:"Live-data", navApp2:"Appen",
     ledeWeather:"Prognoser, havsvind och vågdata i realtid — direkt från Meteorologiska institutets egna öppna data, inte en global modell. Allt nedan är live just nu.", hApp:"På din handled",
     appLede:"Samma data i din klocka — prognos på land, havsvind från kuststationer och vågdata från Meteorologiska institutets bojar. Inget konto, ingen inloggning.",
@@ -140,6 +142,7 @@ STR = {
     footNote:"FIWeatherWatch is an independent project, not affiliated with or endorsed by the Finnish Meteorological Institute or Garmin. Times in Finnish local time. Feedback welcome.",
     unavailable:"Weather is briefly unavailable", noPlace:"No weather station found for", tryNearby:"Try a nearby town.",
     noBuoy:"no buoy reporting", noBuoyArea:"No buoy in this area", modelled:"WAM model — not measured", away:"km away",
+    windRoad:"road-weather station", windForecast:"forecast",
     navApp:"The app", navWeather:"Weather data", navLiveWeather:"Live weather", brandWeather:"Weather", tagLive:"Live data", navApp2:"The app",
     ledeWeather:"Forecasts, marine wind and live wave data — from the Finnish Meteorological Institute\u2019s own open data, not a global model. Everything below is live right now.", hApp:"On your wrist",
     appLede:"The same data on your watch — land forecasts, marine wind from the coastal stations, and live wave height from FMI's own buoys. No account, no sign-in.",
@@ -302,7 +305,9 @@ async function loadNow(place) {
           <div>${WIND_ICON}${T("wind")}<b>${fmt(obs.windspeedms, 1)} m/s</b>
             <span class="at">${dirArrow(obs.winddirection, 15)}
               ${dirLabel(obs.winddirection) || (obs.windcompass8 ?? "")} ·
-              ${at(obs, "windspeedms")}</span></div>
+              ${obs.wind_source === "road" ? T("windRoad") + " · " + fmt(obs.wind_distance_km, 1) + " " + T("away")
+                : obs.wind_source === "forecast" ? T("windForecast")
+                : at(obs, "windspeedms")}</span></div>
           <div>${T("gust")}<b>${fmt(obs.windgust, 1)} m/s</b>
             <span class="at">${at(obs, "windgust")}</span></div>
           <div>${RAIN_ICON}${T("rain")}<b>${fmt(rainNow, 1)} mm</b>
