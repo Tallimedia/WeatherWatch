@@ -15,7 +15,7 @@ import logging
 import re
 import time
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, AsyncIterator
 
 import xml.etree.ElementTree as ET
@@ -386,10 +386,15 @@ async def forecast(
     """
     if place is None and (lat is None or lon is None):
         place = config.DEFAULT_PLACE
+    if place is None and not (59.0 <= lat <= 70.5 and 19.0 <= lon <= 32.0):
+        # Every other coordinate-taking endpoint rejects a point outside
+        # Finland; this one didn't, letting a caller pull weather for any
+        # point on Earth through a backend otherwise scoped to Finland.
+        raise HTTPException(status_code=404, detail="outside Finland")
     key = f"fc:{place}:{lat}:{lon}:{hours}:{step}:{lang}"
 
     async def fetch() -> list[dict]:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         end = now + timedelta(hours=hours)
         query: dict[str, Any] = {
             "timestep": step,
@@ -445,6 +450,10 @@ async def observations(
     """
     if fmisid is None and place is None and (lat is None or lon is None):
         place = config.DEFAULT_PLACE
+    if fmisid is None and place is None and not (59.0 <= lat <= 70.5 and 19.0 <= lon <= 32.0):
+        # Same Finland-only scope every other coordinate-taking endpoint
+        # already enforces.
+        raise HTTPException(status_code=404, detail="outside Finland")
     try:
         rows, retrieved = await _observation_rows(place, lat, lon, fmisid)
     except FMIError as exc:
@@ -534,7 +543,7 @@ async def _buoy_reading(
         observed = await cache.aget_or_set(
             "buoys", config.TTL_MARINE, lambda: wave_observations("-3h")
         )
-    except FMIError:
+    except (FMIError, httpx.HTTPError):
         return None
 
     candidates = []
@@ -631,7 +640,7 @@ async def _hydrodyn_water_temp(lat: float, lon: float) -> float | None:
     # window that doesn't reach forward at all can land between runs and
     # come back empty. A 6 h forward window reliably catches the nearest
     # published step; take the first (earliest) row, not the last.
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     try:
         rows = await cache.aget_or_set(
             f"hydrodyn:{lat:.3f}:{lon:.3f}",
@@ -645,7 +654,7 @@ async def _hydrodyn_water_temp(lat: float, lon: float) -> float | None:
                 precision="double",
             ),
         )
-    except FMIError:
+    except (FMIError, httpx.HTTPError):
         return None
     if not rows:
         return None
@@ -838,9 +847,10 @@ async def road_conditions(
                 lambda b=bbox: road.dt_section_forecasts(b),
             )
             section = _shape_section(near_section, forecasts)
-    except road.RoadDataError:
-        # Digitraffic being unavailable degrades the answer; it does not
-        # invalidate the FMI half, which is the part the ice risk rests on.
+    except (road.RoadDataError, httpx.HTTPError):
+        # Digitraffic being unavailable (including a timeout, which raises an
+        # httpx error rather than RoadDataError) degrades the answer; it does
+        # not invalidate the FMI half, which is the part the ice risk rests on.
         station = station or None
 
     return {
@@ -872,7 +882,7 @@ async def _flash_rows(hours: float) -> list[dict]:
     Shared by ``/v1/lightning`` and ``/v1/bike``: the feed is one request for
     the whole country whichever caller asks, so both read the same cache entry.
     """
-    end = datetime.utcnow()
+    end = datetime.now(timezone.utc)
     start = end - timedelta(hours=hours)
     key = f"flash:{int(hours * 4)}"  # quarter-hour buckets keep the cache small
 
@@ -955,7 +965,7 @@ async def _forecast_rows(lat: float, lon: float) -> list[dict]:
     rlat, rlon = bike.round_position(lat, lon)
 
     async def fetch() -> list[dict]:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         return await timeseries(
             ["temperature", "windspeedms", "hourlymaximumgust", "winddirection",
              "precipitation1h"],
@@ -1005,7 +1015,7 @@ async def bike_conditions(
     forecast_rows: list[dict] = []
     try:
         forecast_rows = await _forecast_rows(lat, lon)
-    except FMIError:
+    except (FMIError, httpx.HTTPError):
         forecast_rows = []
     forecast_row = forecast_rows[0] if forecast_rows else None
 
@@ -1017,7 +1027,7 @@ async def bike_conditions(
               "epochtime": r.get("epochtime")} for r in rows],
             lat, lon, time.time(), strike_min,
         )
-    except FMIError:
+    except (FMIError, httpx.HTTPError):
         strike = None
 
     warning: dict | None = None
@@ -1114,7 +1124,7 @@ async def marine(
                 starttime="-0h",
                 endtime="-0h",
             )
-        except FMIError:
+        except (FMIError, httpx.HTTPError):
             wam = []
         if wam:
             point = wam[-1]
@@ -1318,7 +1328,7 @@ async def glance_home(
         raise _fail(exc) from exc
 
     async def fetch_fc() -> list[dict]:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         end = now + timedelta(hours=60)
         return await timeseries(
             _FORECAST_PARAMS,

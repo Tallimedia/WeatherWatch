@@ -325,10 +325,20 @@ module Pages {
         headerPlain(dc, res(Rez.Strings.PageBuoy), src);
 
         if (!hasWave) {
-            // Two different absences. Inland there is no buoy at all and
-            // never will be; on the coast they are lifted out for the winter.
-            // Same empty page, and the caption is all that distinguishes them.
-            if (!loading(dc, Api.marineState)) {
+            // Three different cases share this branch, and only the last two
+            // look alike on screen. `m == null` means the fetch itself never
+            // succeeded (no connection, server error) — same failureMessage()
+            // path drawLand/drawSea use, not the "no buoy" wording below,
+            // which used to show here on any network failure too (found in
+            // code review 2026-10-13: mode is null when m is null, so the
+            // ternary always fell through to NoBuoy regardless of the real
+            // cause). The other two are real absences once a fetch has
+            // actually succeeded: inland there is no buoy at all and never
+            // will be; on the coast they are lifted out for the winter — same
+            // empty page, and the caption is all that distinguishes them.
+            if (m == null) {
+                if (!loading(dc, Api.marineState)) { failureMessage(dc); }
+            } else if (!loading(dc, Api.marineState)) {
                 var mode = Api.v(m, "mode");
                 message(dc, mode != null && mode.equals("none")
                         ? Rez.Strings.NoBuoyArea : Rez.Strings.NoBuoy);
