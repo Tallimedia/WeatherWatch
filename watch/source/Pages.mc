@@ -604,12 +604,22 @@ module Pages {
         top += xtinyH + 2;
 
         var bigIcon = (h(dc) * 0.1).toNumber();
-        var tw = hiLoWidth(dc, hi[0], lo[0], Graphics.FONT_NUMBER_MILD);
+        // Plain single string, same pattern as Day+2/Day+3 below (confirmed
+        // right in the sim) — reverted off drawHiLoBig()'s composed
+        // big-digit/small-degree-mark rendering after two different offsets
+        // both missed (floated mid-digit, then floated disconnected above
+        // the digits entirely). FONT_NUMBER_MILD's own inline "°" glyph
+        // reads slightly differently than the small-font version elsewhere,
+        // accepted as a minor, known difference rather than guess a third
+        // pixel offset blind. Nico's call, 2026-10-13.
+        var hiLoText = hiLo(hi[0], lo[0]);
+        var tw = dc.getTextWidthInPixels(hiLoText, Graphics.FONT_NUMBER_MILD);
         var rowH = bigIcon > numH ? bigIcon : numH;
         var rowLeft = cx - ((bigIcon + 8 + tw) / 2).toNumber();
         drawWx(dc, sym[0], rowLeft, top + ((rowH - bigIcon) / 2).toNumber(), bigIcon, Theme.DIM);
-        drawHiLoBig(dc, rowLeft + bigIcon + 8, top + ((rowH - numH) / 2).toNumber(),
-                   hi[0], lo[0], Graphics.FONT_NUMBER_MILD, Theme.INK);
+        dc.setColor(Theme.INK, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(rowLeft + bigIcon + 8, top + ((rowH - numH) / 2).toNumber(),
+                    Graphics.FONT_NUMBER_MILD, hiLoText, Graphics.TEXT_JUSTIFY_LEFT);
         top += rowH + 2;
 
         var windRainText = Fmt.windRound(wind[0]) + " (" + Fmt.windRound(gust[0]) + ") " + Fmt.windUnitLabel()
@@ -660,45 +670,6 @@ module Pages {
     //! the row, same DASH convention as every other reading in the app.
     function hiLo(hi, lo) as String {
         return Fmt.zero(hi) + "°/" + Fmt.zero(lo) + "°";
-    }
-
-    //! Width "12°/4°" draws at, composed the same way drawHiLoBig() below
-    //! draws it — measured first so the caller can centre an icon+text pair
-    //! before anything is actually drawn.
-    function hiLoWidth(dc as Graphics.Dc, hi, lo, bigFont as Graphics.FontDefinition) as Number {
-        var smallFont = Graphics.FONT_SMALL;
-        var degW = dc.getTextWidthInPixels("°", smallFont);
-        return dc.getTextWidthInPixels(Fmt.zero(hi), bigFont) + degW + 2
-             + dc.getTextWidthInPixels("/", bigFont)
-             + dc.getTextWidthInPixels(Fmt.zero(lo), bigFont) + degW;
-    }
-
-    //! "12°/4°" with the big font for the digits and a small font for each
-    //! degree mark, vertically centred against the big font's own line —
-    //! same composition `iconRowUnit` uses, so this headline row matches
-    //! the rest of the app rather than the number font's own inline "°"
-    //! glyph, which renders noticeably larger and higher (found comparing
-    //! them side by side in the sim, 2026-10-13). `x` is the left edge;
-    //! use hiLoWidth() first if the caller needs to centre the whole row.
-    function drawHiLoBig(dc as Graphics.Dc, x as Number, y as Number, hi, lo,
-                         bigFont as Graphics.FontDefinition, colour as Number) as Void {
-        var smallFont = Graphics.FONT_SMALL;
-        var bigH = dc.getFontHeight(bigFont);
-        var cursor = x;
-        dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
-        var hiText = Fmt.zero(hi);
-        dc.drawText(cursor, y, bigFont, hiText, Graphics.TEXT_JUSTIFY_LEFT);
-        cursor += dc.getTextWidthInPixels(hiText, bigFont);
-        dc.drawText(cursor, y + bigH / 2, smallFont, "°",
-                    Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
-        cursor += dc.getTextWidthInPixels("°", smallFont) + 2;
-        dc.drawText(cursor, y, bigFont, "/", Graphics.TEXT_JUSTIFY_LEFT);
-        cursor += dc.getTextWidthInPixels("/", bigFont);
-        var loText = Fmt.zero(lo);
-        dc.drawText(cursor, y, bigFont, loText, Graphics.TEXT_JUSTIFY_LEFT);
-        cursor += dc.getTextWidthInPixels(loText, bigFont);
-        dc.drawText(cursor, y + bigH / 2, smallFont, "°",
-                    Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
     function drawWx(dc as Graphics.Dc, code, x as Number, y as Number,
