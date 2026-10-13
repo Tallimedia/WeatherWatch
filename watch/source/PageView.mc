@@ -17,19 +17,27 @@ class PageView extends WatchUi.View {
         _page = Config.seaFirst() ? 1 : 0;
     }
 
-    function pageCount() as Number { return 4; }
+    function pageCount() as Number { return Config.showForecast() ? 5 : 4; }
 
     function next() as Void { _page = (_page + 1) % pageCount(); WatchUi.requestUpdate(); }
     function prev() as Void { _page = (_page + pageCount() - 1) % pageCount(); WatchUi.requestUpdate(); }
 
     // Page order, held as constants rather than rebuilt on each draw: pageAt
-    // runs inside onUpdate. About is last either way.
+    // runs inside onUpdate. About is last either way. Forecast (4) is opt-in
+    // (RESEARCH.md §27, Config.showForecast) and travels as a pair with Land
+    // directly after it in both orderings — it's conceptually part of "the
+    // Land story", not a sixth independent concept.
     hidden const LAND_ORDER = [0, 1, 2, 3];
     hidden const SEA_ORDER = [1, 2, 0, 3];
+    hidden const LAND_ORDER_FC = [0, 4, 1, 2, 3];
+    hidden const SEA_ORDER_FC = [1, 2, 0, 4, 3];
 
-    //! Maps the carousel position to a page, honouring the order setting.
+    //! Maps the carousel position to a page, honouring both order settings.
     hidden function pageAt(index as Number) as Number {
-        var order = Config.seaFirst() ? SEA_ORDER : LAND_ORDER;
+        var fc = Config.showForecast();
+        var order = Config.seaFirst()
+            ? (fc ? SEA_ORDER_FC : SEA_ORDER)
+            : (fc ? LAND_ORDER_FC : LAND_ORDER);
         return order[index % order.size()];
     }
 
@@ -44,6 +52,7 @@ class PageView extends WatchUi.View {
         if (which == 0) { Pages.drawLand(dc); }
         else if (which == 1) { Pages.drawSea(dc); }
         else if (which == 2) { Pages.drawBuoy(dc); }
+        else if (which == 4) { Pages.drawForecast(dc); }
         else { Pages.drawAbout(dc); }
         Pages.drawPager(dc, _page, pageCount());
     }

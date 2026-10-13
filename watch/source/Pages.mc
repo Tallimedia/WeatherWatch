@@ -459,7 +459,6 @@ module Pages {
                          gapAfter as Number) as Void {
         var unitFont = Graphics.FONT_SMALL;
         var fh = dc.getFontHeight(numFont);
-        var uh = dc.getFontHeight(unitFont);
         var size = (fh * 0.62).toNumber();
         var drawnW = (size * Icons.widthFactor(kind)).toNumber();
         var vw = dc.getTextWidthInPixels(value, numFont);
@@ -476,9 +475,15 @@ module Pages {
 
         dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
         dc.drawText(left + drawnW + gap, _y, numFont, value, Graphics.TEXT_JUSTIFY_LEFT);
-        // Sit the unit on the number's baseline rather than its box top.
-        dc.drawText(left + drawnW + gap + vw + unitGap, _y + (fh - uh), unitFont, unit,
-                    Graphics.TEXT_JUSTIFY_LEFT);
+
+        // Vertically centred on the number itself, so the unit sits on the
+        // same line as the value — not pinned to its top (made "m/s"/"m"
+        // look like stray superscript text) or its bare baseline (made "°C"
+        // split into a disconnected mark and letter). One simple rule that
+        // reads right for both. Nico's call, 2026-10-13, after three other
+        // positions tried in the sim.
+        dc.drawText(left + drawnW + gap + vw + unitGap, _y + fh / 2, unitFont, unit,
+                    Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
         _y += fh + gapAfter;
     }
 
@@ -550,6 +555,159 @@ module Pages {
         }
         dc.drawText(cx, top + lines.size() * fh, Graphics.FONT_XTINY, "CC BY 4.0",
                     Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    // ------------------------------------------------------------ forecast
+
+    //! Opt-in (Config.showForecast), RESEARCH.md §27 — three-way split:
+    //! Tomorrow with more detail on top, Day+2/Day+3 basics side by side
+    //! below. The four weather-condition icons (Icons.wx*) are new to the
+    //! watch with this page — FMI's smartsymbol reduced to four categories
+    //! (Api._symbolKind), not the ~20 the web pages use. One icon per
+    //! summary row here, not a 13px corner badge, but still the simplest
+    //! shape that holds, same lesson as everything else drawn today.
+    function drawForecast(dc as Graphics.Dc) as Void {
+        // No header title — Nico's call, 2026-10-13: this page is already
+        // identifiable by its own distinct layout, and the room a title
+        // would cost is exactly what the bottom row needed to clear the
+        // round bezel and the page-dot pager without further squeezing.
+        if (loading(dc, Api.forecast3State)) { return; }
+        var d = Api.forecast3;
+        if (d == null) {
+            message(dc, Rez.Strings.NoData);
+            return;
+        }
+        var hi = Api.v(d, "hi");
+        var lo = Api.v(d, "lo");
+        var sym = Api.v(d, "sym");
+        var rain = Api.v(d, "rain");
+        var wind = Api.v(d, "wind");
+        var gust = Api.v(d, "gust");
+        var cx = (w(dc) / 2).toNumber();
+
+        // --- Tomorrow: more detail ---
+        // Every vertical advance below uses a real measured height (icon
+        // size, font height, or whichever of the two is taller for a mixed
+        // row) — never a guessed fraction. A first pass guessed the
+        // icon+hi/lo row's height from the icon alone and the number font
+        // actually drew taller, overlapping the wind row under it; a second
+        // bug let the Day+2/+3 row run into the page-dot pager PageView
+        // draws separately at h*0.945. Both found on real sim output,
+        // 2026-10-13.
+        var xtinyH = dc.getFontHeight(Graphics.FONT_XTINY);
+        var numH = dc.getFontHeight(Graphics.FONT_NUMBER_MILD);
+
+        var top = (h(dc) * 0.1).toNumber();
+        dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, top, Graphics.FONT_XTINY, res(Rez.Strings.Tomorrow),
+                    Graphics.TEXT_JUSTIFY_CENTER);
+        top += xtinyH + 2;
+
+        var bigIcon = (h(dc) * 0.1).toNumber();
+        var tw = hiLoWidth(dc, hi[0], lo[0], Graphics.FONT_NUMBER_MILD);
+        var rowH = bigIcon > numH ? bigIcon : numH;
+        var rowLeft = cx - ((bigIcon + 8 + tw) / 2).toNumber();
+        drawWx(dc, sym[0], rowLeft, top + ((rowH - bigIcon) / 2).toNumber(), bigIcon, Theme.DIM);
+        drawHiLoBig(dc, rowLeft + bigIcon + 8, top + ((rowH - numH) / 2).toNumber(),
+                   hi[0], lo[0], Graphics.FONT_NUMBER_MILD, Theme.INK);
+        top += rowH + 2;
+
+        var windRainText = Fmt.windRound(wind[0]) + " (" + Fmt.windRound(gust[0]) + ") " + Fmt.windUnitLabel()
+                           + "  ·  " + res(Rez.Strings.Rain) + " " + Fmt.one(rain[0]) + " mm";
+        dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
+        // Guarded against overflow, same as the header's own source line —
+        // Swedish's "Nederbörd" ran this close enough to the round bezel's
+        // edge to clip, found on real sim output 2026-10-13.
+        dc.drawText(cx, top, Graphics.FONT_XTINY,
+                    fit(dc, windRainText, Graphics.FONT_XTINY, (w(dc) * 0.92).toNumber()),
+                    Graphics.TEXT_JUSTIFY_CENTER);
+        top += xtinyH + 6;
+
+        // --- divider ---
+        dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
+        dc.drawLine((w(dc) * 0.2).toNumber(), top, (w(dc) * 0.8).toNumber(), top);
+        top += 8;
+
+        // --- Day+2 / Day+3: basics only ---
+        // Pulled in from a full-width half-and-half split (±0.25w from
+        // centre) to ±0.17w — Nico's call, 2026-10-13: the full split sat
+        // close enough to the round bezel's curve on each side to look
+        // cramped against it, the same "usable width narrows" effect
+        // headerPin already accounts for near the top of every page.
+        var colOffset = (w(dc) * 0.17).toNumber();
+        var smallIcon = (h(dc) * 0.075).toNumber();
+        for (var i = 0; i < 2; i += 1) {
+            var colCx = i == 0 ? cx - colOffset : cx + colOffset;
+            var y = top;
+            dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(colCx, y, Graphics.FONT_XTINY,
+                        "+" + (i + 2).toString() + " " + res(Rez.Strings.DayAbbrev),
+                        Graphics.TEXT_JUSTIFY_CENTER);
+            y += xtinyH + 2;
+            drawWx(dc, sym[i + 1], (colCx - smallIcon / 2).toNumber(), y, smallIcon, Theme.DIM);
+            y += smallIcon + 2;
+            dc.setColor(Theme.INK, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(colCx, y, Graphics.FONT_XTINY, hiLo(hi[i + 1], lo[i + 1]),
+                        Graphics.TEXT_JUSTIFY_CENTER);
+            y += xtinyH;
+            dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(colCx, y, Graphics.FONT_XTINY, Fmt.one(rain[i + 1]) + " mm",
+                        Graphics.TEXT_JUSTIFY_CENTER);
+        }
+    }
+
+    //! "12°/4°" — a dash on whichever side is missing rather than dropping
+    //! the row, same DASH convention as every other reading in the app.
+    function hiLo(hi, lo) as String {
+        return Fmt.zero(hi) + "°/" + Fmt.zero(lo) + "°";
+    }
+
+    //! Width "12°/4°" draws at, composed the same way drawHiLoBig() below
+    //! draws it — measured first so the caller can centre an icon+text pair
+    //! before anything is actually drawn.
+    function hiLoWidth(dc as Graphics.Dc, hi, lo, bigFont as Graphics.FontDefinition) as Number {
+        var smallFont = Graphics.FONT_SMALL;
+        var degW = dc.getTextWidthInPixels("°", smallFont);
+        return dc.getTextWidthInPixels(Fmt.zero(hi), bigFont) + degW + 2
+             + dc.getTextWidthInPixels("/", bigFont)
+             + dc.getTextWidthInPixels(Fmt.zero(lo), bigFont) + degW;
+    }
+
+    //! "12°/4°" with the big font for the digits and a small font for each
+    //! degree mark, vertically centred against the big font's own line —
+    //! same composition `iconRowUnit` uses, so this headline row matches
+    //! the rest of the app rather than the number font's own inline "°"
+    //! glyph, which renders noticeably larger and higher (found comparing
+    //! them side by side in the sim, 2026-10-13). `x` is the left edge;
+    //! use hiLoWidth() first if the caller needs to centre the whole row.
+    function drawHiLoBig(dc as Graphics.Dc, x as Number, y as Number, hi, lo,
+                         bigFont as Graphics.FontDefinition, colour as Number) as Void {
+        var smallFont = Graphics.FONT_SMALL;
+        var bigH = dc.getFontHeight(bigFont);
+        var cursor = x;
+        dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
+        var hiText = Fmt.zero(hi);
+        dc.drawText(cursor, y, bigFont, hiText, Graphics.TEXT_JUSTIFY_LEFT);
+        cursor += dc.getTextWidthInPixels(hiText, bigFont);
+        dc.drawText(cursor, y + bigH / 2, smallFont, "°",
+                    Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+        cursor += dc.getTextWidthInPixels("°", smallFont) + 2;
+        dc.drawText(cursor, y, bigFont, "/", Graphics.TEXT_JUSTIFY_LEFT);
+        cursor += dc.getTextWidthInPixels("/", bigFont);
+        var loText = Fmt.zero(lo);
+        dc.drawText(cursor, y, bigFont, loText, Graphics.TEXT_JUSTIFY_LEFT);
+        cursor += dc.getTextWidthInPixels(loText, bigFont);
+        dc.drawText(cursor, y + bigH / 2, smallFont, "°",
+                    Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+    }
+
+    function drawWx(dc as Graphics.Dc, code, x as Number, y as Number,
+                    s as Number, colour as Number) as Void {
+        var kind = Api._symbolKind(code);
+        if (kind == :clear) { Icons.wxClear(dc, x, y, s, colour); }
+        else if (kind == :rain) { Icons.wxRain(dc, x, y, s, colour); }
+        else if (kind == :snow) { Icons.wxSnow(dc, x, y, s, colour); }
+        else { Icons.wxCloudy(dc, x, y, s, colour); }
     }
 
     //! Break text into lines that fit `maxW`, at word boundaries.

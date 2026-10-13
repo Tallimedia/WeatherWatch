@@ -34,6 +34,10 @@
     <string id="OrderSea">Meri ensin</string>
     <string id="SetGlance1">Vilkaisun tieto 1</string>
     <string id="SetGlance2">Vilkaisun tieto 2</string>
+    <string id="SetShowForecast">Ennustesivu</string>
+    <string id="SetShowForecastDesc">Näytä 3 päivän ennuste Maa-sivun jälkeen.</string>
+    <string id="Off">Pois</string>
+    <string id="On">Päällä</string>
 
     <!-- Glance field choices -->
     <string id="FieldLandTemp">Lämpötila maalla</string>
@@ -77,6 +81,10 @@
     <string id="Modelled">mallinnettu</string>
     <string id="NoData">Palvelu ei vastaa</string>
     <string id="PageAbout">Tietoja</string>
+    <string id="PageForecast">Ennuste</string>
+    <string id="Tomorrow">Huomenna</string>
+    <string id="Rain">Sade</string>
+    <string id="DayAbbrev">pv</string>
     <string id="NoBuoyArea">Ei poijua alueella</string>
     <string id="NoBuoy">Ei poijutietoa</string>
     <string id="Attribution">Lähde: Ilmatieteen laitos</string>

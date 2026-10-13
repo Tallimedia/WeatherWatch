@@ -34,6 +34,10 @@
     <string id="OrderSea">Hav först</string>
     <string id="SetGlance1">Överblicksdata 1</string>
     <string id="SetGlance2">Överblicksdata 2</string>
+    <string id="SetShowForecast">Prognossida</string>
+    <string id="SetShowForecastDesc">Visa en 3-dagarsprognos efter Land.</string>
+    <string id="Off">Av</string>
+    <string id="On">På</string>
 
     <!-- Glance field choices -->
     <string id="FieldLandTemp">Temperatur på land</string>
@@ -77,6 +81,10 @@
     <string id="Modelled">modellerad</string>
     <string id="NoData">Tjänsten svarar inte</string>
     <string id="PageAbout">Om appen</string>
+    <string id="PageForecast">Prognos</string>
+    <string id="Tomorrow">Imorgon</string>
+    <string id="Rain">Nederbörd</string>
+    <string id="DayAbbrev">d</string>
     <string id="NoBuoyArea">Ingen boj i området</string>
     <string id="NoBuoy">Ingen bojdata</string>
     <string id="Attribution">Källa: Meteorologiska institutet</string>
