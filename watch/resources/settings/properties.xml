@@ -14,7 +14,7 @@
     <property id="pageOrder" type="number">0</property>
     <property id="glance1" type="number">0</property>
     <property id="glance2" type="number">2</property>
-    <property id="showForecast" type="number">0</property>
+    <property id="showForecast" type="number">1</property>
 
     <property id="windUnit" type="number">0</property>
     <property id="distUnit" type="number">0</property>

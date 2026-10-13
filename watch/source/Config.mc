@@ -51,10 +51,11 @@ module Config {
     function glance1() as Number { return num("glance1", 0); }
     function glance2() as Number { return num("glance2", 2); }
 
-    //! Opt-in, off by default (RESEARCH.md §27) — a fifth page costs a swipe
-    //! for everyone to serve the minority who want to plan ahead, so it only
-    //! fetches and draws when actually turned on.
-    function showForecast() as Boolean { return num("showForecast", 0) == 1; }
+    //! On by default (RESEARCH.md §27) — a toggle nobody notices gets nobody
+    //! using it, and testers specifically need to see the new page without
+    //! having to find a setting first. Still a real toggle, so anyone who
+    //! doesn't want the fifth page can turn it off.
+    function showForecast() as Boolean { return num("showForecast", 1) == 1; }
 
     function windUnit() as Number { return num("windUnit", 0); }
     function distUnit() as Number { return num("distUnit", 0); }
