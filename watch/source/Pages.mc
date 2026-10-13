@@ -160,22 +160,31 @@ module Pages {
         stackStart(dc, 0.245);
         iconRowUnit(dc, :temp, Graphics.FONT_NUMBER_MILD, Fmt.tempValue(t), "°C",
                     Theme.tempColour(t), -2);
-        var windText = Fmt.windValue(ms) + " (" + Fmt.windValue(gust) + ") " + Fmt.windUnitLabel()
-                    + " " + Fmt.compass(dir);
+        // The compass point used to sit inline here ("... m/s S"), ambiguous
+        // next to "m/s" whenever the wind happened to blow from the south
+        // (found 2026-10-13, not a new bug — just coincidence of the day's
+        // actual direction). Moved to its own row with the arrow, same
+        // compassRow() the Sea and Buoy pages already use for exactly this.
+        iconRow(dc, :wind, Graphics.FONT_SMALL,
+                Fmt.windValue(ms) + " (" + Fmt.windValue(gust) + ") " + Fmt.windUnitLabel(),
+                Theme.windColour(ms, gust, Config.landWind(), Config.landGust()), 4);
+
         // Two-tier wind fallback (RESEARCH.md §C5j) — the station this page
         // names in its header may not be the one that measured the wind.
-        // "road" is a live reading from a nearby Fintraffic road-weather
-        // station (a different, denser network than FMI's own observation
-        // stations); "forecast" is a modelled hour-ahead value, same string
-        // the Forecast page itself uses — it genuinely comes from that
-        // product, not a separate model, so it is not labelled "Modelled".
+        // Rides on the compass row rather than a row of its own: a
+        // dedicated row was tried first and pushed the forecast strip and
+        // footer down into the page-dot pager (Land has less spare height
+        // than Sea/Buoy, which don't carry a forecast strip). "road" is a
+        // live reading from a nearby Fintraffic road-weather station (a
+        // different, denser network than FMI's own observation stations);
+        // "forecast" is a modelled hour-ahead value, same string the
+        // Forecast page itself uses — it genuinely comes from that product,
+        // not a separate model, so it is not labelled "Modelled".
         var windSrc = Api.v(d, "windSrc");
-        if (windSrc != null && !windSrc.equals("station")) {
-            windText = windText + " · " +
-                (windSrc.equals("road") ? res(Rez.Strings.WindRoad) : res(Rez.Strings.PageForecast));
-        }
-        iconRow(dc, :wind, Graphics.FONT_SMALL, windText,
-                Theme.windColour(ms, gust, Config.landWind(), Config.landGust()), 4);
+        var windSrcLabel = (windSrc != null && !windSrc.equals("station"))
+            ? (windSrc.equals("road") ? res(Rez.Strings.WindRoad) : res(Rez.Strings.PageForecast))
+            : null;
+        compassRow(dc, dir, windSrcLabel);
 
         drawRoadIce(dc);
         forecastStrip(dc, _y);
@@ -271,9 +280,34 @@ module Pages {
             res(Rez.Strings.Gust) + " " + Fmt.windValue(gust) + " " + Fmt.windUnitLabel(),
             Theme.DIM, 6);
 
-        // Arrow and compass point share a row, measured so the pair is centred
-        // rather than each guessing its own offset.
+        compassRow(dc, dir, null);
+
+        iconRow(dc, :temp, Graphics.FONT_XTINY, Fmt.temp(Api.v(m, "stTemp")), Theme.DIM, 0);
+
+        drawSeaWarning(dc, Api.v(m, "windWarn"), Rez.Strings.SeaWindModerate,
+                       Rez.Strings.SeaWindSevere);
+
+        updated(dc, Fmt.age(Api.v(m, "stAt")), Api.marineState);
+    }
+
+    //! A direction arrow and its compass-point label, as one centred row.
+    //!
+    //! Was three separate copies of this same block (Sea, Buoy, and now
+    //! Land) — factored out 2026-10-13 after the third copy was about to be
+    //! added, per the code review's own flag that a future layout tweak to
+    //! one copy (exactly what happened here) could silently drift from the
+    //! others. Measured together so the pair is centred as a unit rather
+    //! than each guessing its own offset.
+    //! `suffix`, when given, rides on the same row ("· Tieasema") rather than
+    //! costing a row of its own — Land's wind-source fallback label
+    //! (RESEARCH.md §C5j) uses this; Sea/Buoy never pass one. Found
+    //! 2026-10-13: a dedicated row for the label pushed the forecast strip
+    //! and footer down into the page-dot pager on Land, which has less
+    //! spare height than Sea/Buoy (it already carries the forecast strip
+    //! below). Folding the label into the existing row costs nothing extra.
+    function compassRow(dc as Graphics.Dc, dir as Numeric?, suffix as String?) as Void {
         var label = Fmt.compass(dir);
+        if (suffix != null) { label = label + " · " + suffix; }
         var labelW = dc.getTextWidthInPixels(label, Graphics.FONT_SMALL);
         var r = (h(dc) * 0.045).toNumber();
         var total = r * 2 + 6 + labelW;
@@ -282,13 +316,6 @@ module Pages {
         dc.setColor(Theme.INK, Graphics.COLOR_TRANSPARENT);
         dc.drawText(left + r * 2 + 6, _y, Graphics.FONT_SMALL, label, Graphics.TEXT_JUSTIFY_LEFT);
         _y += dc.getFontHeight(Graphics.FONT_SMALL) + 4;
-
-        iconRow(dc, :temp, Graphics.FONT_XTINY, Fmt.temp(Api.v(m, "stTemp")), Theme.DIM, 0);
-
-        drawSeaWarning(dc, Api.v(m, "windWarn"), Rez.Strings.SeaWindModerate,
-                       Rez.Strings.SeaWindSevere);
-
-        updated(dc, Fmt.age(Api.v(m, "stAt")), Api.marineState);
     }
 
     //! Exception row: FMI marine warning (CAP feed), present only when one is
@@ -369,15 +396,7 @@ module Pages {
             res(Rez.Strings.Period) + " " + (per == null ? Fmt.DASH : Fmt.one(per)) + " s",
             Theme.DIM, 6);
 
-        var label = Fmt.compass(dir);
-        var labelW = dc.getTextWidthInPixels(label, Graphics.FONT_SMALL);
-        var r = (h(dc) * 0.045).toNumber();
-        var total = r * 2 + 6 + labelW;
-        var left = (w(dc) - total) / 2;
-        arrow(dc, left + r, _y + dc.getFontHeight(Graphics.FONT_SMALL) / 2, r, dir);
-        dc.setColor(Theme.INK, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(left + r * 2 + 6, _y, Graphics.FONT_SMALL, label, Graphics.TEXT_JUSTIFY_LEFT);
-        _y += dc.getFontHeight(Graphics.FONT_SMALL) + 4;
+        compassRow(dc, dir, null);
 
         var water = Api.v(m, "wTemp");
         if (water != null) {
