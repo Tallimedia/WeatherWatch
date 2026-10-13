@@ -83,7 +83,7 @@ STR = {
     footNote:"FIWeatherWatch är ett fristående projekt, utan koppling till Meteorologiska institutet eller Garmin. Tider i finsk lokaltid. Återkoppling välkomnas.",
     unavailable:"Vädret är tillfälligt otillgängligt", noPlace:"Ingen väderstation hittades för", tryNearby:"Prova en närliggande ort.",
     noBuoy:"ingen aktiv boj", noBuoyArea:"Ingen boj i området", modelled:"WAM-modell — inte uppmätt", away:"km bort",
-    windRoad:"vägväderstation", windForecast:"prognos",
+    windRoad:"vägstation", windForecast:"prognos",
     navApp:"Appen", navWeather:"Väderdata", navLiveWeather:"Live-väder", brandWeather:"Väder", tagLive:"Live-data", navApp2:"Appen",
     ledeWeather:"Prognoser, havsvind och vågdata i realtid — direkt från Meteorologiska institutets egna öppna data, inte en global modell. Allt nedan är live just nu.", hApp:"På din handled",
     appLede:"Samma data i din klocka — prognos på land, havsvind från kuststationer och vågdata från Meteorologiska institutets bojar. Inget konto, ingen inloggning.",

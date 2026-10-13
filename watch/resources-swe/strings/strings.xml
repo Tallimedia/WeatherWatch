@@ -79,7 +79,7 @@
     <string id="WaterTemp">Vatten</string>
     <string id="Period">Period</string>
     <string id="Modelled">modellerad</string>
-    <string id="WindRoad">vägväderstation</string>
+    <string id="WindRoad">vägstation</string>
     <string id="NoData">Tjänsten svarar inte</string>
     <string id="PageAbout">Om appen</string>
     <string id="PageForecast">Prognos</string>
