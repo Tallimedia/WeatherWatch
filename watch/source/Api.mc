@@ -193,7 +193,12 @@ module Api {
                 "gust"  => f(pick(data, "windgust")),
                 "dir"   => f(pick(data, "winddirection")),
                 "atT"   => n(pickIn(data, "at", "temperature")),
-                "atW"   => n(pickIn(data, "at", "windspeedms"))
+                "atW"   => n(pickIn(data, "at", "windspeedms")),
+                // Two-tier wind fallback (RESEARCH.md §C5j): "station" is the
+                // normal case, "road" is a nearby Fintraffic road-weather
+                // station's live reading, "forecast" is a modelled hour-ahead
+                // value — only the latter two need a row label.
+                "windSrc" => s(pick(data, "wind_source"))
             };
             land = flat;
             landState = STATE_OK;

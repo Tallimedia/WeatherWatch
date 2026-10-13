@@ -160,9 +160,21 @@ module Pages {
         stackStart(dc, 0.245);
         iconRowUnit(dc, :temp, Graphics.FONT_NUMBER_MILD, Fmt.tempValue(t), "°C",
                     Theme.tempColour(t), -2);
-        iconRow(dc, :wind, Graphics.FONT_SMALL,
-                Fmt.windValue(ms) + " (" + Fmt.windValue(gust) + ") " + Fmt.windUnitLabel()
-                    + " " + Fmt.compass(dir),
+        var windText = Fmt.windValue(ms) + " (" + Fmt.windValue(gust) + ") " + Fmt.windUnitLabel()
+                    + " " + Fmt.compass(dir);
+        // Two-tier wind fallback (RESEARCH.md §C5j) — the station this page
+        // names in its header may not be the one that measured the wind.
+        // "road" is a live reading from a nearby Fintraffic road-weather
+        // station (a different, denser network than FMI's own observation
+        // stations); "forecast" is a modelled hour-ahead value, same string
+        // the Forecast page itself uses — it genuinely comes from that
+        // product, not a separate model, so it is not labelled "Modelled".
+        var windSrc = Api.v(d, "windSrc");
+        if (windSrc != null && !windSrc.equals("station")) {
+            windText = windText + " · " +
+                (windSrc.equals("road") ? res(Rez.Strings.WindRoad) : res(Rez.Strings.PageForecast));
+        }
+        iconRow(dc, :wind, Graphics.FONT_SMALL, windText,
                 Theme.windColour(ms, gust, Config.landWind(), Config.landGust()), 4);
 
         drawRoadIce(dc);

@@ -79,6 +79,7 @@
     <string id="WaterTemp">Water</string>
     <string id="Period">Period</string>
     <string id="Modelled">modelled</string>
+    <string id="WindRoad">road station</string>
     <string id="NoData">Service unavailable</string>
     <string id="PageAbout">About</string>
     <string id="PageForecast">Forecast</string>
