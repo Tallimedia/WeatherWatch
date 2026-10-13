@@ -30,7 +30,7 @@
         type="widget"
         name="@Strings.AppName"
         entry="FIWeatherWatchApp"
-        version="1.2.1"
+        version="1.2.3"
         launcherIcon="@Drawables.LauncherIcon"
         minApiLevel="3.4.0">
 
