@@ -368,7 +368,7 @@ device skin, already under the store's 300 kB limit:
 | File | Shows |
 |---|---|
 | `pg-fc-eng.png` / `pg-fc-fin.png` | **Forecast — tomorrow in detail, day +2/+3 (new in v1.2.0)** |
-| `pg1-eng-v120.png` | Land — temperature, wind, direction arrow, forecast strip (1.2.0) |
+| `pg1-eng-v120.png` / `pg1-fin-v120.png` | Land — temperature, wind, direction arrow, forecast strip (1.2.0) |
 | `pg2.png` | Sea — station wind, gust, direction, **gale warning live** |
 | `pg3.png` | Waves — height, period, direction, water temperature, **wave warning live** |
 | `glance.png` | Glance carousel |
