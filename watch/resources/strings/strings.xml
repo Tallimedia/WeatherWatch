@@ -34,6 +34,10 @@
     <string id="OrderSea">Sea first</string>
     <string id="SetGlance1">Glance data 1</string>
     <string id="SetGlance2">Glance data 2</string>
+    <string id="SetShowForecast">Forecast page</string>
+    <string id="SetShowForecastDesc">Show a 3-day outlook page after Land.</string>
+    <string id="Off">Off</string>
+    <string id="On">On</string>
 
     <!-- Glance field choices -->
     <string id="FieldLandTemp">Land temperature</string>
@@ -75,8 +79,13 @@
     <string id="WaterTemp">Water</string>
     <string id="Period">Period</string>
     <string id="Modelled">modelled</string>
+    <string id="WindRoad">road station</string>
     <string id="NoData">Service unavailable</string>
     <string id="PageAbout">About</string>
+    <string id="PageForecast">Forecast</string>
+    <string id="Tomorrow">Tomorrow</string>
+    <string id="Rain">Rain</string>
+    <string id="DayAbbrev">d</string>
     <string id="NoBuoyArea">No buoy in this area</string>
     <string id="NoBuoy">No buoy reporting</string>
     <string id="Attribution">Data: Finnish Meteorological Institute</string>

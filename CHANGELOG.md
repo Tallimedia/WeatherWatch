@@ -9,6 +9,59 @@ Design reasoning lives in `RESEARCH.md` (owned by the `claude-docs` repo).
 
 ## Watch app
 
+### v1.2.0 — 2026-10-14 (public)
+Promoted from `beta/v1.2` after beta builds 1.2.0–1.2.5 were confirmed on real
+hardware (quatix 8) in all three languages. Public versioning is independent of
+how many beta iterations it took, same as 1.1.0.
+- **Forecast page (new, on by default).** A fifth page after Land: tomorrow in
+  detail (icon, hi/lo, wind, rain) and day +2/+3 in two compact columns.
+  Toggle in Settings → Display. Existing installs of this app id never had the
+  setting, so they pick up the on default too.
+- **Wind on Land when the nearest station has no wind sensor.** Lahti's
+  nearest station (Sopenkorpi) measures temperature but not wind. The backend
+  now fills wind from a Fintraffic road-weather station within 25 km
+  (live-measured), else from the forecast — and the page says so:
+  "· tieasema"/"· vägstation"/"· road station", or "· Ennuste"/"· Prognos"/
+  "· Forecast". Gust stays blank from a road station (they don't measure it)
+  rather than borrowing a modelled value.
+- **Land's wind direction on its own row with an arrow**, same as Sea and
+  Waves — the inline compass letter read ambiguously after "m/s" ("m/s S").
+- **Buoy page error message fixed.** A network or server failure showed "no
+  buoy in your area"; it now shows the real connection/server message.
+- Everything in the 1.2.0 beta below also ships here.
+
+### v1.2.0 — 2026-10-09 (beta)
+- **Forecast-strip contrast fix.** `Theme.FAINT` (the hour labels, clock icon,
+  station pin, page dots) was `Graphics.COLOR_DK_GRAY` — too dark to read under
+  anything less than full brightness. Replaced with a custom mid-grey
+  (`0x888888`). Column layout itself (4 slots, 6 h steps, 24 h span) was
+  considered and explicitly kept as-is — already matches "spread evenly over
+  12–24 h," so no redesign needed there.
+- **Glance warning icons.** A warning triangle prefixes the caption of any
+  configured glance slot with an active warning — Land-temp (road ice), Sea-
+  wind/gust and Wave (marine warnings). Blue for road ice (matches the app's
+  existing cold-temperature blue, since there's no icon shape left once the
+  distinct snowflake glyph proved illegible at this size); orange/red by
+  severity for marine warnings, same mapping the full pages use. Reads from
+  already-cached data — no new network call in the glance itself.
+- **Hydrodyn water-temperature fallback.** `/v1/marine`'s `waves.water_temp_c`
+  now falls back to FMI's NEMO Baltic model (`producer=nemo`,
+  `TemperatureSea`) whenever a buoy's wave sensor is reporting but its water
+  sensor isn't, or the WAM wave fallback already applies. New
+  `water_measured` flag, independent of the wave-height `measured` flag — a
+  buoy's two sensors report at different rates and one can go quiet without
+  the other. Watch, `weather.tallimedia.com` and `weather.kavaleff.com` all
+  show a silent-unless-modelled "· Modelled" marker on the water row
+  specifically, separate from the header's own marker for wave height.
+- **New launcher icon.** The old one — a blue circle with an orange dot — read
+  as a target/bullseye, not weather-related. Replaced with a sun-behind-
+  cloud, the standard weather pictogram, in the same blue/orange brand
+  colours. Checked legible at 65/32/24 px.
+- Confirmed on real hardware (quatix 8) the same day: contrast fix, both
+  warning-icon colours (via live "Kova tuuli"/"Suuri aallokko" warnings),
+  and sub-zero forecast values rendering correctly in blue at the coldest
+  end of the scale (Utsjoki, -1 °C).
+
 ### v1.1.0 — 2026-10-09
 - **Official FMI warnings, shown on the page they're about.** An icy-road warning
   on the Land page (FMI's own ice-risk assessment for the nearest road), a wind

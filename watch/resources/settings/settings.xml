@@ -111,6 +111,13 @@
                 <listEntry value="1">@Strings.OrderSea</listEntry>
             </settingConfig>
         </setting>
+        <setting propertyKey="@Properties.showForecast" title="@Strings.SetShowForecast"
+                 prompt="@Strings.SetShowForecastDesc">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.Off</listEntry>
+                <listEntry value="1">@Strings.On</listEntry>
+            </settingConfig>
+        </setting>
         <setting propertyKey="@Properties.glance1" title="@Strings.SetGlance1">
             <settingConfig type="list">
                 <listEntry value="0">@Strings.FieldLandTemp</listEntry>

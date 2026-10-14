@@ -29,6 +29,18 @@ module Fmt {
         return one(ms);
     }
 
+    //! Whole-number wind, for a forecast — a day out, one decimal of
+    //! precision claims more certainty than the data actually has. Nico's
+    //! call 2026-10-13, Forecast page only; `windValue()`'s own one-decimal
+    //! form stays as-is for live readings on Land/Sea/the glance.
+    function windRound(ms as Numeric?) as String {
+        if (ms == null) { return DASH; }
+        var u = Config.windUnit();
+        if (u == 1) { return zero(ms * 1.94384); }
+        if (u == 2) { return beaufort(ms).toString(); }
+        return zero(ms);
+    }
+
     function windUnitLabel() as String {
         var u = Config.windUnit();
         return u == 1 ? "kn" : (u == 2 ? "bft" : "m/s");

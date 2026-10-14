@@ -7,7 +7,11 @@ import Toybox.Lang;
 module Theme {
     const INK = Graphics.COLOR_WHITE;
     const DIM = Graphics.COLOR_LT_GRAY;
-    const FAINT = Graphics.COLOR_DK_GRAY;
+    // A custom mid-grey, not Graphics.COLOR_DK_GRAY (0x555555) — too dark to
+    // read at anything under full brightness, found 2026-10-09 on the
+    // forecast strip's hour labels. Lighter than this, still clearly below
+    // DIM, so the faint/dim/ink hierarchy still reads at a glance.
+    const FAINT = 0x888888;
     const BG = Graphics.COLOR_BLACK;
     const OVER = Graphics.COLOR_ORANGE;      // above a wind / wave limit
     const COLD = Graphics.COLOR_BLUE;

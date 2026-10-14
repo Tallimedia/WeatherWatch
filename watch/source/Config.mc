@@ -12,7 +12,7 @@ module Config {
     //! Shown at the foot of every page so a tester can say which build they are
     //! looking at. Must match `version` in manifest.xml — build-release.sh
     //! refuses to package if the two drift.
-    const VERSION = "1.1.0";
+    const VERSION = "1.2.0";
 
     // Gust limits are derived, not set: land is wind + 3, sea is wind + 5.
     // The offsets differ because the measured gust-minus-mean gap does —
@@ -50,6 +50,12 @@ module Config {
     function seaFirst() as Boolean { return num("pageOrder", 0) == 1; }
     function glance1() as Number { return num("glance1", 0); }
     function glance2() as Number { return num("glance2", 2); }
+
+    //! On by default (RESEARCH.md §27) — a toggle nobody notices gets nobody
+    //! using it, and testers specifically need to see the new page without
+    //! having to find a setting first. Still a real toggle, so anyone who
+    //! doesn't want the fifth page can turn it off.
+    function showForecast() as Boolean { return num("showForecast", 1) == 1; }
 
     function windUnit() as Number { return num("windUnit", 0); }
     function distUnit() as Number { return num("distUnit", 0); }

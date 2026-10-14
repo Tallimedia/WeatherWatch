@@ -64,6 +64,51 @@ class FIWeatherGlanceView extends WatchUi.GlanceView {
         return null;
     }
 
+    //! The warning icon's colour, if a warning applies to a configured slot
+    //! — reading whatever Api.road/Api.marine already hold in
+    //! Application.Storage, the same cached data the full app's own fetches
+    //! populate. No new network call here: a glance runs in ~32 kB and the
+    //! phone is often out of range, so this has to work from what's already
+    //! there or not at all.
+    //!
+    //! Always the triangle (:warning), never Icons.ice() for the road-ice
+    //! case — tried a distinct snowflake here 2026-10-09, reverted: its thin
+    //! branching lines don't survive this size (same lesson as the temp
+    //! icon tried and reverted earlier the same day), and unlike the full
+    //! Land page, the icon has no adjoining text to tell "ice" from "wind"
+    //! apart anyway — the caption ("Maan lämp" vs "Merituuli") already does
+    //! that job, so the icon's only job here is "something's active".
+    //!
+    //! Colour: marine warnings follow the exact same severity mapping as
+    //! drawSeaWarning() on the full pages — Theme.OVER for moderate,
+    //! Theme.HOT once it crosses into Severe/Extreme. Road ice is the one
+    //! exception, 2026-10-09: always Theme.COLD (the same blue the app
+    //! already uses for a cold temperature reading) regardless of
+    //! moderate/high, rather than matching drawRoadIce()'s own OVER/HOT —
+    //! Nico's call after comparing both in the sim. Blue reads as "ice"
+    //! category at a glance, which matters more here than the severity
+    //! distinction does, precisely because there's no icon shape left to
+    //! carry that distinction once the snowflake had to go.
+    //!
+    //! Icon sizing matches Pages.mc's own `iconRow` at FONT_XTINY
+    //! (`fh * 0.62`) rather than inventing a new size — that proportion is
+    //! already proven at this scale on the Land/Sea/Waves pages themselves.
+    hidden function warnColour(which as Number) as Number? {
+        if (which == 0) {
+            var lvl = Api.road != null ? Api.v(Api.road, "level") : null;
+            if (lvl != null && (lvl.equals("high") || lvl.equals("moderate"))) { return Theme.COLD; }
+        } else if (which == 2 || which == 3) {
+            var w = Api.marine != null ? Api.v(Api.marine, "windWarn") : null;
+            if (w != null && (w.equals("Severe") || w.equals("Extreme"))) { return Theme.HOT; }
+            if (w != null && w.equals("Moderate")) { return Theme.OVER; }
+        } else if (which == 4) {
+            var wv = Api.marine != null ? Api.v(Api.marine, "waveWarn") : null;
+            if (wv != null && (wv.equals("Severe") || wv.equals("Extreme"))) { return Theme.HOT; }
+            if (wv != null && wv.equals("Moderate")) { return Theme.OVER; }
+        }
+        return null;
+    }
+
     function onUpdate(dc as Graphics.Dc) as Void {
         dc.setColor(Graphics.COLOR_TRANSPARENT, Graphics.COLOR_BLACK);
         dc.clear();
@@ -85,17 +130,33 @@ class FIWeatherGlanceView extends WatchUi.GlanceView {
             var f = field(slots[i]);
             if (f == null) { continue; }
             var x = 2 + i * colW;
-            var room = colW - 6;
+
+            // A warning icon prefixes the caption, same icon-then-label order
+            // as iconRow on the full pages — not a floating corner badge,
+            // which at this column width collided with the next column's own
+            // caption (found 2026-10-09: "Maan lämp❄ Merituuli" read as one
+            // run of text). Only reserves the gutter when a warning is
+            // actually active, so the normal case is untouched.
+            var wc = warnColour(slots[i]);
+            var isize = (labelH * 0.62).toNumber();
+            var textX = x;
+            if (wc != null) {
+                var iy = (top + (labelH - isize) / 2).toNumber();
+                Icons.warning(dc, x, iy, isize, wc as Number);
+                textX = x + isize + 3;
+            }
+            var room = colW - (textX - x) - 6;
+
             // White, not a grey: the carousel dims the whole glance strip on
             // AMOLED, so anything recessive stops being legible there even
             // when it reads fine in the simulator. The caption stays
             // subordinate to the value by font size instead of by colour.
             dc.setColor(Theme.INK, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(x, top, Graphics.FONT_XTINY, clip(dc, f[0] as String,
+            dc.drawText(textX, top, Graphics.FONT_XTINY, clip(dc, f[0] as String,
                         Graphics.FONT_XTINY, room), Graphics.TEXT_JUSTIFY_LEFT);
             dc.setColor(f[2] as Number, Graphics.COLOR_TRANSPARENT);
             dc.drawText(x, top + labelH - 2, valueFont, clip(dc, f[1] as String,
-                        valueFont, room), Graphics.TEXT_JUSTIFY_LEFT);
+                        valueFont, colW - 6), Graphics.TEXT_JUSTIFY_LEFT);
         }
     }
 

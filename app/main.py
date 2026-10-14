@@ -15,7 +15,7 @@ import logging
 import re
 import time
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, AsyncIterator
 
 import xml.etree.ElementTree as ET
@@ -386,10 +386,15 @@ async def forecast(
     """
     if place is None and (lat is None or lon is None):
         place = config.DEFAULT_PLACE
+    if place is None and not (59.0 <= lat <= 70.5 and 19.0 <= lon <= 32.0):
+        # Every other coordinate-taking endpoint rejects a point outside
+        # Finland; this one didn't, letting a caller pull weather for any
+        # point on Earth through a backend otherwise scoped to Finland.
+        raise HTTPException(status_code=404, detail="outside Finland")
     key = f"fc:{place}:{lat}:{lon}:{hours}:{step}:{lang}"
 
     async def fetch() -> list[dict]:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         end = now + timedelta(hours=hours)
         query: dict[str, Any] = {
             "timestep": step,
@@ -445,6 +450,10 @@ async def observations(
     """
     if fmisid is None and place is None and (lat is None or lon is None):
         place = config.DEFAULT_PLACE
+    if fmisid is None and place is None and not (59.0 <= lat <= 70.5 and 19.0 <= lon <= 32.0):
+        # Same Finland-only scope every other coordinate-taking endpoint
+        # already enforces.
+        raise HTTPException(status_code=404, detail="outside Finland")
     try:
         rows, retrieved = await _observation_rows(place, lat, lon, fmisid)
     except FMIError as exc:
@@ -464,6 +473,32 @@ async def observations(
     position = await _station_position(current.get("fmisid"))
     if position is not None:
         current["station_lat"], current["station_lon"] = position
+
+    # Two-tier wind fallback (RESEARCH.md §C5j), Land-only — a station
+    # addressed by `fmisid` (marine) always has its own wind reading and
+    # never falls through to this. A live reading from a nearby road station
+    # beats a modelled forecast value, so tier 1 is tried first.
+    current["wind_source"] = "station"
+    if fmisid is None and current.get("windspeedms") is None:
+        wlat, wlon = position if position is not None else (None, None)
+        if wlat is None:
+            wlat, wlon = (lat, lon) if place is None else (await _resolve(place))[:2]
+        road_wind = await _road_wind(wlat, wlon)
+        if road_wind is not None:
+            current["windspeedms"] = road_wind["windspeedms"]
+            current["winddirection"] = road_wind["winddirection"]
+            current["wind_source"] = "road"
+            current["wind_station"] = road_wind["station"]
+            current["wind_distance_km"] = road_wind["distance_km"]
+        else:
+            forecast_wind = await _forecast_wind(wlat, wlon)
+            if forecast_wind is not None:
+                current["windspeedms"] = forecast_wind["windspeedms"]
+                current["windgust"] = forecast_wind["windgust"]
+                current["winddirection"] = forecast_wind["winddirection"]
+                current["windcompass8"] = forecast_wind["windcompass8"]
+                current["wind_source"] = "forecast"
+
     current["attribution"] = ATTRIBUTION
     return current
 
@@ -534,7 +569,7 @@ async def _buoy_reading(
         observed = await cache.aget_or_set(
             "buoys", config.TTL_MARINE, lambda: wave_observations("-3h")
         )
-    except FMIError:
+    except (FMIError, httpx.HTTPError):
         return None
 
     candidates = []
@@ -584,6 +619,11 @@ async def _buoy_reading(
             # Wave height reports roughly every 30 min while water temperature
             # reports every 5, so these genuinely differ (RESEARCH.md §4).
             at[target] = entry["time"]
+    # Independent of the wave-height `measured` flag above: a buoy's water
+    # sensor can simply not be reporting while its wave sensor still is
+    # (RESEARCH.md §26) — the caller fills water_temp_c from the hydrodyn
+    # model in that case and must know to mark it as such.
+    out["water_measured"] = "TWATER" in readings
     out["at"] = at
     newest = max(at.values()) if at else None
     out["observed_at"] = newest
@@ -596,6 +636,140 @@ async def _buoy_reading(
         except ValueError:
             out["observed_epoch"] = None
     return out
+
+
+async def _hydrodyn_water_temp(lat: float, lon: float) -> float | None:
+    """Modelled sea temperature at a point, from FMI's NEMO Baltic model.
+
+    Fills the specific gap where a buoy reports wave height but its water-
+    temperature sensor isn't (they report independently, RESEARCH.md §26), or
+    where there's no buoy at all and the WAM wave fallback already applies.
+    Runs ~1-1.5 C warm versus a real buoy reading at the same moment,
+    verified against four buoys — a real, systematic offset, which is why a
+    measured reading is always preferred and this is only ever a fallback.
+
+    The producer is ``nemo`` and the parameter is ``TemperatureSea`` —
+    confirmed live 2026-10-09 against FMI's own stored-query response; an
+    earlier name for this model ("hydrodyn") no longer resolves as a
+    producer in the timeseries API, only as the underlying WFS stored query
+    id, which carries the same parameter name.
+
+    Returns None outside the Baltic grid (inland lake coordinates give NaN,
+    which FMI's JSON serialises as null) and on any fetch failure — a
+    silent, non-fatal absence, the same pattern the buoy and WAM fallbacks
+    already use.
+    """
+    # A zero-width "-0h"/"-0h" window — the pattern the WAM wave fallback
+    # above uses — returns nothing for this producer, found 2026-10-09 while
+    # testing this function against the live API: nemo only publishes
+    # forward steps from its next model run, not a continuous nowcast, so a
+    # window that doesn't reach forward at all can land between runs and
+    # come back empty. A 6 h forward window reliably catches the nearest
+    # published step; take the first (earliest) row, not the last.
+    now = datetime.now(timezone.utc)
+    try:
+        rows = await cache.aget_or_set(
+            f"hydrodyn:{lat:.3f}:{lon:.3f}",
+            config.TTL_MARINE,
+            lambda: timeseries(
+                ["TemperatureSea"],
+                producer="nemo",
+                latlon=f"{lat},{lon}",
+                starttime=now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                endtime=(now + timedelta(hours=6)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                precision="double",
+            ),
+        )
+    except (FMIError, httpx.HTTPError):
+        return None
+    if not rows:
+        return None
+    return rows[0].get("TemperatureSea")
+
+
+async def _road_wind(lat: float, lon: float) -> dict | None:
+    """Live wind from the nearest Fintraffic road-weather station, if close.
+
+    Tier 1 of the Land wind fallback (RESEARCH.md §C5j, raised 2026-10-13):
+    Lahti Sopenkorpi has a working temperature sensor but no wind sensor, and
+    the nearest *weather*-observation station with wind is 46.9 km away —
+    verified live against up to 30 candidate stations. But Fintraffic's
+    road-weather network has a station 3 km away with live wind, since it's a
+    different, denser network than FMI's own observation stations. This is
+    the same fetch `/v1/road` already makes for ice risk — reused directly,
+    not duplicated — so it costs nothing extra when both endpoints are asked
+    about the same point.
+
+    Returns None when no road station has wind within `ROAD_WIND_FALLBACK_KM`
+    (a cap exists so a remote area doesn't silently borrow wind from a
+    station 100+ km off and present it as local) or on any fetch failure.
+    """
+    key_lat, key_lon = road._snap(lat), road._snap(lon)
+
+    # Own cache key, not /v1/road's `road:fmi:*` one: that call asks FMI for
+    # only the 3 nearest stations, which `numberofstations` can filter down
+    # to *zero* results entirely when one of /v1/road's other params (e.g.
+    # `precipitationamount`) happens to be null at all 3 — confirmed live
+    # 2026-10-13 against Lahti, where stations=3 returned nothing and
+    # stations=15 found the 3 km station fine. Sharing a key across two
+    # different station counts would also mean whichever endpoint asked
+    # first silently decided what the other one sees.
+    async def fetch() -> list[dict]:
+        return await road.fmi_road_rows(lat, lon, stations=15)
+
+    try:
+        rows, _ = await cache.aget_or_set_entry(
+            f"road:wind:{key_lat}:{key_lon}", config.TTL_ROAD_OBS, fetch
+        )
+    except (FMIError, httpx.HTTPError):
+        return None
+    surface = _latest_road(rows)
+    if surface.get("wind_ms") is None or surface.get("distance_km") is None:
+        return None
+    if surface["distance_km"] > config.ROAD_WIND_FALLBACK_KM:
+        return None
+    return {
+        "windspeedms": surface.get("wind_ms"),
+        "winddirection": surface.get("wind_dir_deg"),
+        "station": surface.get("station"),
+        "distance_km": surface.get("distance_km"),
+    }
+
+
+async def _forecast_wind(lat: float, lon: float) -> dict | None:
+    """Current-hour forecast wind at a point.
+
+    Tier 2 of the Land wind fallback, used only when no road station is close
+    enough either (`_road_wind` above) — a forecast value is always available
+    everywhere in Finland, unlike a nearby sensor of either kind, which makes
+    it the fallback of the fallback rather than the first choice: a live
+    reading from a different network beats a modelled hour-ahead number
+    whenever one exists.
+    """
+    now = datetime.now(timezone.utc)
+    try:
+        rows = await cache.aget_or_set(
+            f"windfc:{lat:.3f}:{lon:.3f}",
+            config.TTL_FORECAST,
+            lambda: timeseries(
+                ["windspeedms", "hourlymaximumgust", "winddirection", "windcompass8"],
+                latlon=f"{lat},{lon}",
+                timestep=60,
+                starttime=now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                endtime=(now + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            ),
+        )
+    except (FMIError, httpx.HTTPError):
+        return None
+    if not rows or rows[0].get("windspeedms") is None:
+        return None
+    row = rows[0]
+    return {
+        "windspeedms": row.get("windspeedms"),
+        "windgust": row.get("hourlymaximumgust"),
+        "winddirection": row.get("winddirection"),
+        "windcompass8": row.get("windcompass8"),
+    }
 
 
 async def _station_position(fmisid: int | None) -> tuple[float, float] | None:
@@ -784,9 +958,10 @@ async def road_conditions(
                 lambda b=bbox: road.dt_section_forecasts(b),
             )
             section = _shape_section(near_section, forecasts)
-    except road.RoadDataError:
-        # Digitraffic being unavailable degrades the answer; it does not
-        # invalidate the FMI half, which is the part the ice risk rests on.
+    except (road.RoadDataError, httpx.HTTPError):
+        # Digitraffic being unavailable (including a timeout, which raises an
+        # httpx error rather than RoadDataError) degrades the answer; it does
+        # not invalidate the FMI half, which is the part the ice risk rests on.
         station = station or None
 
     return {
@@ -818,7 +993,7 @@ async def _flash_rows(hours: float) -> list[dict]:
     Shared by ``/v1/lightning`` and ``/v1/bike``: the feed is one request for
     the whole country whichever caller asks, so both read the same cache entry.
     """
-    end = datetime.utcnow()
+    end = datetime.now(timezone.utc)
     start = end - timedelta(hours=hours)
     key = f"flash:{int(hours * 4)}"  # quarter-hour buckets keep the cache small
 
@@ -901,7 +1076,7 @@ async def _forecast_rows(lat: float, lon: float) -> list[dict]:
     rlat, rlon = bike.round_position(lat, lon)
 
     async def fetch() -> list[dict]:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         return await timeseries(
             ["temperature", "windspeedms", "hourlymaximumgust", "winddirection",
              "precipitation1h"],
@@ -951,7 +1126,7 @@ async def bike_conditions(
     forecast_rows: list[dict] = []
     try:
         forecast_rows = await _forecast_rows(lat, lon)
-    except FMIError:
+    except (FMIError, httpx.HTTPError):
         forecast_rows = []
     forecast_row = forecast_rows[0] if forecast_rows else None
 
@@ -963,7 +1138,7 @@ async def bike_conditions(
               "epochtime": r.get("epochtime")} for r in rows],
             lat, lon, time.time(), strike_min,
         )
-    except FMIError:
+    except (FMIError, httpx.HTTPError):
         strike = None
 
     warning: dict | None = None
@@ -1060,7 +1235,7 @@ async def marine(
                 starttime="-0h",
                 endtime="-0h",
             )
-        except FMIError:
+        except (FMIError, httpx.HTTPError):
             wam = []
         if wam:
             point = wam[-1]
@@ -1071,6 +1246,7 @@ async def marine(
                 "wave_direction_deg": point.get("WaveDirection"),
                 "wave_period_s": point.get("WavePeriod"),
                 "water_temp_c": None,
+                "water_measured": False,
                 "observed_at": point.get("epochtime"),
             }
             mode = "model"
@@ -1093,6 +1269,20 @@ async def marine(
         buoy_station = stations.by_id(waves.get("fmisid"))
         if buoy_station is not None:
             wave_point = buoy_station
+
+    # v1.2: the hydrodyn (NEMO) water-temperature fallback, RESEARCH.md §26.
+    # Fills water_temp_c from the model at wave_point's coordinates whenever
+    # the buoy/WAM branch above left it null — a buoy whose wave sensor is
+    # reporting but whose water sensor isn't, or the WAM fallback, which
+    # never carries a water reading at all. Silently does nothing outside
+    # the Baltic grid (inland water, or any fetch failure) — waves stays
+    # exactly as the buoy/WAM branch left it.
+    if waves is not None and waves.get("water_temp_c") is None:
+        modelled = await _hydrodyn_water_temp(wave_point.lat, wave_point.lon)
+        if modelled is not None:
+            waves["water_temp_c"] = modelled
+            waves["water_measured"] = False
+
     wind_warning = await _sea_warning(station.lat, station.lon, "seaWind", lang)
     wave_warning = await _sea_warning(wave_point.lat, wave_point.lon, "seaWaveHeight", lang)
 
@@ -1249,7 +1439,7 @@ async def glance_home(
         raise _fail(exc) from exc
 
     async def fetch_fc() -> list[dict]:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         end = now + timedelta(hours=60)
         return await timeseries(
             _FORECAST_PARAMS,

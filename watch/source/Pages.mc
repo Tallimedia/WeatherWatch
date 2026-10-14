@@ -157,13 +157,42 @@ module Pages {
         var gust = Api.v(d, "gust");
         var dir = Api.v(d, "dir");
 
-        stackStart(dc, 0.245);
+        // Found 2026-10-14: giving the compass point its own row (below)
+        // made this page one row taller than before even in the normal
+        // case — no fallback label, just the arrow+direction row that
+        // didn't used to exist — and that extra height pushed
+        // forecastStrip's own two rows down into the fixed-position footer
+        // at the bottom (updated() draws at a constant 0.855h, independent
+        // of how tall the stack above it grew). Tightened the top offset
+        // and gaps here to recover that row's worth of height.
+        stackStart(dc, 0.21);
         iconRowUnit(dc, :temp, Graphics.FONT_NUMBER_MILD, Fmt.tempValue(t), "°C",
-                    Theme.tempColour(t), -2);
+                    Theme.tempColour(t), -6);
+        // The compass point used to sit inline here ("... m/s S"), ambiguous
+        // next to "m/s" whenever the wind happened to blow from the south
+        // (found 2026-10-13, not a new bug — just coincidence of the day's
+        // actual direction). Moved to its own row with the arrow, same
+        // compassRow() the Sea and Buoy pages already use for exactly this.
         iconRow(dc, :wind, Graphics.FONT_SMALL,
-                Fmt.windValue(ms) + " (" + Fmt.windValue(gust) + ") " + Fmt.windUnitLabel()
-                    + " " + Fmt.compass(dir),
-                Theme.windColour(ms, gust, Config.landWind(), Config.landGust()), 4);
+                Fmt.windValue(ms) + " (" + Fmt.windValue(gust) + ") " + Fmt.windUnitLabel(),
+                Theme.windColour(ms, gust, Config.landWind(), Config.landGust()), 2);
+
+        // Two-tier wind fallback (RESEARCH.md §C5j) — the station this page
+        // names in its header may not be the one that measured the wind.
+        // Rides on the compass row rather than a row of its own: a
+        // dedicated row was tried first and pushed the forecast strip and
+        // footer down into the page-dot pager (Land has less spare height
+        // than Sea/Buoy, which don't carry a forecast strip). "road" is a
+        // live reading from a nearby Fintraffic road-weather station (a
+        // different, denser network than FMI's own observation stations);
+        // "forecast" is a modelled hour-ahead value, same string the
+        // Forecast page itself uses — it genuinely comes from that product,
+        // not a separate model, so it is not labelled "Modelled".
+        var windSrc = Api.v(d, "windSrc");
+        var windSrcLabel = (windSrc != null && !windSrc.equals("station"))
+            ? (windSrc.equals("road") ? res(Rez.Strings.WindRoad) : res(Rez.Strings.PageForecast))
+            : null;
+        compassRow(dc, dir, windSrcLabel);
 
         drawRoadIce(dc);
         forecastStrip(dc, _y);
@@ -189,6 +218,16 @@ module Pages {
         Icons.clock(dc, (x0 - ih - 2).toNumber(), top + 1, (ih * 0.7).toNumber(), Theme.FAINT);
         var count = times.size() < slots ? times.size() : slots;
         var lineH = dc.getFontHeight(Graphics.FONT_XTINY);
+        // Tried a row-label temp icon here under the clock icon, 2026-10-09
+        // — reverted. Icons.temp()'s minimum-width floors (stem >=3px, bulb
+        // >=stem/2+1) collapse at this icon's actual size (~13px, ih*0.7) to
+        // stem=4/bulb=3 — barely any bulb-over-stem differentiation left, so
+        // it rendered as an unrecognisable blob rather than a thermometer.
+        // Not a colour problem (tried Theme.FAINT_WARM first) — the
+        // silhouette itself needs more room than this strip has. The clock
+        // icon survives here because a circle holds up fine this small; a
+        // thermometer's whole identity depends on a contrast this size can't
+        // carry.
         for (var i = 0; i < count; i += 1) {
             var x = (x0 + (span / slots) * i + (span / slots) / 2).toNumber();
             dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
@@ -249,9 +288,34 @@ module Pages {
             res(Rez.Strings.Gust) + " " + Fmt.windValue(gust) + " " + Fmt.windUnitLabel(),
             Theme.DIM, 6);
 
-        // Arrow and compass point share a row, measured so the pair is centred
-        // rather than each guessing its own offset.
+        compassRow(dc, dir, null);
+
+        iconRow(dc, :temp, Graphics.FONT_XTINY, Fmt.temp(Api.v(m, "stTemp")), Theme.DIM, 0);
+
+        drawSeaWarning(dc, Api.v(m, "windWarn"), Rez.Strings.SeaWindModerate,
+                       Rez.Strings.SeaWindSevere);
+
+        updated(dc, Fmt.age(Api.v(m, "stAt")), Api.marineState);
+    }
+
+    //! A direction arrow and its compass-point label, as one centred row.
+    //!
+    //! Was three separate copies of this same block (Sea, Buoy, and now
+    //! Land) — factored out 2026-10-13 after the third copy was about to be
+    //! added, per the code review's own flag that a future layout tweak to
+    //! one copy (exactly what happened here) could silently drift from the
+    //! others. Measured together so the pair is centred as a unit rather
+    //! than each guessing its own offset.
+    //! `suffix`, when given, rides on the same row ("· Tieasema") rather than
+    //! costing a row of its own — Land's wind-source fallback label
+    //! (RESEARCH.md §C5j) uses this; Sea/Buoy never pass one. Found
+    //! 2026-10-13: a dedicated row for the label pushed the forecast strip
+    //! and footer down into the page-dot pager on Land, which has less
+    //! spare height than Sea/Buoy (it already carries the forecast strip
+    //! below). Folding the label into the existing row costs nothing extra.
+    function compassRow(dc as Graphics.Dc, dir as Numeric?, suffix as String?) as Void {
         var label = Fmt.compass(dir);
+        if (suffix != null) { label = label + " · " + suffix; }
         var labelW = dc.getTextWidthInPixels(label, Graphics.FONT_SMALL);
         var r = (h(dc) * 0.045).toNumber();
         var total = r * 2 + 6 + labelW;
@@ -260,13 +324,6 @@ module Pages {
         dc.setColor(Theme.INK, Graphics.COLOR_TRANSPARENT);
         dc.drawText(left + r * 2 + 6, _y, Graphics.FONT_SMALL, label, Graphics.TEXT_JUSTIFY_LEFT);
         _y += dc.getFontHeight(Graphics.FONT_SMALL) + 4;
-
-        iconRow(dc, :temp, Graphics.FONT_XTINY, Fmt.temp(Api.v(m, "stTemp")), Theme.DIM, 0);
-
-        drawSeaWarning(dc, Api.v(m, "windWarn"), Rez.Strings.SeaWindModerate,
-                       Rez.Strings.SeaWindSevere);
-
-        updated(dc, Fmt.age(Api.v(m, "stAt")), Api.marineState);
     }
 
     //! Exception row: FMI marine warning (CAP feed), present only when one is
@@ -315,10 +372,20 @@ module Pages {
         headerPlain(dc, res(Rez.Strings.PageBuoy), src);
 
         if (!hasWave) {
-            // Two different absences. Inland there is no buoy at all and
-            // never will be; on the coast they are lifted out for the winter.
-            // Same empty page, and the caption is all that distinguishes them.
-            if (!loading(dc, Api.marineState)) {
+            // Three different cases share this branch, and only the last two
+            // look alike on screen. `m == null` means the fetch itself never
+            // succeeded (no connection, server error) — same failureMessage()
+            // path drawLand/drawSea use, not the "no buoy" wording below,
+            // which used to show here on any network failure too (found in
+            // code review 2026-10-13: mode is null when m is null, so the
+            // ternary always fell through to NoBuoy regardless of the real
+            // cause). The other two are real absences once a fetch has
+            // actually succeeded: inland there is no buoy at all and never
+            // will be; on the coast they are lifted out for the winter — same
+            // empty page, and the caption is all that distinguishes them.
+            if (m == null) {
+                if (!loading(dc, Api.marineState)) { failureMessage(dc); }
+            } else if (!loading(dc, Api.marineState)) {
                 var mode = Api.v(m, "mode");
                 message(dc, mode != null && mode.equals("none")
                         ? Rez.Strings.NoBuoyArea : Rez.Strings.NoBuoy);
@@ -337,20 +404,21 @@ module Pages {
             res(Rez.Strings.Period) + " " + (per == null ? Fmt.DASH : Fmt.one(per)) + " s",
             Theme.DIM, 6);
 
-        var label = Fmt.compass(dir);
-        var labelW = dc.getTextWidthInPixels(label, Graphics.FONT_SMALL);
-        var r = (h(dc) * 0.045).toNumber();
-        var total = r * 2 + 6 + labelW;
-        var left = (w(dc) - total) / 2;
-        arrow(dc, left + r, _y + dc.getFontHeight(Graphics.FONT_SMALL) / 2, r, dir);
-        dc.setColor(Theme.INK, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(left + r * 2 + 6, _y, Graphics.FONT_SMALL, label, Graphics.TEXT_JUSTIFY_LEFT);
-        _y += dc.getFontHeight(Graphics.FONT_SMALL) + 4;
+        compassRow(dc, dir, null);
 
         var water = Api.v(m, "wTemp");
         if (water != null) {
-            iconRow(dc, :temp, Graphics.FONT_XTINY,
-                    res(Rez.Strings.WaterTemp) + " " + Fmt.temp(water), Theme.DIM, 4);
+            // Independent of the header's own "· Modelled" above, which
+            // speaks to wave height (wMeas) — a buoy can report live waves
+            // while its water sensor is silent and the backend fills this
+            // one value from the hydrodyn model instead (RESEARCH.md §26).
+            // Silent when measured, same "speaks up only when not the
+            // normal case" rule the rest of the app already follows.
+            var waterText = res(Rez.Strings.WaterTemp) + " " + Fmt.temp(water);
+            if (Api.v(m, "wTempMeas") != true) {
+                waterText = waterText + " · " + res(Rez.Strings.Modelled);
+            }
+            iconRow(dc, :temp, Graphics.FONT_XTINY, waterText, Theme.DIM, 4);
         }
 
         drawSeaWarning(dc, Api.v(m, "waveWarn"), Rez.Strings.SeaWaveModerate,
@@ -440,7 +508,6 @@ module Pages {
                          gapAfter as Number) as Void {
         var unitFont = Graphics.FONT_SMALL;
         var fh = dc.getFontHeight(numFont);
-        var uh = dc.getFontHeight(unitFont);
         var size = (fh * 0.62).toNumber();
         var drawnW = (size * Icons.widthFactor(kind)).toNumber();
         var vw = dc.getTextWidthInPixels(value, numFont);
@@ -457,9 +524,15 @@ module Pages {
 
         dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
         dc.drawText(left + drawnW + gap, _y, numFont, value, Graphics.TEXT_JUSTIFY_LEFT);
-        // Sit the unit on the number's baseline rather than its box top.
-        dc.drawText(left + drawnW + gap + vw + unitGap, _y + (fh - uh), unitFont, unit,
-                    Graphics.TEXT_JUSTIFY_LEFT);
+
+        // Vertically centred on the number itself, so the unit sits on the
+        // same line as the value — not pinned to its top (made "m/s"/"m"
+        // look like stray superscript text) or its bare baseline (made "°C"
+        // split into a disconnected mark and letter). One simple rule that
+        // reads right for both. Nico's call, 2026-10-13, after three other
+        // positions tried in the sim.
+        dc.drawText(left + drawnW + gap + vw + unitGap, _y + fh / 2, unitFont, unit,
+                    Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
         _y += fh + gapAfter;
     }
 
@@ -531,6 +604,130 @@ module Pages {
         }
         dc.drawText(cx, top + lines.size() * fh, Graphics.FONT_XTINY, "CC BY 4.0",
                     Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    // ------------------------------------------------------------ forecast
+
+    //! Opt-in (Config.showForecast), RESEARCH.md §27 — three-way split:
+    //! Tomorrow with more detail on top, Day+2/Day+3 basics side by side
+    //! below. The four weather-condition icons (Icons.wx*) are new to the
+    //! watch with this page — FMI's smartsymbol reduced to four categories
+    //! (Api._symbolKind), not the ~20 the web pages use. One icon per
+    //! summary row here, not a 13px corner badge, but still the simplest
+    //! shape that holds, same lesson as everything else drawn today.
+    function drawForecast(dc as Graphics.Dc) as Void {
+        // No header title — Nico's call, 2026-10-13: this page is already
+        // identifiable by its own distinct layout, and the room a title
+        // would cost is exactly what the bottom row needed to clear the
+        // round bezel and the page-dot pager without further squeezing.
+        if (loading(dc, Api.forecast3State)) { return; }
+        var d = Api.forecast3;
+        if (d == null) {
+            message(dc, Rez.Strings.NoData);
+            return;
+        }
+        var hi = Api.v(d, "hi");
+        var lo = Api.v(d, "lo");
+        var sym = Api.v(d, "sym");
+        var rain = Api.v(d, "rain");
+        var wind = Api.v(d, "wind");
+        var gust = Api.v(d, "gust");
+        var cx = (w(dc) / 2).toNumber();
+
+        // --- Tomorrow: more detail ---
+        // Every vertical advance below uses a real measured height (icon
+        // size, font height, or whichever of the two is taller for a mixed
+        // row) — never a guessed fraction. A first pass guessed the
+        // icon+hi/lo row's height from the icon alone and the number font
+        // actually drew taller, overlapping the wind row under it; a second
+        // bug let the Day+2/+3 row run into the page-dot pager PageView
+        // draws separately at h*0.945. Both found on real sim output,
+        // 2026-10-13.
+        var xtinyH = dc.getFontHeight(Graphics.FONT_XTINY);
+        var numH = dc.getFontHeight(Graphics.FONT_NUMBER_MILD);
+
+        var top = (h(dc) * 0.1).toNumber();
+        dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, top, Graphics.FONT_XTINY, res(Rez.Strings.Tomorrow),
+                    Graphics.TEXT_JUSTIFY_CENTER);
+        top += xtinyH + 2;
+
+        var bigIcon = (h(dc) * 0.1).toNumber();
+        // Plain single string, same pattern as Day+2/Day+3 below (confirmed
+        // right in the sim) — reverted off drawHiLoBig()'s composed
+        // big-digit/small-degree-mark rendering after two different offsets
+        // both missed (floated mid-digit, then floated disconnected above
+        // the digits entirely). FONT_NUMBER_MILD's own inline "°" glyph
+        // reads slightly differently than the small-font version elsewhere,
+        // accepted as a minor, known difference rather than guess a third
+        // pixel offset blind. Nico's call, 2026-10-13.
+        var hiLoText = hiLo(hi[0], lo[0]);
+        var tw = dc.getTextWidthInPixels(hiLoText, Graphics.FONT_NUMBER_MILD);
+        var rowH = bigIcon > numH ? bigIcon : numH;
+        var rowLeft = cx - ((bigIcon + 8 + tw) / 2).toNumber();
+        drawWx(dc, sym[0], rowLeft, top + ((rowH - bigIcon) / 2).toNumber(), bigIcon, Theme.DIM);
+        dc.setColor(Theme.INK, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(rowLeft + bigIcon + 8, top + ((rowH - numH) / 2).toNumber(),
+                    Graphics.FONT_NUMBER_MILD, hiLoText, Graphics.TEXT_JUSTIFY_LEFT);
+        top += rowH + 2;
+
+        var windRainText = Fmt.windRound(wind[0]) + " (" + Fmt.windRound(gust[0]) + ") " + Fmt.windUnitLabel()
+                           + "  ·  " + res(Rez.Strings.Rain) + " " + Fmt.one(rain[0]) + " mm";
+        dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
+        // Guarded against overflow, same as the header's own source line —
+        // Swedish's "Nederbörd" ran this close enough to the round bezel's
+        // edge to clip, found on real sim output 2026-10-13.
+        dc.drawText(cx, top, Graphics.FONT_XTINY,
+                    fit(dc, windRainText, Graphics.FONT_XTINY, (w(dc) * 0.92).toNumber()),
+                    Graphics.TEXT_JUSTIFY_CENTER);
+        top += xtinyH + 6;
+
+        // --- divider ---
+        dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
+        dc.drawLine((w(dc) * 0.2).toNumber(), top, (w(dc) * 0.8).toNumber(), top);
+        top += 8;
+
+        // --- Day+2 / Day+3: basics only ---
+        // Pulled in from a full-width half-and-half split (±0.25w from
+        // centre) to ±0.17w — Nico's call, 2026-10-13: the full split sat
+        // close enough to the round bezel's curve on each side to look
+        // cramped against it, the same "usable width narrows" effect
+        // headerPin already accounts for near the top of every page.
+        var colOffset = (w(dc) * 0.17).toNumber();
+        var smallIcon = (h(dc) * 0.075).toNumber();
+        for (var i = 0; i < 2; i += 1) {
+            var colCx = i == 0 ? cx - colOffset : cx + colOffset;
+            var y = top;
+            dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(colCx, y, Graphics.FONT_XTINY,
+                        "+" + (i + 2).toString() + " " + res(Rez.Strings.DayAbbrev),
+                        Graphics.TEXT_JUSTIFY_CENTER);
+            y += xtinyH + 2;
+            drawWx(dc, sym[i + 1], (colCx - smallIcon / 2).toNumber(), y, smallIcon, Theme.DIM);
+            y += smallIcon + 2;
+            dc.setColor(Theme.INK, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(colCx, y, Graphics.FONT_XTINY, hiLo(hi[i + 1], lo[i + 1]),
+                        Graphics.TEXT_JUSTIFY_CENTER);
+            y += xtinyH;
+            dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(colCx, y, Graphics.FONT_XTINY, Fmt.one(rain[i + 1]) + " mm",
+                        Graphics.TEXT_JUSTIFY_CENTER);
+        }
+    }
+
+    //! "12°/4°" — a dash on whichever side is missing rather than dropping
+    //! the row, same DASH convention as every other reading in the app.
+    function hiLo(hi, lo) as String {
+        return Fmt.zero(hi) + "°/" + Fmt.zero(lo) + "°";
+    }
+
+    function drawWx(dc as Graphics.Dc, code, x as Number, y as Number,
+                    s as Number, colour as Number) as Void {
+        var kind = Api._symbolKind(code);
+        if (kind == :clear) { Icons.wxClear(dc, x, y, s, colour); }
+        else if (kind == :rain) { Icons.wxRain(dc, x, y, s, colour); }
+        else if (kind == :snow) { Icons.wxSnow(dc, x, y, s, colour); }
+        else { Icons.wxCloudy(dc, x, y, s, colour); }
     }
 
     //! Break text into lines that fit `maxW`, at word boundaries.

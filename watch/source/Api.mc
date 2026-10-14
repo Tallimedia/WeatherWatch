@@ -5,6 +5,7 @@ import Toybox.Lang;
 import Toybox.PersistedContent;
 import Toybox.System;
 import Toybox.Time;
+import Toybox.Time.Gregorian;
 import Toybox.WatchUi;
 
 //! Backend client.
@@ -27,11 +28,13 @@ module Api {
     var forecast as Dictionary? = null;
     var road as Dictionary? = null;
     var marine as Dictionary? = null;
+    var forecast3 as Dictionary? = null;
 
     var landState = STATE_IDLE;
     var forecastState = STATE_IDLE;
     var roadState = STATE_IDLE;
     var marineState = STATE_IDLE;
+    var forecast3State = STATE_IDLE;
 
     //! Roads more than this from the nearest FMI road station are not "your
     //! roads" any more than a wave buoy 50 km out is "your sea" (RESEARCH.md
@@ -161,10 +164,12 @@ module Api {
         forecast = load("f_fc");
         road = load("f_road");
         marine = load("f_marine");
+        forecast3 = load("f_fc3");
         if (land != null) { landState = STATE_OK; }
         if (forecast != null) { forecastState = STATE_OK; }
         if (road != null) { roadState = STATE_OK; }
         if (marine != null) { marineState = STATE_OK; }
+        if (forecast3 != null) { forecast3State = STATE_OK; }
     }
 
     // --------------------------------------------------------------- land
@@ -188,7 +193,12 @@ module Api {
                 "gust"  => f(pick(data, "windgust")),
                 "dir"   => f(pick(data, "winddirection")),
                 "atT"   => n(pickIn(data, "at", "temperature")),
-                "atW"   => n(pickIn(data, "at", "windspeedms"))
+                "atW"   => n(pickIn(data, "at", "windspeedms")),
+                // Two-tier wind fallback (RESEARCH.md §C5j): "station" is the
+                // normal case, "road" is a nearby Fintraffic road-weather
+                // station's live reading, "forecast" is a modelled hour-ahead
+                // value — only the latter two need a row label.
+                "windSrc" => s(pick(data, "wind_source"))
             };
             land = flat;
             landState = STATE_OK;
@@ -321,6 +331,15 @@ module Api {
                 "wPer"    => f(pick(wv, "wave_period_s")),
                 "wDir"    => f(pick(wv, "wave_direction_deg")),
                 "wTemp"   => f(pick(wv, "water_temp_c")),
+                // Independent of "wMeas" (wave height) — a buoy's water
+                // sensor can be silent while its wave sensor isn't, and the
+                // backend's hydrodyn fallback fills water_temp_c in that
+                // case without that making the wave height itself modelled
+                // (RESEARCH.md §26). Defaults true so a response from an
+                // older backend without this field reads as "measured" —
+                // the pre-v1.2 behaviour — rather than wrongly labelling
+                // every water reading "modelled".
+                "wTempMeas" => pick(wv, "water_measured") != false,
                 "wAt"     => n(pick(wv, "observed_epoch")),
                 "windWarn" => s(pick(data, "wind_warning")),
                 "waveWarn" => s(pick(data, "wave_warning"))
@@ -331,6 +350,117 @@ module Api {
         } else {
             marineState = STATE_ERROR;
             failure = classify(code);
+        }
+        WatchUi.requestUpdate();
+        // Opt-in and last in the chain (RESEARCH.md §27): most installs have
+        // this off, so the common case is one fewer request, not one more.
+        if (Config.showForecast()) { fetchForecast3(); }
+    }
+
+    // ------------------------------------------------------- forecast (3d)
+
+    //! Civil (proleptic Gregorian) day number for a local calendar date —
+    //! Howard Hinnant's days_from_civil, adapted. Lets two dates be compared
+    //! by simple subtraction regardless of month/year boundaries, which
+    //! `Gregorian.info()`'s bare day-of-month field cannot do on its own
+    //! (year is always >= 2026 here, so the usual negative-year adjustment
+    //! in the reference algorithm never triggers and is left out).
+    function _civilDay(y as Number, m as Number, d as Number) as Number {
+        var yy = y - (m <= 2 ? 1 : 0);
+        var era = yy / 400;
+        var yoe = yy - era * 400;
+        var doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;
+        var doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+        return era * 146097 + doe - 719468;
+    }
+
+    //! Which calendar day (local time) an epoch falls on, as a civil day
+    //! number — not an absolute "hours since now" bucket, so "Tomorrow"
+    //! lines up with the actual calendar date rather than a rolling 24h
+    //! window that drifts against it depending what time of day this runs.
+    function _localDay(epoch as Number) as Number {
+        var info = Gregorian.info(new Time.Moment(epoch), Time.FORMAT_SHORT);
+        return _civilDay(info.year, info.month, info.day);
+    }
+
+    //! FMI's smartsymbol has ~20 categories across day/night variants
+    //! (RESEARCH.md §16, §27); this page draws only four. Folds night codes
+    //! (+100) to their day equivalent first, since the icon carries no
+    //! day/night distinction here. Defaults to :rain for anything
+    //! precipitating that isn't explicitly snow (sleet, hail, thunder all
+    //! read closer to "wet" than "clear" at a glance), and :cloudy for a
+    //! missing code — never claims clear skies when the data doesn't say so.
+    function _symbolKind(code as Number?) as Symbol {
+        if (code == null) { return :cloudy; }
+        var c = code % 100;
+        if (c == 1 || c == 2) { return :clear; }
+        if (c == 4 || c == 6 || c == 7 || c == 9) { return :cloudy; }
+        if (c >= 51 && c <= 59) { return :snow; }
+        return :rain;
+    }
+
+    function fetchForecast3() as Void {
+        forecast3State = STATE_LOADING;
+        Communications.makeWebRequest(
+            Config.BASE_URL + "/v1/forecast",
+            { "place" => Config.landPlace(), "hours" => 90, "step" => 360, "lang" => lang() },
+            options(), new Lang.Method(Api, :onForecast3));
+    }
+
+    //! Groups points by local calendar day into Tomorrow / Day+2 / Day+3 —
+    //! today itself is skipped, same as the web's own loadForecast3()
+    //! (already shown in full on Land's rest-of-today strip). Tomorrow keeps
+    //! wind and a daily rain total; Day+2/Day+3 keep only hi/lo and a
+    //! representative symbol (RESEARCH.md §27 — "basics only").
+    function onForecast3(code as Number,
+                         data as Dictionary or String or PersistedContent.Iterator or Null) as Void {
+        if (code == 200 && data instanceof Dictionary) {
+            var pts = pick(data, "points");
+            var today = _localDay(Time.now().value());
+            // Index 0 = Tomorrow, 1 = Day+2, 2 = Day+3.
+            var hi = [null, null, null] as Array<Float?>;
+            var lo = [null, null, null] as Array<Float?>;
+            var sym = [null, null, null] as Array<Number?>;      // midday-closest point's symbol
+            var midDist = [999, 999, 999] as Array<Number>;      // distance from that point to 12:00 local
+            var rain = [0.0, 0.0, 0.0] as Array<Float>;
+            var wind = [null, null, null] as Array<Float?>;      // midday-closest point's wind
+            var gust = [null, null, null] as Array<Float?>;
+            if (pts instanceof Array) {
+                for (var i = 0; i < pts.size(); i += 1) {
+                    var e = n(pick(pts[i], "epochtime"));
+                    if (e == null) { continue; }
+                    var dayOffset = _localDay(e) - today;
+                    if (dayOffset < 1 || dayOffset > 3) { continue; }
+                    var idx = dayOffset - 1;
+                    var t = f(pick(pts[i], "temperature"));
+                    if (t != null) {
+                        if (hi[idx] == null || t > hi[idx]) { hi[idx] = t; }
+                        if (lo[idx] == null || t < lo[idx]) { lo[idx] = t; }
+                    }
+                    var p1h = f(pick(pts[i], "precipitation1h"));
+                    if (p1h != null) { rain[idx] = rain[idx] + p1h; }
+                    // The point whose local hour is nearest noon stands in
+                    // for "the day" — same reasoning daySummary() uses on
+                    // the web for picking a representative symbol.
+                    var info = Gregorian.info(new Time.Moment(e), Time.FORMAT_SHORT);
+                    var dist = (info.hour - 12).abs();
+                    if (dist < midDist[idx]) {
+                        midDist[idx] = dist;
+                        sym[idx] = n(pick(pts[i], "smartsymbol"));
+                        wind[idx] = f(pick(pts[i], "windspeedms"));
+                        gust[idx] = f(pick(pts[i], "hourlymaximumgust"));
+                    }
+                }
+            }
+            var flat = {
+                "hi" => hi, "lo" => lo, "sym" => sym,
+                "rain" => rain, "wind" => wind, "gust" => gust
+            };
+            forecast3 = flat;
+            forecast3State = STATE_OK;
+            save("f_fc3", flat);
+        } else {
+            forecast3State = STATE_ERROR;
         }
         WatchUi.requestUpdate();
     }

@@ -248,4 +248,73 @@ module Icons {
         if (dotR < 1) { dotR = 1; }
         dc.fillCircle(cx, y + (s * 0.84).toNumber(), dotR);
     }
+
+    //! Weather-condition glyphs for the Forecast page (v1.2, RESEARCH.md §27)
+    //! — the app's first. Deliberately a minimal four categories (clear,
+    //! cloudy, rain, snow), not FMI's full ~20-category smartsymbol set: this
+    //! page draws them at real size (one per summary row, not a 13px corner
+    //! badge), but two other icons failed at small size earlier the same day
+    //! — a thermometer whose bulb-vs-stem contrast collapsed, a snowflake
+    //! whose branches smeared — so the bar here is "simple enough to survive
+    //! being drawn small on the worst-case device", not "as detailed as the
+    //! web's icon set can afford to be".
+
+    //! Sun: a filled circle, no rays. Rays are thin strokes, which is exactly
+    //! what collapsed on the two icons that failed today — a plain disc is
+    //! unambiguous at any size and needs no minimum-width floor to protect.
+    function wxClear(dc as Graphics.Dc, x as Number, y as Number, s as Number, colour as Number) as Void {
+        dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
+        var r = s * 0.42;
+        dc.fillCircle((x + s / 2).toNumber(), (y + s / 2).toNumber(), r.toNumber());
+    }
+
+    //! Cloud: two overlapping circles plus a base rectangle — the minimal
+    //! construction that still reads as "cloud" rather than "blob", and the
+    //! shared base shape for wxCloudy/wxRain/wxSnow below.
+    function _cloud(dc as Graphics.Dc, x as Number, y as Number, s as Number, colour as Number) as Void {
+        dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
+        var baseY = y + (s * 0.58).toNumber();
+        var baseH = (s * 0.26).toNumber();
+        dc.fillRectangle(x + (s * 0.12).toNumber(), baseY,
+                         (s * 0.76).toNumber(), baseH);
+        dc.fillCircle((x + s * 0.36).toNumber(), (y + s * 0.5).toNumber(), (s * 0.26).toNumber());
+        dc.fillCircle((x + s * 0.62).toNumber(), (y + s * 0.42).toNumber(), (s * 0.3).toNumber());
+    }
+
+    function wxCloudy(dc as Graphics.Dc, x as Number, y as Number, s as Number, colour as Number) as Void {
+        _cloud(dc, x, y, s, colour);
+    }
+
+    //! Cloud plus short straight drops — lines, not the curved-stroke rain
+    //! the web uses, since a short straight segment holds its shape at any
+    //! size where a curve or a fine stroke might not.
+    function wxRain(dc as Graphics.Dc, x as Number, y as Number, s as Number, colour as Number) as Void {
+        _cloud(dc, x, y, s, colour);
+        dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
+        var pen = (s * 0.08).toNumber();
+        if (pen < 2) { pen = 2; }
+        dc.setPenWidth(pen);
+        var dropY = y + (s * 0.86).toNumber();
+        var dropLen = (s * 0.16).toNumber();
+        var xs = [x + (s * 0.28).toNumber(), x + (s * 0.5).toNumber(), x + (s * 0.72).toNumber()];
+        for (var i = 0; i < xs.size(); i += 1) {
+            dc.drawLine(xs[i], dropY, xs[i], dropY + dropLen);
+        }
+        dc.setPenWidth(1);
+    }
+
+    //! Cloud plus small filled dots — not the thin cross-stroke snowflake
+    //! that already failed small today (Pages.mc §16/§27); a dot holds its
+    //! shape at any size a line cannot.
+    function wxSnow(dc as Graphics.Dc, x as Number, y as Number, s as Number, colour as Number) as Void {
+        _cloud(dc, x, y, s, colour);
+        dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
+        var r = (s * 0.045).toNumber();
+        if (r < 1) { r = 1; }
+        var dotY = y + (s * 0.9).toNumber();
+        var xs = [x + (s * 0.28).toNumber(), x + (s * 0.5).toNumber(), x + (s * 0.72).toNumber()];
+        for (var i = 0; i < xs.size(); i += 1) {
+            dc.fillCircle(xs[i], dotY, r);
+        }
+    }
 }

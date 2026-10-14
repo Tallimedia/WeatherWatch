@@ -87,6 +87,14 @@ TTL_STATION_POSITIONS = int(os.getenv("TTL_STATION_POSITIONS", "86400"))
 #: empty response. Five gives room to reach past a few of those.
 OBSERVATION_STATIONS = int(os.getenv("OBSERVATION_STATIONS", "5"))
 
+#: How far a nearby Fintraffic road-weather station may be to stand in for a
+#: Land observation station with no wind sensor (Lahti Sopenkorpi, found
+#: 2026-10-13: temperature works, windspeedms is always null, while a road
+#: station 3 km away has live wind). Capped so a remote area where the
+#: nearest road station is 100+ km off doesn't silently present a reading as
+#: "this place's wind" — beyond this, the forecast fallback applies instead.
+ROAD_WIND_FALLBACK_KM = float(os.getenv("ROAD_WIND_FALLBACK_KM", "25"))
+
 # Warnings. FMI reissue CAP alerts on a slow cadence and each one carries its
 # own onset/expires, so a few minutes of staleness changes nothing. The
 # Fintraffic message feed is 1.2 MB with no bbox parameter, so it is fetched
