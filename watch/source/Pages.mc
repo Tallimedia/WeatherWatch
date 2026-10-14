@@ -157,9 +157,17 @@ module Pages {
         var gust = Api.v(d, "gust");
         var dir = Api.v(d, "dir");
 
-        stackStart(dc, 0.245);
+        // Found 2026-10-14: giving the compass point its own row (below)
+        // made this page one row taller than before even in the normal
+        // case — no fallback label, just the arrow+direction row that
+        // didn't used to exist — and that extra height pushed
+        // forecastStrip's own two rows down into the fixed-position footer
+        // at the bottom (updated() draws at a constant 0.855h, independent
+        // of how tall the stack above it grew). Tightened the top offset
+        // and gaps here to recover that row's worth of height.
+        stackStart(dc, 0.21);
         iconRowUnit(dc, :temp, Graphics.FONT_NUMBER_MILD, Fmt.tempValue(t), "°C",
-                    Theme.tempColour(t), -2);
+                    Theme.tempColour(t), -6);
         // The compass point used to sit inline here ("... m/s S"), ambiguous
         // next to "m/s" whenever the wind happened to blow from the south
         // (found 2026-10-13, not a new bug — just coincidence of the day's
@@ -167,7 +175,7 @@ module Pages {
         // compassRow() the Sea and Buoy pages already use for exactly this.
         iconRow(dc, :wind, Graphics.FONT_SMALL,
                 Fmt.windValue(ms) + " (" + Fmt.windValue(gust) + ") " + Fmt.windUnitLabel(),
-                Theme.windColour(ms, gust, Config.landWind(), Config.landGust()), 4);
+                Theme.windColour(ms, gust, Config.landWind(), Config.landGust()), 2);
 
         // Two-tier wind fallback (RESEARCH.md §C5j) — the station this page
         // names in its header may not be the one that measured the wind.
