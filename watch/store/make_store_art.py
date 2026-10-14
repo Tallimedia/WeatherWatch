@@ -26,18 +26,18 @@ SHOTS = Path(__file__).resolve().parents[2] / "Screenshots"
 
 # Per-language art. Finnish is the store's primary listing language
 # (store-listing.md), so it gets its own hero/cover with a Finnish capture and
-# translated copy, not a relabelled English one. Both read from the Sea page
-# with a live warning — v1.1.0's headline feature belongs in the store art,
-# not just the gallery (RESEARCH.md §16, 2026-10-09; same reasoning as
-# pg2.png/pg3.png in the screenshot gallery).
+# translated copy, not a relabelled English one. Both read from the Forecast
+# page since v1.2.0 — the release's headline feature belongs in the store art,
+# not just the gallery, same reasoning that put v1.1.0's live Sea warning
+# here (RESEARCH.md §16 and §27).
 LANGS = {
     "en": dict(
         hero=HERE / "hero-1440x720.png",
         cover=HERE / "cover-500x500.png",
-        capture=SHOTS / "pg2.png",
+        capture=SHOTS / "pg-fc-eng.png",
         subtitle=["Finnish weather, land and sea —", "straight from the source."],
         bullets=[
-            "Forecasts and live observations",
+            "Live observations and a 3-day forecast",
             "Marine wind from 40 coastal and 14 lake stations",
             "Wave height and water temperature from FMI buoys",
             "Official FMI warnings on the page they're about",
@@ -51,10 +51,10 @@ LANGS = {
     "fi": dict(
         hero=HERE / "hero-1440x720-fi.png",
         cover=HERE / "cover-500x500-fi.png",
-        capture=SHOTS / "pg2-fin-warning.png",
+        capture=SHOTS / "pg-fc-fin.png",
         subtitle=["Suomen sää, maalla ja merellä —", "suoraan lähteeltä."],
         bullets=[
-            "Ennusteet ja reaaliaikaiset havainnot",
+            "Reaaliaikaiset havainnot ja 3 päivän ennuste",
             "Merituuli 40 rannikko- ja 14 sisävesiasemalta",
             "Aallonkorkeus ja veden lämpötila FMI:n poijuilta",
             "Viralliset FMI-varoitukset sillä sivulla, jota ne koskevat",

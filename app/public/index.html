@@ -272,7 +272,7 @@
   <div style="padding:64px 0 48px;border-bottom:1px solid var(--color-divider)">
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px">
       <span class="tag tag-accent" id="tag-kind">Connect IQ · Widget</span>
-      <span class="tag tag-outline" id="tag-dev">v1.1.0</span>
+      <span class="tag tag-outline" id="tag-dev">v1.2.0</span>
       <span class="tag tag-neutral" id="tag-area">Finland</span>
     </div>
     <h1 style="font-size:76px;line-height:0.94;letter-spacing:-0.02em;margin:0 0 20px;text-wrap:balance">
@@ -298,7 +298,7 @@
         <span id="app-devices"></span></p>
     </div>
     <figure style="margin:0">
-      <img src="/public/shots/pg1.png?v=1" alt="FIWeatherWatch land page on a Garmin fenix"
+      <img src="/public/shots/pg-fc.png?v=1" alt="FIWeatherWatch forecast page on a Garmin fenix"
            style="width:100%;max-width:340px;display:block;margin:0 auto">
     </figure>
   </div>
@@ -319,6 +319,11 @@
         <div class="card-kicker" id="k1"></div>
         <h3 id="c1t" style="font-size:24px;margin:0 0 10px">Land</h3>
         <p style="margin:0;color:var(--color-neutral-800)" id="c1">Current temperature, wind and gusts from the nearest reporting station, named, with its distance shown.</p>
+      </div>
+      <div style="background:var(--color-bg);padding:26px">
+        <div class="card-kicker" id="k5"></div>
+        <h3 id="c5t" style="font-size:24px;margin:0 0 10px">Forecast</h3>
+        <p style="margin:0;color:var(--color-neutral-800)" id="c5">Tomorrow in detail, and the two days after in brief.</p>
       </div>
       <div style="background:var(--color-bg);padding:26px">
         <div class="card-kicker" id="k2"></div>
@@ -346,8 +351,10 @@
       <span style="flex:1;height:1px;background:color-mix(in srgb,#f5f8fd 26%,transparent)"></span>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:24px">
-      <figure style="margin:0"><div class="shot-disc"><img src="/public/shots/raw-pg1.png?v=1" alt="Land page"></div>
+      <figure style="margin:0"><div class="shot-disc"><img src="/public/shots/raw-pg1.png?v=2" alt="Land page"></div>
         <figcaption class="shot-cap" id="cap-land"></figcaption></figure>
+      <figure style="margin:0"><div class="shot-disc"><img src="/public/shots/raw-pg-fc.png?v=1" alt="Forecast page"></div>
+        <figcaption class="shot-cap" id="cap-forecast"></figcaption></figure>
       <figure style="margin:0"><div class="shot-disc"><img src="/public/shots/raw-pg2.png?v=2" alt="Sea page with a live wind warning"></div>
         <figcaption class="shot-cap" id="cap-sea"></figcaption></figure>
       <figure style="margin:0"><div class="shot-disc"><img src="/public/shots/raw-pg3.png?v=2" alt="Waves page with a live wave warning"></div>

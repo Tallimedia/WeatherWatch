@@ -4,7 +4,7 @@ STR = {
   fi: {
     heroA:"Suomen sää,", heroB:"maalla ja merellä.",
     lede:"Ennusteet, merituuli ja live-aaltodata — suoraan Ilmatieteen laitoksen omasta avoimesta datasta, ei globaalista mallista. Kaikki alla on live-dataa juuri nyt. Nyt saatavilla Connect IQ -kaupassa.",
-    tagDev:"v1.1.0", tagArea:"Suomi",
+    tagDev:"v1.2.0", tagArea:"Suomi",
     navLive:"Live-data", navWhat:"Ominaisuudet", navData:"Data",
     onLand:"Maalla", onLandSub:"Havainnot ja loppupäivä lähimmältä asemalta.",
     atSea:"Merellä", atSeaSub:"Tuuli merihavaintoasemalta, aallot Ilmatieteen laitoksen poijuilta.",
@@ -12,7 +12,8 @@ STR = {
     dirFrom:"{d}-suunnasta", wind:"Tuuli", gust:"Puuska", humidity:"Kosteus", pressure:"Paine",
     air:"Ilma", waveH:"Aallonkorkeus", period:"Jakso", water:"Vesi", waves:"Aallot",
     whatTitle:"Mitä kello näyttää",
-    c1t:"Maa", c1:"Lämpötila, tuuli ja puuskat sekä 10 vuorokauden ennuste — havaintoasema nimettynä ja etäisyys näkyvissä. Liukkaan tien varoitus näkyy samalla sivulla, kun Ilmatieteen laitos sellaisen antaa.",
+    c1t:"Maa", c1:"Lämpötila, tuuli ja puuskat lähimmältä havaintoasemalta, asema nimettynä ja etäisyys näkyvissä, sekä ennuste loppupäivälle. Jos asemalla ei ole tuulianturia, tuuli tulee lähimmältä tiesääasemalta — merkittynä. Liukkaan tien varoitus näkyy samalla sivulla, kun Ilmatieteen laitos sellaisen antaa.",
+    c5t:"Ennuste", c5:"Huominen tarkemmin — sää, ylin ja alin lämpötila, tuuli ja sademäärä — sekä kaksi seuraavaa päivää lyhyesti. Uusi versiossa 1.2.0.",
     c2t:"Meri", c2:"Tuuli ja puuskat Harmajalta, Utöstä, Kalbådagrundilta ja 19 muulta merihavaintoasemalta. Tuulivaroitus näkyy samalla sivulla, kun on voimassa.",
     c3t:"Aallot", c3:"Merkitsevä aallonkorkeus, jakso, suunta ja meriveden lämpötila Ilmatieteen laitoksen aaltopoijuilta. Aallokkovaroitus näkyy samalla sivulla, kun on voimassa.",
     c4t:"Omat rajasi", c4:"Aseta omat tuulen, puuskan ja aallonkorkeuden rajat, niin lukema erottuu kun sillä on sinulle merkitystä.",
@@ -29,6 +30,7 @@ STR = {
     ledeWeather:"Ennusteet, merituuli ja live-aaltodata — suoraan Ilmatieteen laitoksen omasta avoimesta datasta, ei globaalista mallista. Kaikki alla on live-dataa juuri nyt.", hApp:"Ranteessasi",
     appLede:"Sama data kellossasi — maasään ennuste, merituuli rannikkoasemilta ja aaltotiedot Ilmatieteen laitoksen poijuilta. Ei tiliä, ei kirjautumista.",
     p1:"Maa: lämpötila, tuuli ja puuskat lähimmältä asemalta, ennuste loppupäivälle; liukkaan tien varoitus kun on voimassa",
+    p5:"Ennuste: huominen tarkemmin ja kaksi seuraavaa päivää lyhyesti",
     p2:"Meri: tuuli ja puuskat 40 rannikkoasemalta ja 14 sisävesiasemalta; tuulivaroitus kun on voimassa",
     p3:"Aallot: korkeus, jakso, suunta ja veden lämpötila; aallokkovaroitus kun on voimassa",
     p4:"Omat rajasi tuulelle, puuskalle ja aallonkorkeudelle",
@@ -45,7 +47,7 @@ STR = {
     r4t:"Kielet", r4:"Suomi, ruotsi ja englanti, kellon oman kieliasetuksen mukaan.",
     r5t:"Alue", r5:"Suomi — Ilmatieteen laitoksen havaintoverkko, rannikko ja sisävedet.",
     cMail:"Palaute ja bugi-ilmoitukset. Kerro versionumero, joka näkyy sovelluksen Tietoja-sivulla.",
-    k1:"Sivu 1", k2:"Sivu 2", k3:"Sivu 3", k4:"Asetukset", hScreens:"Jokainen näyttö", capLand:"Maa", capSea:"Meri", capWaves:"Aallot", capGlance:"Vilkaisu", capAbout:"Tietoja", capSmall:"Forerunner 255s",
+    k1:"Sivu 1", k5:"Sivu 2", k2:"Sivu 3", k3:"Sivu 4", k4:"Asetukset", hScreens:"Jokainen näyttö", capLand:"Maa", capForecast:"Ennuste", capSea:"Meri", capWaves:"Aallot", capGlance:"Vilkaisu", capAbout:"Tietoja", capSmall:"Forerunner 255s",
     privacy:"Tietosuoja", terms:"Käyttöehdot",
     coast:"Rannikko", lakes:"Sisävedet", trend:"Tuuli, 12 viime tuntia", mean:"Keskituuli", noTrend:"Ei tuulihistoriaa saatavilla", rain:"Sade", rainNone:"ei sadetta", justNow:"juuri nyt", minAgo:"min sitten", hAgo:"h sitten", retrieved:"Haettu", loading:"Ladataan…",
     h3Forecast3:"8 päivän ennuste", h3Radarmap:"Sadetutka ja salamat", h3Road:"Tien sää",
@@ -63,7 +65,7 @@ STR = {
   sv: {
     heroA:"Finlands väder,", heroB:"på land och till havs.",
     lede:"Prognoser, havsvind och live-vågdata — direkt från Meteorologiska institutets egna öppna data, inte en global modell. Allt nedan är live just nu. Finns nu i Connect IQ Store.",
-    tagDev:"v1.1.0", tagArea:"Finland",
+    tagDev:"v1.2.0", tagArea:"Finland",
     navLive:"Livedata", navWhat:"Funktioner", navData:"Data",
     onLand:"På land", onLandSub:"Observationer och resten av dagen från närmaste station.",
     atSea:"Till havs", atSeaSub:"Vind från en havsstation, vågor från institutets vågbojar.",
@@ -71,7 +73,8 @@ STR = {
     dirFrom:"från {d}", wind:"Vind", gust:"By", humidity:"Fuktighet", pressure:"Lufttryck",
     air:"Luft", waveH:"Våghöjd", period:"Period", water:"Vatten", waves:"Vågor",
     whatTitle:"Vad klockan visar",
-    c1t:"Land", c1:"Temperatur, vind och byar samt en 10-dygnsprognos — med stationen namngiven och avståndet angivet. En varning för halt väglag visas på samma sida när Meteorologiska institutet utfärdar en.",
+    c1t:"Land", c1:"Temperatur, vind och byar från närmaste station, namngiven och med avståndet angivet, plus prognos för resten av dagen. Saknar stationen vindgivare kommer vinden från närmaste vägväderstation — tydligt märkt. En varning för halt väglag visas på samma sida när Meteorologiska institutet utfärdar en.",
+    c5t:"Prognos", c5:"Morgondagen i detalj — väder, högsta och lägsta temperatur, vind och nederbörd — och de två följande dagarna i korthet. Nytt i version 1.2.0.",
     c2t:"Hav", c2:"Vind och byar från Harmaja, Utö, Kalbådagrund och 19 andra havsstationer. En vindvarning visas på samma sida när en är i kraft.",
     c3t:"Vågor", c3:"Signifikant våghöjd, period, riktning och havsvattnets temperatur från institutets vågbojar. En vågvarning visas på samma sida när en är i kraft.",
     c4t:"Dina gränser", c4:"Ställ in egna gränser för vind, byar och våghöjd, så att ett värde sticker ut när det betyder något för dig.",
@@ -88,6 +91,7 @@ STR = {
     ledeWeather:"Prognoser, havsvind och vågdata i realtid — direkt från Meteorologiska institutets egna öppna data, inte en global modell. Allt nedan är live just nu.", hApp:"På din handled",
     appLede:"Samma data i din klocka — prognos på land, havsvind från kuststationer och vågdata från Meteorologiska institutets bojar. Inget konto, ingen inloggning.",
     p1:"Land: temperatur, vind och byar från närmaste station, prognos för resten av dagen; varning för halt väglag när en är i kraft",
+    p5:"Prognos: morgondagen i detalj och de två följande dagarna i korthet",
     p2:"Hav: vind och byar från 40 kuststationer och 14 insjöstationer; vindvarning när en är i kraft",
     p3:"Vågor: höjd, period, riktning och vattentemperatur; vågvarning när en är i kraft",
     p4:"Dina egna gränser för vind, byar och våghöjd",
@@ -104,7 +108,7 @@ STR = {
     r4t:"Språk", r4:"Finska, svenska och engelska, enligt klockans eget språk.",
     r5t:"Område", r5:"Finland — Meteorologiska institutets nät, kust och insjöar.",
     cMail:"Återkoppling och buggrapporter. Ange versionsnumret från appens Om-sida.",
-    k1:"Sida 1", k2:"Sida 2", k3:"Sida 3", k4:"Inställningar", hScreens:"Varje skärm", capLand:"Land", capSea:"Hav", capWaves:"Vågor", capGlance:"Överblick", capAbout:"Om appen", capSmall:"Forerunner 255s",
+    k1:"Sida 1", k5:"Sida 2", k2:"Sida 3", k3:"Sida 4", k4:"Inställningar", hScreens:"Varje skärm", capLand:"Land", capForecast:"Prognos", capSea:"Hav", capWaves:"Vågor", capGlance:"Överblick", capAbout:"Om appen", capSmall:"Forerunner 255s",
     privacy:"Integritet", terms:"Villkor",
     coast:"Kusten", lakes:"Insjöar", trend:"Vind, senaste 12 timmarna", mean:"Medelvind", noTrend:"Ingen vindhistorik tillgänglig", rain:"Nederbörd", rainNone:"inget regn", justNow:"just nu", minAgo:"min sedan", hAgo:"h sedan", retrieved:"Hämtad", loading:"Laddar…",
     h3Forecast3:"8 dagars prognos", h3Radarmap:"Regnradar och blixtar", h3Road:"Väderdata för vägen",
@@ -122,7 +126,7 @@ STR = {
   en: {
     heroA:"Finnish weather,", heroB:"land and sea.",
     lede:"Forecasts, marine wind and live wave data — from the Finnish Meteorological Institute's own open data, not a global model. Everything below is live right now. Available now on the Connect IQ Store.",
-    tagDev:"v1.1.0", tagArea:"Finland",
+    tagDev:"v1.2.0", tagArea:"Finland",
     navLive:"Live data", navWhat:"Features", navData:"Data",
     onLand:"On land", onLandSub:"Current conditions and the rest of today, from the nearest reporting station.",
     atSea:"At sea", atSeaSub:"Wind from a Finnish marine station, waves from FMI's wave buoys.",
@@ -130,7 +134,8 @@ STR = {
     dirFrom:"from {d}", wind:"Wind", gust:"Gust", humidity:"Humidity", pressure:"Pressure",
     air:"Air", waveH:"Wave height", period:"Period", water:"Water", waves:"Waves",
     whatTitle:"What the watch shows",
-    c1t:"Land", c1:"Current temperature, wind and gusts, plus a 10-day forecast — with the reporting station named and its distance shown. An icy-road warning appears on this same page when FMI issues one.",
+    c1t:"Land", c1:"Current temperature, wind and gusts from the nearest reporting station, named, with its distance shown, plus the rest of the day. Where that station has no wind sensor, wind comes from the nearest road-weather station — and says so. An icy-road warning appears on this same page when FMI issues one.",
+    c5t:"Forecast", c5:"Tomorrow in detail — weather, high and low, wind and rain — and the two days after in brief. New in version 1.2.0.",
     c2t:"Sea", c2:"Wind and gusts from Harmaja, Utö, Kalbådagrund and 19 other Finnish marine stations. A wind warning appears on this same page when one is in effect.",
     c3t:"Waves", c3:"Significant wave height, period, direction and sea water temperature from FMI's wave buoys. A wave warning appears on this same page when one is in effect.",
     c4t:"Your limits", c4:"Set your own wind, gust and wave thresholds, so a reading stands out when it matters to you.",
@@ -147,6 +152,7 @@ STR = {
     ledeWeather:"Forecasts, marine wind and live wave data — from the Finnish Meteorological Institute\u2019s own open data, not a global model. Everything below is live right now.", hApp:"On your wrist",
     appLede:"The same data on your watch — land forecasts, marine wind from the coastal stations, and live wave height from FMI's own buoys. No account, no sign-in.",
     p1:"Land: temperature, wind and gusts from the nearest station, plus the rest of the day; an icy-road warning when one is in effect",
+    p5:"Forecast: tomorrow in detail, and the two days after in brief",
     p2:"Sea: wind and gusts from 40 coastal and 14 inland lake stations; a wind warning when one is in effect",
     p3:"Waves: height, period, direction and water temperature; a wave warning when one is in effect",
     p4:"Your own limits for wind, gust and wave height",
@@ -163,7 +169,7 @@ STR = {
     r4t:"Languages", r4:"Finnish, Swedish and English, following your watch's own language.",
     r5t:"Area", r5:"Finland — the Finnish Meteorological Institute's network, coast and inland lakes.",
     cMail:"Feedback and bug reports. Include the version number from the app's About page.",
-    k1:"Page 1", k2:"Page 2", k3:"Page 3", k4:"Settings", hScreens:"Every screen", capLand:"Land", capSea:"Sea", capWaves:"Waves", capGlance:"Glance", capAbout:"About", capSmall:"Forerunner 255s",
+    k1:"Page 1", k5:"Page 2", k2:"Page 3", k3:"Page 4", k4:"Settings", hScreens:"Every screen", capLand:"Land", capForecast:"Forecast", capSea:"Sea", capWaves:"Waves", capGlance:"Glance", capAbout:"About", capSmall:"Forerunner 255s",
     privacy:"Privacy", terms:"Terms",
     coast:"Coast", lakes:"Inland lakes", trend:"Wind, last 12 hours", mean:"Mean", noTrend:"No wind history available", rain:"Rain", rainNone:"no rain", justNow:"just now", minAgo:"min ago", hAgo:"h ago", retrieved:"Retrieved", loading:"Loading…",
     h3Forecast3:"8-day forecast", h3Radarmap:"Rain radar & lightning", h3Road:"On the road",
@@ -733,11 +739,11 @@ function applyStrings() {
   set("#opt-radar","optRadar"); set("#opt-rainrate","optRainrate"); set("#opt-lightning","optLightning");
   updateMapNote();
   set("#c-mail","cMail");
-  set("#cap-land","capLand"); set("#cap-sea","capSea"); set("#cap-waves","capWaves");
+  set("#cap-land","capLand"); set("#cap-forecast","capForecast"); set("#cap-sea","capSea"); set("#cap-waves","capWaves");
   set("#cap-glance","capGlance"); set("#cap-about","capAbout");
   set("#foot-privacy","privacy"); set("#foot-terms","terms");
   const pts = $("#app-points");
-  if (pts) pts.innerHTML = ["p1","p2","p3","p4"].map((k) => `<li>${T(k)}</li>`).join("");
+  if (pts) pts.innerHTML = ["p1","p5","p2","p3","p4"].map((k) => `<li>${T(k)}</li>`).join("");
   // Last, deliberately: the generic set() pass below would otherwise put
   // "Live data" back over this and point it at an anchor on a page that no
   // longer has one.
@@ -753,7 +759,7 @@ function applyStrings() {
     nums[i].textContent = String(i + 1).padStart(2, "0");
   }
   renderCta();
-  for (const i of [1,2,3,4]) {
+  for (const i of [1,2,3,4,5]) {
     set(`#c${i}t`,`c${i}t`); set(`#c${i}`,`c${i}`); set(`#k${i}`,`k${i}`);
   }
   for (const i of [1,2,3])   { set(`#d${i}t`,`d${i}t`); set(`#d${i}`,`d${i}`); }

@@ -1,11 +1,16 @@
-# Connect IQ Store listing copy — v1.1.0
+# Connect IQ Store listing copy — v1.2.0
 
 Paste-ready text for <https://apps-developer.garmin.com>. Keep in sync with
 `../CHANGELOG.md`.
 
-The beta (v0.1.x, v1.1.x pre-release) is unlisted and needs no copy. This is the copy
-for the public listing, updated for the v1.1.0 release (road-ice and marine
-warnings, 2026-10-09) on top of what shipped as v1.0.0.
+The beta (v0.1.x, v1.1.x and v1.2.x pre-release) is unlisted and needs no copy. This
+is the copy for the public listing, updated for the v1.2.0 release (Forecast page and
+the Land wind fallback, 2026-10-14) on top of v1.1.0 (road-ice and marine warnings).
+
+**v1.2.0 adds a page, so the description gets a section for it** — ENNUSTE / FORECAST,
+right after MAA / LAND, matching where the page sits on the watch. The wind fallback is
+one sentence inside MAA / LAND rather than its own section: it is a quiet improvement
+to an existing reading, not a new thing to look at.
 
 **v1.1.0 is the first release where the listing has something concrete to put
 first.** FMI's own warnings, shown directly on the page they're about, are the
@@ -98,7 +103,10 @@ Suomen sää, maalla ja merellä.
 FIWeatherWatch näyttää sen, mitä Ilmatieteen laitoksen omat mittarit raportoivat juuri nyt.
 
 MAA
-Lämpötila ja tuuli lähimmältä havaintoasemalta, asema ja sen etäisyys näkyvissä. Ennuste kuuden tunnin välein loppupäivälle. Liukkaan tien varoitus näkyy samalla sivulla, kun Ilmatieteen laitos sellaisen antaa.
+Lämpötila ja tuuli lähimmältä havaintoasemalta, asema ja sen etäisyys näkyvissä. Ennuste kuuden tunnin välein loppupäivälle. Jos asemalla ei ole tuulianturia, tuuli haetaan lähimmältä tiesääasemalta ja merkitään sen mukaan. Liukkaan tien varoitus näkyy samalla sivulla, kun Ilmatieteen laitos sellaisen antaa.
+
+ENNUSTE
+Huominen tarkemmin — sää, ylin ja alin lämpötila, tuuli ja sademäärä — sekä kaksi seuraavaa päivää lyhyesti. Sivun voi piilottaa asetuksista.
 
 MERI
 Tuuli, puuskat ja suunta 40 rannikkoasemalta ja 14 sisävesiasemalta — Harmajasta Märketiin, Saimaalta Näsijärvelle. Tuulivaroitus näkyy samalla sivulla, kun on voimassa.
@@ -137,7 +145,10 @@ Finnish weather, land and sea.
 FIWeatherWatch shows what the Finnish Meteorological Institute's own instruments are reporting right now — not a global model's guess at Finland.
 
 LAND
-Temperature and wind from the nearest reporting station, with the station and its distance shown. A six-hourly forecast covers the rest of the day. An icy-road warning appears on this same page when FMI issues one.
+Temperature and wind from the nearest reporting station, with the station and its distance shown. A six-hourly forecast covers the rest of the day. Where that station has no wind sensor, wind comes from the nearest road-weather station, labelled as such. An icy-road warning appears on this same page when FMI issues one.
+
+FORECAST
+Tomorrow in detail — weather, high and low, wind and rain — and the two days after in brief. The page can be hidden in settings.
 
 SEA
 Wind, gusts and direction from 40 coastal and 14 inland lake stations — Harmaja to Märket, Saimaa to Näsijärvi. A wind warning appears on this same page when one is in effect.
@@ -215,6 +226,40 @@ fenix screens. Ship at least one monochrome capture in the same release, so nobo
 on the strength of a picture their watch cannot draw. Confirm in the dashboard whether
 screenshots can be attached **per device** or are a single shared set — that decides
 whether Instinct gets its own or the shared set has to include one.
+
+---
+
+## What's new — v1.2.0
+
+**Leads with the new page** — it's the one thing an existing user will notice on
+opening the app, and it's on by default, so they should know what it is before they
+see it.
+
+**Finnish:**
+
+```
+Uusi Ennuste-sivu.
+
+• Ennuste-sivu: huominen tarkemmin — sää, ylin ja alin lämpötila, tuuli ja sade — sekä kaksi seuraavaa päivää lyhyesti
+• Tuuli myös asemille, joilla ei ole tuulianturia: lähimmältä tiesääasemalta, merkittynä
+• Tuulen suunta nuolella omalla rivillään Maasää-sivulla
+• Veden lämpötila Ilmatieteen laitoksen mallista, kun poijun lämpöanturi ei raportoi — merkittynä
+• Varoituskolmio vilkaisunäkymässä, kun varoitus on voimassa
+• Uusi kuvake ja paremmin luettava ennusterivi
+```
+
+**English:**
+
+```
+New Forecast page.
+
+• Forecast page: tomorrow in detail — weather, high and low, wind and rain — and the two days after in brief
+• Wind for stations without a wind sensor: from the nearest road-weather station, labelled
+• Wind direction with an arrow on its own row on the Land page
+• Water temperature from FMI's sea model when a buoy's temperature sensor isn't reporting — labelled
+• A warning triangle in the glance when a warning is in effect
+• New launcher icon and an easier-to-read forecast strip
+```
 
 ---
 
@@ -301,7 +346,12 @@ reason and should not be cut for length.
 
 The watch screen in both is a **real capture** pasted into the SDK's device skin,
 so the artwork cannot drift from the product. Re-run the script after any UI
-change, and retake `Screenshots/pg1.png` first.
+change, and retake the capture first.
+
+**Since v1.2.0** both languages show the Forecast page (`Screenshots/pg-fc-eng.png`,
+`pg-fc-fin.png`), and the first bullet reads "Live observations and a 3-day
+forecast" / "Reaaliaikaiset havainnot ja 3 päivän ennuste". Each language also has
+its own `-fi` hero and cover.
 
 **Before the v1.0.0 upload**, retake that capture from a v1.0.0 build — the
 current one shows `v0.1.4` in the footer, which would ship a beta version number
@@ -317,7 +367,8 @@ device skin, already under the store's 300 kB limit:
 
 | File | Shows |
 |---|---|
-| `pg1.png` | Land — temperature, wind, forecast strip |
+| `pg-fc-eng.png` / `pg-fc-fin.png` | **Forecast — tomorrow in detail, day +2/+3 (new in v1.2.0)** |
+| `pg1-eng-v120.png` | Land — temperature, wind, direction arrow, forecast strip (1.2.0) |
 | `pg2.png` | Sea — station wind, gust, direction, **gale warning live** |
 | `pg3.png` | Waves — height, period, direction, water temperature, **wave warning live** |
 | `glance.png` | Glance carousel |
@@ -335,15 +386,21 @@ the single biggest thing this release adds, so the gallery preview (image one,
 Take the top N for whatever N the dashboard allows. Colour first — it is the large
 majority of supported devices and the gallery preview shows image one.
 
-1. **`pg2.png` Sea, warning live** — the differentiator twice over: FMI marine
-   stations nobody else serves, now also showing the warning feature in the very
-   first image a browser sees
-2. **`pg3.png` Waves, warning live** — the unique data, live buoys, same warning
+**Updated for v1.2.0, 2026-10-14**: the Forecast page goes first — it's the
+release's headline, and the gallery preview is image one.
+
+1. **`pg-fc-eng.png` Forecast** (`pg-fc-fin.png` for the Finnish listing, if the
+   dashboard allows per-language images) — the new page, first image a browser sees
+2. **`pg2.png` Sea, warning live** — FMI marine stations nobody else serves, with
+   the warning feature showing
+3. **`pg3.png` Waves, warning live** — the unique data, live buoys, same warning
    row shown on its other page
-3. **`pg1.png` Land** — the everyday page, and the one that says "this is a weather app"
-4. **`glance.png` Glance** — convenience, and the feature most users will actually live in
-5. **Monochrome capture** — *add with the Instinct release, not before.* See below
-6. **About page** — lowest priority, and **not** an attribution requirement: CC BY is
+4. **`pg1-eng-v120.png` Land** — the everyday page, and the one that says "this is a
+   weather app". Retaken from the 1.2.0 build (direction on its own arrow row); the
+   older `pg1.png` shows the pre-1.2 inline compass and should no longer be uploaded
+5. **`glance.png` Glance** — convenience, and the feature most users will actually live in
+6. **Monochrome capture** — *add with the Instinct release, not before.* See below
+7. **About page** — lowest priority, and **not** an attribution requirement: CC BY is
    satisfied by the description line *"Säädata: Ilmatieteen laitos, CC BY 4.0"*, which is
    text and already there. Drop this before dropping anything above it
 
