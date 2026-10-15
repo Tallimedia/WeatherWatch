@@ -46,8 +46,12 @@ class FIWeatherGlanceView extends WatchUi.GlanceView {
             var sg = Api.v(m, "stGust");
             // Mean and gust coloured together — splitting them implies a
             // distinction that does not exist (RESEARCH.md §17).
+            // Found 2026-10-15: windPair() was built compact ("5.5/6.5") and
+            // this was the only slot that drew it as-is — every other wind
+            // slot here appends Fmt.windUnitLabel() afterward, this one
+            // never did, so the unit was silently missing on the real watch.
             return [Labels.seaWind(),
-                    Fmt.windPair(sms, sg),
+                    Fmt.windPair(sms, sg) + " " + Fmt.windUnitLabel(),
                     Theme.windColour(sms, sg, Config.seaWind(), Config.seaGust())];
         } else if (which == 3) {
             var g2 = Api.v(m, "stGust");
