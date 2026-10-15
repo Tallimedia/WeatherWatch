@@ -20,6 +20,7 @@ import json
 import sys
 from pathlib import Path
 
+import numpy as np
 from PIL import Image, ImageDraw
 
 HERE = Path(__file__).parent
@@ -44,19 +45,46 @@ DEVICE_BY_SIZE = {
 SKIP = {"framed"}
 
 
+def skin_cutout(skin: Image.Image) -> Image.Image:
+    """Strip the device skin's own near-white background, so the watch photo
+    composites onto a transparent page instead of arriving in a white box.
+
+    The raw skin PNG is opaque white *behind* the watch photo (corners) and
+    already transparent *inside* the screen area (where the capture gets
+    pasted) - only the former needs fixing. Same technique as
+    `watch/store/make_store_art.py`'s `skin_cutout()`, duplicated here rather
+    than imported since this script has no dependency on the watch build.
+    Missing entirely until 2026-10-15 (ported from the identical fix on
+    FILiigaWatch's copy of this script), so every framed screenshot this
+    script had ever produced had a solid white box instead of transparency."""
+    arr = np.array(skin)
+    near_white = (arr[:, :, :3] >= 250).all(axis=2) & (arr[:, :, 3] == 255)
+    arr[near_white, 3] = 0
+    return Image.fromarray(arr)
+
+
 def geometry(device: str = DEVICE) -> tuple[Image.Image, tuple[int, int, int, int]]:
     skin_path = SDK_DEVICES / device / f"{device}.png"
     sim_path = SDK_DEVICES / device / "simulator.json"
     if not skin_path.exists() or not sim_path.exists():
         raise SystemExit(f"SDK device files not found for {device} — is the SDK installed?")
     loc = json.loads(sim_path.read_text())["display"]["location"]
-    return Image.open(skin_path).convert("RGBA"), (
+    skin = skin_cutout(Image.open(skin_path).convert("RGBA"))
+    return skin, (
         loc["x"], loc["y"], loc["width"], loc["height"],
     )
 
 
 def save_under_cap(img: Image.Image, out: Path, cap: int = STORE_MAX_BYTES) -> None:
     """Save a PNG under `cap` bytes, palettising only as far as it has to.
+
+    Keeps the alpha channel throughout - `img.convert("RGB")` used to run
+    first here, which silently flattened the device skin's transparent
+    background to opaque white and baked it in permanently (found
+    2026-10-15 on FILiigaWatch's identical copy of this script, then
+    ported back here). `Image.quantize()` on an RGBA source converts
+    straight to a palette with a transparency index and round-trips
+    correctly through save/load - verified directly, not assumed.
 
     FASTOCTREE, not MEDIANCUT. MEDIANCUT picks palette entries by splitting the
     colour *population*, so a small saturated region loses to a large neutral
@@ -69,12 +97,11 @@ def save_under_cap(img: Image.Image, out: Path, cap: int = STORE_MAX_BYTES) -> N
     (Same conclusion VolvoWatch reached for its green charging text —
     `VolvoWatch/watch/store/make_store_art.py`.)
     """
-    rgb = img.convert("RGB")
-    rgb.save(out, "PNG", optimize=True)
+    img.save(out, "PNG", optimize=True)
     if out.stat().st_size <= cap:
         return
     for colours in (256, 192, 128, 96, 64):
-        rgb.quantize(
+        img.quantize(
             colors=colours, method=Image.FASTOCTREE, dither=Image.Dither.NONE
         ).save(out, "PNG", optimize=True)
         if out.stat().st_size <= cap:
