@@ -50,8 +50,17 @@ class FIWeatherGlanceView extends WatchUi.GlanceView {
             // this was the only slot that drew it as-is — every other wind
             // slot here appends Fmt.windUnitLabel() afterward, this one
             // never did, so the unit was silently missing on the real watch.
+            //
+            // Found again 2026-10-16, real hardware, after adding the unit
+            // above: windPair()'s one-decimal pair ("12.9/15.1 m/s") was too
+            // wide for the glance column, so clip() silently chopped
+            // characters off the end — the unit was back to missing, now
+            // for a different reason. windRound() instead of windValue() for
+            // both numbers here: zero decimals is already this app's own
+            // convention for "not enough room to care" contexts (Fmt.mc's
+            // own comment on windRound, written for the Forecast page).
             return [Labels.seaWind(),
-                    Fmt.windPair(sms, sg) + " " + Fmt.windUnitLabel(),
+                    Fmt.windRound(sms) + "/" + Fmt.windRound(sg) + " " + Fmt.windUnitLabel(),
                     Theme.windColour(sms, sg, Config.seaWind(), Config.seaGust())];
         } else if (which == 3) {
             var g2 = Api.v(m, "stGust");
