@@ -17,6 +17,16 @@ module Theme {
     const COLD = Graphics.COLOR_BLUE;
     const HOT = Graphics.COLOR_RED;
 
+    //! Forecast-page weather-condition icons (Icons.wx*) — decorative, not a
+    //! threshold signal like the colours above, which is why these get their
+    //! own names rather than reusing OVER/COLD/HOT: a rain icon tinted the
+    //! same blue as a cold-temperature warning would carry an accidental
+    //! second meaning. Nico's call, 2026-10-16 — a flat-grey "clear" circle
+    //! read as an unexplained dot rather than a sun.
+    const WX_SUN = 0xFFCC33;
+    const WX_RAIN = 0x3399FF;
+    const WX_SNOW = 0xCCEEFF;
+
     //! Wind colour: over the limit, or over the derived gust limit.
     function windColour(ms as Numeric?, gust as Numeric?, limit as Number, gustLimit as Number) as Number {
         if (ms != null && ms >= limit) { return OVER; }

@@ -259,26 +259,53 @@ module Icons {
     //! being drawn small on the worst-case device", not "as detailed as the
     //! web's icon set can afford to be".
 
-    //! Sun: a filled circle, no rays. Rays are thin strokes, which is exactly
-    //! what collapsed on the two icons that failed today — a plain disc is
-    //! unambiguous at any size and needs no minimum-width floor to protect.
+    //! Sun: a filled circle plus four short cardinal rays.
+    //!
+    //! A plain disc read as an unexplained dot once coloured (2026-10-16
+    //! feedback) rather than a sun — but thin ray *strokes* are exactly
+    //! what collapsed on the two icons that failed earlier the same week
+    //! (RESEARCH.md §27 history, this file's own wxRain/wxSnow notes).
+    //! These rays are solid filled rectangles instead, axis-aligned so no
+    //! rotated-polygon math is needed, the same "a filled shape survives
+    //! where a thin line doesn't" fix used throughout this module.
+    //! A filled circle, no rays — tried twice (2026-10-16), both as a
+    //! crosshair-reaching-near-centre version and a stubby-petal version,
+    //! and both still read as a crosshair rather than a sun at this icon's
+    //! actual size (~24px on this device). Same wall every other glyph in
+    //! this file hit: a feature this thin doesn't have room to read as
+    //! distinct from the disc, whatever its proportions. Colour (WX_SUN)
+    //! alone was the part that actually fixed the original complaint — a
+    //! flat Theme.DIM grey dot — so that's what's carrying "sun" now, not
+    //! shape.
     function wxClear(dc as Graphics.Dc, x as Number, y as Number, s as Number, colour as Number) as Void {
         dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
         var r = s * 0.42;
         dc.fillCircle((x + s / 2).toNumber(), (y + s / 2).toNumber(), r.toNumber());
     }
 
-    //! Cloud: two overlapping circles plus a base rectangle — the minimal
-    //! construction that still reads as "cloud" rather than "blob", and the
-    //! shared base shape for wxCloudy/wxRain/wxSnow below.
+    //! Cloud: three circles sharing one bottom tangent, sized small-large-
+    //! medium left to right — the shared base shape for wxCloudy/wxRain/
+    //! wxSnow below.
+    //!
+    //! Replaces the earlier two-circle-on-a-rectangle construction,
+    //! 2026-10-15 (tester feedback: the FC page icons were unclear). That
+    //! version's circles and base rectangle filled as one flat colour with
+    //! no visible seam between them, so it read as a rounded blob rather
+    //! than a cloud. Here every circle's centre sits at `baseline - r`, so
+    //! all three bottoms land on the exact same line regardless of radius
+    //! — no rectangle needed to fake a flat base — and consecutive circles
+    //! overlap by more than either radius, so the silhouette has no gap
+    //! between bumps. Bumpy top, flat bottom, one continuous shape: the
+    //! standard cloud glyph construction, not a cloud-specific invention.
     function _cloud(dc as Graphics.Dc, x as Number, y as Number, s as Number, colour as Number) as Void {
         dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
-        var baseY = y + (s * 0.58).toNumber();
-        var baseH = (s * 0.26).toNumber();
-        dc.fillRectangle(x + (s * 0.12).toNumber(), baseY,
-                         (s * 0.76).toNumber(), baseH);
-        dc.fillCircle((x + s * 0.36).toNumber(), (y + s * 0.5).toNumber(), (s * 0.26).toNumber());
-        dc.fillCircle((x + s * 0.62).toNumber(), (y + s * 0.42).toNumber(), (s * 0.3).toNumber());
+        var baseline = y + (s * 0.76).toNumber();
+        var r1 = (s * 0.22).toNumber();
+        var r2 = (s * 0.30).toNumber();
+        var r3 = (s * 0.24).toNumber();
+        dc.fillCircle((x + s * 0.30).toNumber(), baseline - r1, r1);
+        dc.fillCircle((x + s * 0.54).toNumber(), baseline - r2, r2);
+        dc.fillCircle((x + s * 0.75).toNumber(), baseline - r3, r3);
     }
 
     function wxCloudy(dc as Graphics.Dc, x as Number, y as Number, s as Number, colour as Number) as Void {
@@ -294,7 +321,10 @@ module Icons {
         var pen = (s * 0.08).toNumber();
         if (pen < 2) { pen = 2; }
         dc.setPenWidth(pen);
-        var dropY = y + (s * 0.86).toNumber();
+        // A small gap below the cloud's own baseline (0.76s, matching
+        // _cloud above), so the drops read as falling from it rather than
+        // touching it.
+        var dropY = y + (s * 0.80).toNumber();
         var dropLen = (s * 0.16).toNumber();
         var xs = [x + (s * 0.28).toNumber(), x + (s * 0.5).toNumber(), x + (s * 0.72).toNumber()];
         for (var i = 0; i < xs.size(); i += 1) {
@@ -311,7 +341,7 @@ module Icons {
         dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
         var r = (s * 0.045).toNumber();
         if (r < 1) { r = 1; }
-        var dotY = y + (s * 0.9).toNumber();
+        var dotY = y + (s * 0.84).toNumber();
         var xs = [x + (s * 0.28).toNumber(), x + (s * 0.5).toNumber(), x + (s * 0.72).toNumber()];
         for (var i = 0; i < xs.size(); i += 1) {
             dc.fillCircle(xs[i], dotY, r);

@@ -41,6 +41,15 @@ module Fmt {
         return zero(ms);
     }
 
+    //! True when the temperature came from a different, nearby station than
+    //! the one named in the header (Api.onLand's "tempSrc"). Always false for
+    //! cached data written before that field existed.
+    function tempIsBorrowed(land as Dictionary?) as Boolean {
+        if (land == null || !land.hasKey("tempSrc")) { return false; }
+        var src = land["tempSrc"];
+        return (src instanceof String) && (src as String).equals("nearby");
+    }
+
     function windUnitLabel() as String {
         var u = Config.windUnit();
         return u == 1 ? "kn" : (u == 2 ? "bft" : "m/s");

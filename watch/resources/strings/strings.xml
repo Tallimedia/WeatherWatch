@@ -84,6 +84,8 @@
     <string id="PageAbout">About</string>
     <string id="PageForecast">Forecast</string>
     <string id="Tomorrow">Tomorrow</string>
+    <string id="Today">Today</string>
+    <string id="RainChance">Rain chance</string>
     <string id="Rain">Rain</string>
     <string id="DayAbbrev">d</string>
     <string id="NoBuoyArea">No buoy in this area</string>

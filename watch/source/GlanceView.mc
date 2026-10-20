@@ -34,7 +34,7 @@ class FIWeatherGlanceView extends WatchUi.GlanceView {
 
         if (which == 0) {
             var t = Api.v(land, "temp");
-            return [Labels.land(), Fmt.temp(t), Theme.tempColour(t)];
+            return [Labels.land(), Fmt.temp(t) + (Fmt.tempIsBorrowed(land) ? "*" : ""), Theme.tempColour(t)];
         } else if (which == 1) {
             var ms = Api.v(land, "wind");
             var g = Api.v(land, "gust");

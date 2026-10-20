@@ -198,7 +198,11 @@ module Api {
                 // normal case, "road" is a nearby Fintraffic road-weather
                 // station's live reading, "forecast" is a modelled hour-ahead
                 // value — only the latter two need a row label.
-                "windSrc" => s(pick(data, "wind_source"))
+                "windSrc" => s(pick(data, "wind_source")),
+                // "nearby" when the nearest station reports wind but no
+                // temperature and the backend borrowed one from the next
+                // reporting station (<= 25 km) — marked with an asterisk.
+                "tempSrc" => s(pick(data, "temp_source"))
             };
             land = flat;
             landState = STATE_OK;
@@ -213,33 +217,81 @@ module Api {
 
     // ----------------------------------------------------------- forecast
 
+    //! Repurposed 2026-10-15 (RESEARCH.md §27 update) from a 48h/6h-step
+    //! fetch feeding Land's old 4-slot temp strip, to a 3h/15min-step fetch
+    //! feeding the 1h/3h rain-likelihood row — the strip is gone, and the
+    //! near-term `pop` figures genuinely need the finer step: verified live
+    //! that FMI returns distinct 15-minute pop values, where the old 6h step
+    //! could only ever say "something in the next 6 hours".
     function fetchForecast() as Void {
         forecastState = STATE_LOADING;
         Communications.makeWebRequest(
             Config.BASE_URL + "/v1/forecast",
-            { "place" => Config.landPlace(), "hours" => 48, "step" => 360, "lang" => lang() },
+            { "place" => Config.landPlace(), "hours" => 3, "step" => 15 },
             options(), new Lang.Method(Api, :onForecast));
     }
 
+    //! Highest `pop` within the next hour and within the next three — a
+    //! max, not an average, because "any single quarter-hour might rain" is
+    //! the useful answer here, the same reasoning onForecast3() below uses
+    //! for its own per-day pop.
+    //!
+    //! Replaced the live temp-trend sparkline with this, 2026-10-15: on real
+    //! hardware the line read as meaningless noise (ordinary station wobble
+    //! filled the whole chart height) and, sitting directly under the Wind
+    //! row with no label, Nico read it as wind data, not temperature.
+    //! Nico's call: two rain-probability numbers instead, which need no
+    //! chart to be unambiguous.
     function onForecast(code as Number,
                         data as Dictionary or String or PersistedContent.Iterator or Null) as Void {
         if (code == 200 && data instanceof Dictionary) {
-            // Parallel arrays of primitives rather than an array of dictionaries:
-            // same round-trip reason as above.
-            var times = [] as Array<Number>;
-            var temps = [] as Array<Float>;
+            var pop1h = null;
+            var pop3h = null;
+            // Rest-of-today aggregates from the same 15-minute points, so
+            // the Forecast page's Today row has something to show late in
+            // the evening, when the coarse 6-hourly grid has no point left
+            // in the day (it showed "-/-" otherwise; Nico, 2026-10-20).
+            var tHi = null;
+            var tLo = null;
+            var tRain = 0.0;
+            var tSym = null;
+            var tWind = null;
+            var tGust = null;
+            var tPop = null;
             var pts = pick(data, "points");
             if (pts instanceof Array) {
                 var now = Time.now().value();
-                for (var i = 0; i < pts.size() && times.size() < 4; i += 1) {
+                var today = _localDay(now);
+                for (var i = 0; i < pts.size(); i += 1) {
                     var e = n(pick(pts[i], "epochtime"));
+                    if (e == null || e < now - 450 || e > now + 10800) { continue; }
+                    var pv = f(pick(pts[i], "pop"));
+                    if (pv != null) {
+                        if (pop3h == null || pv > pop3h) { pop3h = pv; }
+                        if (e <= now + 3600 && (pop1h == null || pv > pop1h)) { pop1h = pv; }
+                    }
+                    if (_localDay(e) != today) { continue; }
                     var t = f(pick(pts[i], "temperature"));
-                    if (e == null || t == null || e < now - 1800) { continue; }
-                    times.add(e);
-                    temps.add(t);
+                    if (t != null) {
+                        if (tHi == null || t > tHi) { tHi = t; }
+                        if (tLo == null || t < tLo) { tLo = t; }
+                    }
+                    // precipitation1h is mm per hour at each point; these
+                    // points are 15 minutes apart, so a quarter each.
+                    var p1h = f(pick(pts[i], "precipitation1h"));
+                    if (p1h != null) { tRain += p1h / 4.0; }
+                    if (tSym == null) {
+                        tSym = n(pick(pts[i], "smartsymbol"));
+                        tWind = f(pick(pts[i], "windspeedms"));
+                        tGust = f(pick(pts[i], "hourlymaximumgust"));
+                    }
+                    if (pv != null && (tPop == null || pv > tPop)) { tPop = pv; }
                 }
             }
-            var flat = { "t" => times, "v" => temps };
+            var flat = { "pop1h" => pop1h, "pop3h" => pop3h,
+                         "tHi" => tHi, "tLo" => tLo, "tRain" => tRain,
+                         "tSym" => tSym, "tWind" => tWind, "tGust" => tGust,
+                         "tPop" => tPop };
             forecast = flat;
             forecastState = STATE_OK;
             save("f_fc", flat);
@@ -407,31 +459,37 @@ module Api {
             options(), new Lang.Method(Api, :onForecast3));
     }
 
-    //! Groups points by local calendar day into Tomorrow / Day+2 / Day+3 —
-    //! today itself is skipped, same as the web's own loadForecast3()
-    //! (already shown in full on Land's rest-of-today strip). Tomorrow keeps
-    //! wind and a daily rain total; Day+2/Day+3 keep only hi/lo and a
-    //! representative symbol (RESEARCH.md §27 — "basics only").
+    //! Groups points by local calendar day into Today / Tomorrow / Day+2 —
+    //! shifted from Tomorrow/+2/+3, 2026-10-15 (RESEARCH.md §27 update): a
+    //! tester wanted rain data for today, and this endpoint's query already
+    //! starts at "now" (app/main.py), so today's bucket is naturally
+    //! "rest of day", not the whole day retroactively. Today/Tomorrow keep
+    //! wind and a daily rain total plus a rest-of/whole-day rain
+    //! probability; Day+2 keeps only hi/lo and a representative symbol
+    //! (RESEARCH.md §27 — "basics only").
     function onForecast3(code as Number,
                          data as Dictionary or String or PersistedContent.Iterator or Null) as Void {
         if (code == 200 && data instanceof Dictionary) {
             var pts = pick(data, "points");
             var today = _localDay(Time.now().value());
-            // Index 0 = Tomorrow, 1 = Day+2, 2 = Day+3.
-            var hi = [null, null, null] as Array<Float?>;
-            var lo = [null, null, null] as Array<Float?>;
-            var sym = [null, null, null] as Array<Number?>;      // midday-closest point's symbol
-            var midDist = [999, 999, 999] as Array<Number>;      // distance from that point to 12:00 local
-            var rain = [0.0, 0.0, 0.0] as Array<Float>;
-            var wind = [null, null, null] as Array<Float?>;      // midday-closest point's wind
-            var gust = [null, null, null] as Array<Float?>;
+            // Index 0 = Today, 1 = Tomorrow, 2 = Day+2, 3 = Day+3. The
+            // fourth bucket is only drawn once Today is empty and the page
+            // shifts a day (see Pages.drawForecast).
+            var hi = [null, null, null, null] as Array<Float?>;
+            var lo = [null, null, null, null] as Array<Float?>;
+            var sym = [null, null, null, null] as Array<Number?>;      // midday-closest point's symbol
+            var midDist = [999, 999, 999, 999] as Array<Number>;      // distance from that point to 12:00 local
+            var rain = [0.0, 0.0, 0.0, 0.0] as Array<Float>;
+            var pop = [null, null, null, null] as Array<Float?>;       // highest precipitation probability seen
+            var wind = [null, null, null, null] as Array<Float?>;      // midday-closest point's wind
+            var gust = [null, null, null, null] as Array<Float?>;
             if (pts instanceof Array) {
                 for (var i = 0; i < pts.size(); i += 1) {
                     var e = n(pick(pts[i], "epochtime"));
                     if (e == null) { continue; }
                     var dayOffset = _localDay(e) - today;
-                    if (dayOffset < 1 || dayOffset > 3) { continue; }
-                    var idx = dayOffset - 1;
+                    if (dayOffset < 0 || dayOffset > 3) { continue; }
+                    var idx = dayOffset;
                     var t = f(pick(pts[i], "temperature"));
                     if (t != null) {
                         if (hi[idx] == null || t > hi[idx]) { hi[idx] = t; }
@@ -439,6 +497,8 @@ module Api {
                     }
                     var p1h = f(pick(pts[i], "precipitation1h"));
                     if (p1h != null) { rain[idx] = rain[idx] + p1h; }
+                    var pv = f(pick(pts[i], "pop"));
+                    if (pv != null && (pop[idx] == null || pv > pop[idx])) { pop[idx] = pv; }
                     // The point whose local hour is nearest noon stands in
                     // for "the day" — same reasoning daySummary() uses on
                     // the web for picking a representative symbol.
@@ -452,9 +512,26 @@ module Api {
                     }
                 }
             }
+            // Fold in the 15-minute points' view of today (onForecast ran
+            // earlier in the chain). Range widens, never narrows; the
+            // coarse grid keeps the wind/symbol when it has them.
+            var near = forecast;
+            var nHi = f(pick(near, "tHi"));
+            if (nHi != null) {
+                var nLo = f(pick(near, "tLo"));
+                if (hi[0] == null || nHi > hi[0]) { hi[0] = nHi; }
+                if (nLo != null && (lo[0] == null || nLo < lo[0])) { lo[0] = nLo; }
+                var nRain = f(pick(near, "tRain"));
+                if (nRain != null && nRain > rain[0]) { rain[0] = nRain; }
+                if (sym[0] == null) { sym[0] = n(pick(near, "tSym")); }
+                if (wind[0] == null) { wind[0] = f(pick(near, "tWind")); }
+                if (gust[0] == null) { gust[0] = f(pick(near, "tGust")); }
+                var nPop = f(pick(near, "tPop"));
+                if (nPop != null && (pop[0] == null || nPop > pop[0])) { pop[0] = nPop; }
+            }
             var flat = {
                 "hi" => hi, "lo" => lo, "sym" => sym,
-                "rain" => rain, "wind" => wind, "gust" => gust
+                "rain" => rain, "pop" => pop, "wind" => wind, "gust" => gust
             };
             forecast3 = flat;
             forecast3State = STATE_OK;

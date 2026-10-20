@@ -9,6 +9,32 @@ Design reasoning lives in `RESEARCH.md` (owned by the `claude-docs` repo).
 
 ## Watch app
 
+### v1.2.1 — 2026-10-20 (public)
+Promoted from `beta/land-forecast-redesign` after beta builds 1.2.6–1.2.67 were
+checked on real hardware (quatix 8) and in the simulator. Public versioning is
+independent of the number of beta iterations.
+- **Land: rain likelihood.** The old four-slot forecast strip is replaced by two
+  lines, "Rain chance / 1h xx% 3h xx%" (Finnish "Sateen tod. näk."), from FMI's
+  `pop` at 15-minute resolution. A live temperature sparkline was tried and
+  dropped — on the watch it read as noise and, sitting under Wind, as wind data.
+- **Forecast page: Today / Tomorrow / +2 days.** Today (rest of day, with its
+  rain probability) replaces day +3; Tomorrow and +2 now also show wind
+  (mean/gust). Late in the evening Today borrows high/low/rain from the
+  15-minute data instead of showing dashes; once even that is past midnight the
+  page shifts a day (Tomorrow big, +2/+3 below).
+- **Coloured weather icons** (yellow sun, blue rain, pale snow, grey cloud), and
+  the cloud glyph redrawn as three overlapping bumps instead of a blob.
+- **Temperature fallback.** A Land station that reports wind but no temperature
+  (Helsinki Kaisaniemi did, 2026-10-20) now borrows from the next reporting FMI
+  station within 25 km. A borrowed value is marked `*` on Land and in the glance.
+- **Glance:** the sea-wind slot shows mean wind plus its unit ("9 m/s"). The
+  unit had been missing, then clipped away when the mean/gust pair was too wide
+  for the column.
+- **Backend** (`weatherapp.tallimedia.com`, deployed 2026-10-15 and 2026-10-20):
+  `/v1/forecast` accepts `step` down to 15 minutes; `/v1/land-series` added
+  (currently unused by the watch); `/v1/observations` gains `temp_source`,
+  `temp_station`, `temp_distance_km`.
+
 ### v1.2.0 — 2026-10-14 (public)
 Promoted from `beta/v1.2` after beta builds 1.2.0–1.2.5 were confirmed on real
 hardware (quatix 8) in all three languages. Public versioning is independent of

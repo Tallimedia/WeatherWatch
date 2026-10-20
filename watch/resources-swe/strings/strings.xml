@@ -84,6 +84,8 @@
     <string id="PageAbout">Om appen</string>
     <string id="PageForecast">Prognos</string>
     <string id="Tomorrow">Imorgon</string>
+    <string id="Today">Idag</string>
+    <string id="RainChance">Regnchans</string>
     <string id="Rain">Nederbörd</string>
     <string id="DayAbbrev">d</string>
     <string id="NoBuoyArea">Ingen boj i området</string>

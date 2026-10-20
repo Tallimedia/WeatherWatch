@@ -166,7 +166,8 @@ module Pages {
         // of how tall the stack above it grew). Tightened the top offset
         // and gaps here to recover that row's worth of height.
         stackStart(dc, 0.21);
-        iconRowUnit(dc, :temp, Graphics.FONT_NUMBER_MILD, Fmt.tempValue(t), "°C",
+        iconRowUnit(dc, :temp, Graphics.FONT_NUMBER_MILD, Fmt.tempValue(t),
+                    Fmt.tempIsBorrowed(d) ? "°C*" : "°C",
                     Theme.tempColour(t), -6);
         // The compass point used to sit inline here ("... m/s S"), ambiguous
         // next to "m/s" whenever the wind happened to blow from the south
@@ -195,49 +196,39 @@ module Pages {
         compassRow(dc, dir, windSrcLabel);
 
         drawRoadIce(dc);
-        forecastStrip(dc, _y);
+        rainLikelihood(dc, _y);
 
         // One age per page here rather than two: the earlier "8 min · 8 min"
         // read as a repeat rather than as two different fields.
         updated(dc, Fmt.age(Api.v(d, "atW")), Api.landState);
     }
 
-    //! Next few forecast steps, 6-hourly (RESEARCH.md §20), drawn from the
-    //! running stack position so it can never sit on top of the wind line.
-    function forecastStrip(dc as Graphics.Dc, top as Number) as Void {
-        var f = Api.forecast;
-        if (f == null) { return; }
-        var times = Api.v(f, "t");
-        var temps = Api.v(f, "v");
-        if (!(times instanceof Array) || times.size() == 0) { return; }
+    //! Rain-likelihood row, replacing the old 6-hourly forecast strip —
+    //! RESEARCH.md §27 update, 2026-10-15: tester feedback wanted rain data
+    //! on Land. First attempt was a live temp-trend sparkline; dropped the
+    //! same day on real-hardware feedback (Nico) — the line read as
+    //! meaningless noise (ordinary station wobble filled the whole chart
+    //! height regardless of scale), and sitting directly under Wind with no
+    //! label, it read as wind data, not temperature. Two plain numbers need
+    //! no chart to be unambiguous.
+    function rainLikelihood(dc as Graphics.Dc, top as Number) as Void {
+        var pop1h = Api.v(Api.forecast, "pop1h");
+        var pop3h = Api.v(Api.forecast, "pop3h");
+        if (pop1h == null && pop3h == null) { return; }
 
-        var slots = 4;
-        var span = (w(dc) * 0.74).toNumber();
-        var x0 = (w(dc) - span) / 2;
-        var ih = dc.getFontHeight(Graphics.FONT_XTINY);
-        Icons.clock(dc, (x0 - ih - 2).toNumber(), top + 1, (ih * 0.7).toNumber(), Theme.FAINT);
-        var count = times.size() < slots ? times.size() : slots;
+        var cx = (w(dc) / 2).toNumber();
         var lineH = dc.getFontHeight(Graphics.FONT_XTINY);
-        // Tried a row-label temp icon here under the clock icon, 2026-10-09
-        // — reverted. Icons.temp()'s minimum-width floors (stem >=3px, bulb
-        // >=stem/2+1) collapse at this icon's actual size (~13px, ih*0.7) to
-        // stem=4/bulb=3 — barely any bulb-over-stem differentiation left, so
-        // it rendered as an unrecognisable blob rather than a thermometer.
-        // Not a colour problem (tried Theme.FAINT_WARM first) — the
-        // silhouette itself needs more room than this strip has. The clock
-        // icon survives here because a circle holds up fine this small; a
-        // thermometer's whole identity depends on a contrast this size can't
-        // carry.
-        for (var i = 0; i < count; i += 1) {
-            var x = (x0 + (span / slots) * i + (span / slots) / 2).toNumber();
-            dc.setColor(Theme.FAINT, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(x, top, Graphics.FONT_XTINY, Fmt.hour(times[i]),
-                        Graphics.TEXT_JUSTIFY_CENTER);
-            var t = temps[i];
-            dc.setColor(Theme.tempColour(t), Graphics.COLOR_TRANSPARENT);
-            dc.drawText(x, top + lineH - 2, Graphics.FONT_XTINY, Fmt.zero(t),
-                        Graphics.TEXT_JUSTIFY_CENTER);
-        }
+        dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, top, Graphics.FONT_XTINY, res(Rez.Strings.RainChance),
+                    Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, top + lineH, Graphics.FONT_XTINY,
+                    "1h " + popText(pop1h) + "   3h " + popText(pop3h),
+                    Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    function popText(pop as Float?) as String {
+        if (pop == null) { return Fmt.DASH; }
+        return Math.round(pop).toNumber().toString() + "%";
     }
 
     //! Exception row: present only when the nearest FMI road station reports
@@ -609,12 +600,19 @@ module Pages {
     // ------------------------------------------------------------ forecast
 
     //! Opt-in (Config.showForecast), RESEARCH.md §27 — three-way split:
-    //! Tomorrow with more detail on top, Day+2/Day+3 basics side by side
-    //! below. The four weather-condition icons (Icons.wx*) are new to the
-    //! watch with this page — FMI's smartsymbol reduced to four categories
-    //! (Api._symbolKind), not the ~20 the web pages use. One icon per
-    //! summary row here, not a 13px corner badge, but still the simplest
+    //! today (rest of day) with more detail on top, Tomorrow/Day+2 basics
+    //! side by side below. The four weather-condition icons (Icons.wx*) are
+    //! new to the watch with this page — FMI's smartsymbol reduced to four
+    //! categories (Api._symbolKind), not the ~20 the web pages use. One icon
+    //! per summary row here, not a 13px corner badge, but still the simplest
     //! shape that holds, same lesson as everything else drawn today.
+    //!
+    //! Shifted from Tomorrow/+2/+3 to Today/Tomorrow/+2, 2026-10-15 — a
+    //! tester wanted rain data for today, and this page already had the
+    //! hi/lo/rain/wind layout a "today" bucket needs; Api.onForecast3's
+    //! bucket loop just needed to stop skipping dayOffset 0. The bottom row
+    //! still renders two unlabelled-by-data columns the same way; only
+    //! which calendar day each one names changed.
     function drawForecast(dc as Graphics.Dc) as Void {
         // No header title — Nico's call, 2026-10-13: this page is already
         // identifiable by its own distinct layout, and the room a title
@@ -632,9 +630,22 @@ module Pages {
         var rain = Api.v(d, "rain");
         var wind = Api.v(d, "wind");
         var gust = Api.v(d, "gust");
+        // Not an Array on a cache written before 2026-10-15 (Application.Storage
+        // held the old Today/Tomorrow/+2 bucket shift's predecessor, which had
+        // no "pop" key at all) — crashed the sim on indexing [0] below before
+        // this guard, confirmed live on real build output the same day.
+        var pop = Api.v(d, "pop");
+        if (!(pop instanceof Array)) { pop = [null, null, null, null]; }
+        // Once Today has nothing left (late evening: the 6-hourly grid has
+        // no point in the day and the 15-minute window is past midnight),
+        // the page shifts a day — Tomorrow becomes the big row and +2/+3
+        // the columns — rather than showing dashes (Nico, 2026-10-20).
+        // Needs the fourth bucket, which a cache written before that
+        // change does not have.
+        var base = (hi[0] == null && hi.size() > 3) ? 1 : 0;
         var cx = (w(dc) / 2).toNumber();
 
-        // --- Tomorrow: more detail ---
+        // --- Today (rest of day): more detail ---
         // Every vertical advance below uses a real measured height (icon
         // size, font height, or whichever of the two is taller for a mixed
         // row) — never a guessed fraction. A first pass guessed the
@@ -648,7 +659,7 @@ module Pages {
 
         var top = (h(dc) * 0.1).toNumber();
         dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, top, Graphics.FONT_XTINY, res(Rez.Strings.Tomorrow),
+        dc.drawText(cx, top, Graphics.FONT_XTINY, (base == 0 ? res(Rez.Strings.Today) : res(Rez.Strings.Tomorrow)),
                     Graphics.TEXT_JUSTIFY_CENTER);
         top += xtinyH + 2;
 
@@ -661,18 +672,19 @@ module Pages {
         // reads slightly differently than the small-font version elsewhere,
         // accepted as a minor, known difference rather than guess a third
         // pixel offset blind. Nico's call, 2026-10-13.
-        var hiLoText = hiLo(hi[0], lo[0]);
+        var hiLoText = hiLo(hi[base], lo[base]);
         var tw = dc.getTextWidthInPixels(hiLoText, Graphics.FONT_NUMBER_MILD);
         var rowH = bigIcon > numH ? bigIcon : numH;
         var rowLeft = cx - ((bigIcon + 8 + tw) / 2).toNumber();
-        drawWx(dc, sym[0], rowLeft, top + ((rowH - bigIcon) / 2).toNumber(), bigIcon, Theme.DIM);
+        drawWx(dc, sym[base], rowLeft, top + ((rowH - bigIcon) / 2).toNumber(), bigIcon);
         dc.setColor(Theme.INK, Graphics.COLOR_TRANSPARENT);
         dc.drawText(rowLeft + bigIcon + 8, top + ((rowH - numH) / 2).toNumber(),
                     Graphics.FONT_NUMBER_MILD, hiLoText, Graphics.TEXT_JUSTIFY_LEFT);
         top += rowH + 2;
 
-        var windRainText = Fmt.windRound(wind[0]) + " (" + Fmt.windRound(gust[0]) + ") " + Fmt.windUnitLabel()
-                           + "  ·  " + res(Rez.Strings.Rain) + " " + Fmt.one(rain[0]) + " mm";
+        var windRainText = Fmt.windRound(wind[base]) + " (" + Fmt.windRound(gust[base]) + ")"
+                           + "  ·  " + res(Rez.Strings.Rain) + " " + Fmt.one(rain[base]) + " mm"
+                           + popSuffix(pop[base]);
         dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
         // Guarded against overflow, same as the header's own source line —
         // Swedish's "Nederbörd" ran this close enough to the round bezel's
@@ -699,18 +711,43 @@ module Pages {
             var colCx = i == 0 ? cx - colOffset : cx + colOffset;
             var y = top;
             dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(colCx, y, Graphics.FONT_XTINY,
-                        "+" + (i + 2).toString() + " " + res(Rez.Strings.DayAbbrev),
+            // i==0 is now Tomorrow's own string resource rather than a
+            // computed "+2" — the day-bucket shift to Today/Tomorrow/+2
+            // (2026-10-15) moved Tomorrow out of the top row and into this
+            // loop's first column; only i==1 (+2 days) still needs the
+            // computed label.
+            var dayN = base + i + 1;
+            var colLabel = dayN == 1 ? res(Rez.Strings.Tomorrow)
+                                     : "+" + dayN.toString() + " " + res(Rez.Strings.DayAbbrev);
+            dc.drawText(colCx, y, Graphics.FONT_XTINY, colLabel,
                         Graphics.TEXT_JUSTIFY_CENTER);
             y += xtinyH + 2;
-            drawWx(dc, sym[i + 1], (colCx - smallIcon / 2).toNumber(), y, smallIcon, Theme.DIM);
+            drawWx(dc, sym[base + i + 1], (colCx - smallIcon / 2).toNumber(), y, smallIcon);
             y += smallIcon + 2;
             dc.setColor(Theme.INK, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(colCx, y, Graphics.FONT_XTINY, hiLo(hi[i + 1], lo[i + 1]),
+            dc.drawText(colCx, y, Graphics.FONT_XTINY, hiLo(hi[base + i + 1], lo[base + i + 1]),
                         Graphics.TEXT_JUSTIFY_CENTER);
             y += xtinyH;
             dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(colCx, y, Graphics.FONT_XTINY, Fmt.one(rain[i + 1]) + " mm",
+            dc.drawText(colCx, y, Graphics.FONT_XTINY, Fmt.one(rain[base + i + 1]) + " mm",
+                        Graphics.TEXT_JUSTIFY_CENTER);
+            y += xtinyH;
+            // Mean/gust, same midday-closest point and the same "mean
+            // (gust)" pairing as every other wind figure in the app, but
+            // without the unit label — Today's own row already establishes
+            // it, and hi/lo and rain mm in these same columns already go
+            // bare where they can for the same reason. Found on real
+            // hardware, 2026-10-15: these columns are only colOffset*2 =
+            // 0.34w apart centre to centre, so the first attempt's 0.32w
+            // fit() cap left next to no gap — "m/s" on top of that
+            // overflowed past centre on both sides and the round bezel
+            // clipped what crossed into the other column, reading as
+            // interleaved garbage rather than a clean truncation. 0.26w
+            // leaves a real gap; measure again if gust ever regularly hits
+            // 3 digits.
+            dc.drawText(colCx, y, Graphics.FONT_XTINY,
+                        fit(dc, Fmt.windRound(wind[base + i + 1]) + " (" + Fmt.windRound(gust[base + i + 1]) + ")",
+                            Graphics.FONT_XTINY, (w(dc) * 0.26).toNumber()),
                         Graphics.TEXT_JUSTIFY_CENTER);
         }
     }
@@ -721,13 +758,28 @@ module Pages {
         return Fmt.zero(hi) + "°/" + Fmt.zero(lo) + "°";
     }
 
+    //! " · 40 %" for the rest-of-day rain-probability figure, or "" when
+    //! there's nothing left to say — `pop` (FMI's precipitation
+    //! probability, 0-100) is distinct from the rain-mm total already on
+    //! this row (RESEARCH.md §27 update, 2026-10-15): a dry forecast can
+    //! still carry a real chance of rain, and vice versa.
+    function popSuffix(pop as Float?) as String {
+        if (pop == null) { return ""; }
+        return "  ·  " + Math.round(pop).toNumber().toString() + " %";
+    }
+
+    //! Colour follows the condition, not a caller-supplied theme colour —
+    //! Nico's call, 2026-10-16: a flat Theme.DIM grey "clear" circle read as
+    //! an unexplained dot rather than a sun. These are decorative, not
+    //! threshold signals, so they get their own Theme.WX_* names rather
+    //! than reusing OVER/COLD/HOT (see Theme.mc).
     function drawWx(dc as Graphics.Dc, code, x as Number, y as Number,
-                    s as Number, colour as Number) as Void {
+                    s as Number) as Void {
         var kind = Api._symbolKind(code);
-        if (kind == :clear) { Icons.wxClear(dc, x, y, s, colour); }
-        else if (kind == :rain) { Icons.wxRain(dc, x, y, s, colour); }
-        else if (kind == :snow) { Icons.wxSnow(dc, x, y, s, colour); }
-        else { Icons.wxCloudy(dc, x, y, s, colour); }
+        if (kind == :clear) { Icons.wxClear(dc, x, y, s, Theme.WX_SUN); }
+        else if (kind == :rain) { Icons.wxRain(dc, x, y, s, Theme.WX_RAIN); }
+        else if (kind == :snow) { Icons.wxSnow(dc, x, y, s, Theme.WX_SNOW); }
+        else { Icons.wxCloudy(dc, x, y, s, Theme.DIM); }
     }
 
     //! Break text into lines that fit `maxW`, at word boundaries.

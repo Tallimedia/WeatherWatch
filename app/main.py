@@ -363,7 +363,7 @@ async def forecast(
     lat: float | None = None,
     lon: float | None = None,
     hours: int = Query(48, ge=3, le=240),
-    step: int = Query(180, ge=60, le=1440, description="Minutes between points"),
+    step: int = Query(180, ge=15, le=1440, description="Minutes between points"),
     lang: str = Query("en", pattern="^(fi|sv|en)$"),
 ) -> dict:
     """Land forecast for a place or point.
@@ -371,6 +371,11 @@ async def forecast(
     Uses FMI's default producer (`pal_skandinavia`) — the post-processed,
     meteorologist-corrected product shown on ilmatieteenlaitos.fi, not raw
     model output (RESEARCH.md §3).
+
+    **`step` floor lowered to 15 min, 2026-10-15**: verified live that FMI
+    genuinely returns distinct `pop` values at 15-minute resolution, not an
+    artifact of our own `ge=60` — needed for a near-term (next-hour) rain
+    probability on Land, where hourly is too coarse to say "imminent."
 
     **B6 fix (2026-09-27):** FMI silently ignores the `hours=` parameter on
     this producer — verified live, `hours=3` and `hours=240` return the
@@ -498,6 +503,24 @@ async def observations(
                 current["winddirection"] = forecast_wind["winddirection"]
                 current["windcompass8"] = forecast_wind["windcompass8"]
                 current["wind_source"] = "forecast"
+
+    # Temperature fallback, Land-only like the wind one: a station that has
+    # wind but no temperature borrows from the next reporting station within
+    # `TEMP_FALLBACK_KM`, and says so — the client's header names the station
+    # the reading *came from*, which would otherwise be the wrong one.
+    current["temp_source"] = "station"
+    if fmisid is None and current.get("temperature") is None:
+        tlat, tlon = position if position is not None else (None, None)
+        if tlat is None:
+            tlat, tlon = (lat, lon) if place is None else (await _resolve(place))[:2]
+        nearby = await _nearby_temperature(tlat, tlon)
+        if nearby is not None:
+            current["temperature"] = nearby["temperature"]
+            current["temp_source"] = "nearby"
+            current["temp_station"] = nearby["station"]
+            current["temp_distance_km"] = nearby["distance_km"]
+            if nearby["epochtime"] is not None:
+                current["at"]["temperature"] = int(nearby["epochtime"])
 
     current["attribution"] = ATTRIBUTION
     return current
@@ -685,6 +708,58 @@ async def _hydrodyn_water_temp(lat: float, lon: float) -> float | None:
     if not rows:
         return None
     return rows[0].get("TemperatureSea")
+
+
+async def _nearby_temperature(lat: float, lon: float) -> dict | None:
+    """Temperature from the nearest FMI station that actually reports one.
+
+    Land stations sometimes publish wind but no temperature — Helsinki
+    Kaisaniemi returned `temperature: null` on 2026-10-20 while its wind was
+    live — and `/v1/observations` keeps only the single nearest station, so the
+    reading stayed empty. Asking for temperature alone makes FMI's
+    `numberofstations` skip stations with nothing to say, so the first row is
+    the nearest station that has a value. Capped at `TEMP_FALLBACK_KM`: a
+    reading from 60 km away presented as local is worse than a dash.
+    """
+    key_lat, key_lon = road._snap(lat), road._snap(lon)
+
+    async def fetch() -> list[dict]:
+        return await timeseries(
+            ["stationname", "fmisid", "distance", "temperature"],
+            producer="opendata",
+            latlon=f"{lat},{lon}",
+            numberofstations=config.TEMP_FALLBACK_STATIONS,
+            starttime="-60m",
+        )
+
+    try:
+        rows, _ = await cache.aget_or_set_entry(
+            f"obs:temp:{key_lat}:{key_lon}", config.TTL_OBSERVATIONS, fetch
+        )
+    except (FMIError, httpx.HTTPError):
+        return None
+
+    best: dict | None = None
+    for row in rows:
+        if row.get("temperature") is None or row.get("distance") is None:
+            continue
+        # Later rows of the same station are newer; across stations the
+        # closest wins, newest breaking a tie.
+        if (
+            best is None
+            or row["distance"] < best["distance"]
+            or (row["distance"] == best["distance"]
+                and (row.get("epochtime") or 0) > (best.get("epochtime") or 0))
+        ):
+            best = row
+    if best is None or best["distance"] > config.TEMP_FALLBACK_KM:
+        return None
+    return {
+        "temperature": best["temperature"],
+        "station": best.get("stationname"),
+        "distance_km": best["distance"],
+        "epochtime": best.get("epochtime"),
+    }
 
 
 async def _road_wind(lat: float, lon: float) -> dict | None:
@@ -1358,6 +1433,61 @@ async def marine_series(
     ]
     return {
         "station": {"fmisid": station.fmisid, "name": station.name},
+        "hours": hours,
+        "points": points,
+        "retrieved": retrieved,
+        "attribution": ATTRIBUTION,
+    }
+
+
+@app.get("/v1/land-series")
+async def land_series(
+    place: str = Query(config.DEFAULT_PLACE, max_length=config.MAX_PLACE_LEN),
+    hours: int = Query(4, ge=1, le=12),
+) -> dict:
+    """Recent temperature at the nearest land station: a trend line.
+
+    Mirrors `/v1/marine-series` exactly — same reasoning (the shape matters
+    more than the exact number), same point-dropping rule. Land's own
+    stations already report roughly every 10 minutes, far sparser than
+    Harmaja's once-a-minute wind, so a 15-minute sample is enough to keep
+    the response small without losing anything a 4-hour sparkline could
+    show anyway. Nearest-station selection reuses `_nearest_station_rows`,
+    the same filter `/v1/observations` already applies for the same
+    "`numberofstations` interleaves several stations" reason documented
+    there.
+    """
+    try:
+        plat, plon, resolved = await _resolve(place)
+    except UnknownPlace as exc:
+        raise _fail(exc) from exc
+
+    async def fetch() -> list[dict]:
+        rows = await timeseries(
+            ["stationname", "temperature"],
+            producer="opendata",
+            latlon=f"{plat},{plon}",
+            numberofstations=config.OBSERVATION_STATIONS,
+            starttime=f"-{hours}h",
+            timestep=15,
+        )
+        return _nearest_station_rows(rows)
+
+    try:
+        rows, retrieved = await cache.aget_or_set_entry(
+            f"landseries:{place}:{hours}", config.TTL_OBSERVATIONS, fetch
+        )
+    except FMIError as exc:
+        raise _fail(exc) from exc
+
+    points = [
+        {"t": int(r["epochtime"]), "temp": r.get("temperature")}
+        for r in rows
+        if r.get("epochtime") is not None and r.get("temperature") is not None
+    ]
+    return {
+        "place": resolved,
+        "station": rows[0].get("stationname") if rows else None,
         "hours": hours,
         "points": points,
         "retrieved": retrieved,

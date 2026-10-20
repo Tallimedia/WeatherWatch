@@ -11,9 +11,9 @@ guess which file is the one to upload today.
 
 | File | What |
 |---|---|
-| `FIWeatherWatch-v1.1.0.iq` | the store upload |
-| `FIWeatherWatch-v1.1.0.prg` | sideload — copy to `GARMIN/APPS/` |
-| `FIWeatherWatch-v1.1.0-settings.json` | its settings — copy to `GARMIN/APPS/SETTINGS/` |
+| `FIWeatherWatch-v1.2.1.iq` | the store upload |
+| `FIWeatherWatch-v1.2.1.prg` | sideload — copy to `GARMIN/APPS/` |
+| `FIWeatherWatch-v1.2.1-settings.json` | its settings — copy to `GARMIN/APPS/SETTINGS/` |
 | `hero-1440x720.png` | store banner |
 | `cover-500x500.png` | store tile |
 | `screenshots/` | the store gallery, framed in the device |

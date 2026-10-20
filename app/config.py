@@ -95,6 +95,13 @@ OBSERVATION_STATIONS = int(os.getenv("OBSERVATION_STATIONS", "5"))
 #: "this place's wind" — beyond this, the forecast fallback applies instead.
 ROAD_WIND_FALLBACK_KM = float(os.getenv("ROAD_WIND_FALLBACK_KM", "25"))
 
+# Temperature fallback for a Land station that reports wind but no temperature
+# (Helsinki Kaisaniemi did, 2026-10-20). Same idea as the wind fallback above:
+# borrow from the next reporting FMI station, but only when it is close enough
+# to still stand in for "here" — beyond this the answer stays null.
+TEMP_FALLBACK_KM = float(os.getenv("TEMP_FALLBACK_KM", "25"))
+TEMP_FALLBACK_STATIONS = int(os.getenv("TEMP_FALLBACK_STATIONS", "8"))
+
 # Warnings. FMI reissue CAP alerts on a slow cadence and each one carries its
 # own onset/expires, so a few minutes of staleness changes nothing. The
 # Fintraffic message feed is 1.2 MB with no bbox parameter, so it is fetched
