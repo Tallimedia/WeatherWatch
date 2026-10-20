@@ -59,8 +59,15 @@ class FIWeatherGlanceView extends WatchUi.GlanceView {
             // both numbers here: zero decimals is already this app's own
             // convention for "not enough room to care" contexts (Fmt.mc's
             // own comment on windRound, written for the Forecast page).
+            //
+            // Third attempt, 2026-10-20, real hardware (v1.2.67): even
+            // "10/12 m/s" is wider than this column, so clip() still chopped
+            // the unit. Mean only plus unit, matching the land slot's
+            // one-number format ("8.1 °C") — the gust has its own slot
+            // (which == 3), and the colour below still reads mean and gust
+            // together. Nico's call.
             return [Labels.seaWind(),
-                    Fmt.windRound(sms) + "/" + Fmt.windRound(sg) + " " + Fmt.windUnitLabel(),
+                    Fmt.windRound(sms) + " " + Fmt.windUnitLabel(),
                     Theme.windColour(sms, sg, Config.seaWind(), Config.seaGust())];
         } else if (which == 3) {
             var g2 = Api.v(m, "stGust");
