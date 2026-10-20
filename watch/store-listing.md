@@ -93,7 +93,7 @@ that stays the product name.
 
 ---
 
-## Description — Finnish (2098 chars)
+## Description — Finnish (2403 chars)
 
 Nico's wording, 2026-09-23. Two changes from the first draft: the *"ei globaalin mallin
 arvausta Suomesta"* clause is gone, and `Garmin IQ Connect Mobilessa` was corrected to
@@ -143,7 +143,7 @@ Säädata: Ilmatieteen laitos, CC BY 4.0 -lisenssillä. FIWeatherWatch on itsen�
 
 ---
 
-## Description — English (2276 chars)
+## Description — English (2572 chars)
 
 ```
 Finnish weather, land and sea.
@@ -404,6 +404,8 @@ device skin, already under the store's 300 kB limit:
 
 | File | Shows |
 |---|---|
+**TODO v1.2.1: retake the two rows below from the 1.2.1 build — Land (rain-likelihood lines, no forecast strip) and Forecast (Today/Tomorrow/+2 with wind, coloured icons). The old ones still show the six-hourly strip and Tomorrow/+2/+3.**
+
 | `pg-fc-eng.png` / `pg-fc-fin.png` | **Forecast — tomorrow in detail, day +2/+3 (new in v1.2.0)** |
 | `pg1-eng-v120.png` / `pg1-fin-v120.png` | Land — temperature, wind, direction arrow, forecast strip (1.2.0) |
 | `pg2.png` | Sea — station wind, gust, direction, **gale warning live** |
