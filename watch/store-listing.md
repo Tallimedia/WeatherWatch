@@ -235,6 +235,52 @@ whether Instinct gets its own or the shared set has to include one.
 
 ---
 
+## What's new — paste into Store (cumulative, newest first)
+
+**Policy (CLAUDE.md, 2026-10-20):** the Store's "What's new" field is overwritten on
+every upload and Garmin keeps no history, so the text pasted there is always the full
+history, newest first. Each paragraph below is deliberately one single unbroken line —
+the Store textarea does not re-wrap pasted text, so a hard line break inside a paragraph
+shows up as a forced break. Only the blank lines between versions are real breaks. For
+the next release: write the new version's paragraph and prepend it. Keep each language
+under 4000 characters (these are about 1717 EN / 1712 FI).
+
+### Paste into Store — English
+
+```
+v1.2.1
+The Land page now shows the chance of rain for the next hour and the next three ("Rain chance 1h 0% 3h 0%"), replacing the six-hourly forecast strip. The Forecast page now starts from today (with its chance of rain), then tomorrow and the day after, and shows wind for each day. Weather icons are coloured: yellow sun, blue rain, pale snow, grey cloud. When the nearest station has no thermometer, the temperature now comes from the nearest station that has one and is marked with an asterisk (*). The sea wind in the glance now shows its unit.
+
+v1.2.0
+A new Forecast page: tomorrow in detail (weather, high and low, wind and rain) and the two days after in brief. Wind for stations without a wind sensor now comes from the nearest road-weather station, labelled as such. Wind direction has its own row with an arrow on the Land page. Water temperature falls back to FMI's sea model when a buoy's temperature sensor isn't reporting, labelled. A warning triangle shows in the glance when a warning is in effect. New launcher icon.
+
+v1.1.0
+Official FMI warnings, right on the page they're about: an icy-road warning on Land, a wind warning on Sea and a wave warning on Waves. The warning sits next to the reading it qualifies, with no separate tab to check. Clearer page titles in Finnish: Maasää and Merisää.
+
+v1.0.0
+First public release. Land forecast and current conditions from the nearest reporting station, marine wind and gusts from 40 coastal and 14 inland lake stations, and wave height, period, direction and water temperature from FMI wave buoys. Your own wind, gust, wave and temperature limits, a configurable glance with two values, Finnish, Swedish and English, and wind in m/s, knots or Beaufort.
+```
+
+### Paste into Store — Finnish
+
+```
+v1.2.1
+Maa-sivu näyttää nyt sateen todennäköisyyden seuraavalle tunnille ja kolmelle tunnille ("Sateen tod. näk. 1h 0% 3h 0%") kuuden tunnin ennustekaistan tilalla. Ennuste-sivu alkaa nyt tästä päivästä (sateen todennäköisyyden kanssa), sitten huominen ja ylihuomenna, ja kullekin päivälle näkyy tuuli. Sääkuvakkeet ovat värillisiä: keltainen aurinko, sininen sade, vaalea lumi, harmaa pilvi. Jos lähimmällä asemalla ei ole lämpömittaria, lämpötila haetaan lähimmältä asemalta jolla on, ja se merkitään tähdellä (*). Merituuli näkyy vilkaisunäkymässä nyt yksikön kanssa.
+
+v1.2.0
+Uusi Ennuste-sivu: huominen tarkemmin (sää, ylin ja alin lämpötila, tuuli ja sade) sekä kaksi seuraavaa päivää lyhyesti. Asemille, joilla ei ole tuulianturia, tuuli haetaan nyt lähimmältä tiesääasemalta ja merkitään sen mukaan. Tuulen suunta näkyy nuolella omalla rivillään Maasää-sivulla. Veden lämpötila haetaan Ilmatieteen laitoksen merimallista, kun poijun lämpöanturi ei raportoi, merkittynä. Vilkaisunäkymässä näkyy varoituskolmio, kun varoitus on voimassa. Uusi kuvake.
+
+v1.1.0
+Viralliset FMI-varoitukset suoraan sillä sivulla, jota ne koskevat: liukkaan tien varoitus Maalla, tuulivaroitus Merellä ja aallokkovaroitus Aalloilla. Varoitus näkyy siinä missä lukemakin, ei erillistä välilehteä. Selkeämmät otsikot: Maasää ja Merisää.
+
+v1.0.0
+Ensimmäinen julkinen versio. Ennuste ja nykyhetken sää lähimmältä havaintoasemalta, merituuli ja puuskat 40 rannikko- ja 14 sisävesiasemalta sekä aallonkorkeus, jakso, suunta ja veden lämpötila Ilmatieteen laitoksen aaltopoijuilta. Omat tuuli-, puuska-, aalto- ja lämpötilarajat, vilkaisunäkymään kaksi valittavaa arvoa, suomi, ruotsi ja englanti sekä tuuli m/s, solmuina tai boforeina.
+```
+
+---
+
+## Per-version notes (reference — the blocks above are what gets pasted)
+
 ## What's new — v1.2.1
 
 **Leads with the rain line on Land** — it's the first thing on the first page that
