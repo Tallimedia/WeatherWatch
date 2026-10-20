@@ -1,11 +1,17 @@
-# Connect IQ Store listing copy — v1.2.0
+# Connect IQ Store listing copy — v1.2.1
 
 Paste-ready text for <https://apps-developer.garmin.com>. Keep in sync with
 `../CHANGELOG.md`.
 
 The beta (v0.1.x, v1.1.x and v1.2.x pre-release) is unlisted and needs no copy. This
-is the copy for the public listing, updated for the v1.2.0 release (Forecast page and
-the Land wind fallback, 2026-10-14) on top of v1.1.0 (road-ice and marine warnings).
+is the copy for the public listing, updated for the v1.2.1 release (Land rain likelihood,
+Today/Tomorrow/+2 Forecast with wind, coloured icons and the temperature fallback,
+2026-10-20) on top of v1.2.0 (Forecast page and the Land wind fallback, 2026-10-14) and
+v1.1.0 (road-ice and marine warnings).
+
+**v1.2.1 changes two existing sections, not the structure** — MAA / LAND loses the
+six-hourly strip for a rain-likelihood line, and ENNUSTE / FORECAST starts from today
+instead of tomorrow. No new section.
 
 **v1.2.0 adds a page, so the description gets a section for it** — ENNUSTE / FORECAST,
 right after MAA / LAND, matching where the page sits on the watch. The wind fallback is
@@ -103,10 +109,10 @@ Suomen sää, maalla ja merellä.
 FIWeatherWatch näyttää sen, mitä Ilmatieteen laitoksen omat mittarit raportoivat juuri nyt.
 
 MAA
-Lämpötila ja tuuli lähimmältä havaintoasemalta, asema ja sen etäisyys näkyvissä. Ennuste kuuden tunnin välein loppupäivälle. Jos asemalla ei ole tuulianturia, tuuli haetaan lähimmältä tiesääasemalta ja merkitään sen mukaan. Liukkaan tien varoitus näkyy samalla sivulla, kun Ilmatieteen laitos sellaisen antaa.
+Lämpötila ja tuuli lähimmältä havaintoasemalta, asema ja sen etäisyys näkyvissä. Sateen todennäköisyys seuraavalle tunnille ja kolmelle tunnille. Jos asemalla ei ole tuulianturia tai lämpömittaria, lukema haetaan lähimmältä asemalta ja merkitään sen mukaan. Liukkaan tien varoitus näkyy samalla sivulla, kun Ilmatieteen laitos sellaisen antaa.
 
 ENNUSTE
-Huominen tarkemmin — sää, ylin ja alin lämpötila, tuuli ja sademäärä — sekä kaksi seuraavaa päivää lyhyesti. Sivun voi piilottaa asetuksista.
+Tämä päivä, huominen ja ylihuomenna — sää, ylin ja alin lämpötila, tuuli ja sademäärä, tälle päivälle myös sateen todennäköisyys. Sivun voi piilottaa asetuksista.
 
 MERI
 Tuuli, puuskat ja suunta 40 rannikkoasemalta ja 14 sisävesiasemalta — Harmajasta Märketiin, Saimaalta Näsijärvelle. Tuulivaroitus näkyy samalla sivulla, kun on voimassa.
@@ -145,10 +151,10 @@ Finnish weather, land and sea.
 FIWeatherWatch shows what the Finnish Meteorological Institute's own instruments are reporting right now — not a global model's guess at Finland.
 
 LAND
-Temperature and wind from the nearest reporting station, with the station and its distance shown. A six-hourly forecast covers the rest of the day. Where that station has no wind sensor, wind comes from the nearest road-weather station, labelled as such. An icy-road warning appears on this same page when FMI issues one.
+Temperature and wind from the nearest reporting station, with the station and its distance shown. Chance of rain for the next hour and the next three. Where that station has no wind sensor or thermometer, the reading comes from the nearest station that has one, and is marked as borrowed. An icy-road warning appears on this same page when FMI issues one.
 
 FORECAST
-Tomorrow in detail — weather, high and low, wind and rain — and the two days after in brief. The page can be hidden in settings.
+Today, tomorrow and the day after — weather, high and low, wind and rain, plus the chance of rain for today. The page can be hidden in settings.
 
 SEA
 Wind, gusts and direction from 40 coastal and 14 inland lake stations — Harmaja to Märket, Saimaa to Näsijärvi. A wind warning appears on this same page when one is in effect.
@@ -226,6 +232,37 @@ fenix screens. Ship at least one monochrome capture in the same release, so nobo
 on the strength of a picture their watch cannot draw. Confirm in the dashboard whether
 screenshots can be attached **per device** or are a single shared set — that decides
 whether Instinct gets its own or the shared set has to include one.
+
+---
+
+## What's new — v1.2.1
+
+**Leads with the rain line on Land** — it's the first thing on the first page that
+changed, and it answers the question people actually open a weather watch to ask.
+
+**Finnish:**
+
+```
+Sateen todennäköisyys ja värikkäät kuvakkeet.
+
+• Maasää: sateen todennäköisyys seuraavalle tunnille ja kolmelle tunnille
+• Ennuste: tämä päivä, huominen ja ylihuomenna, tuulella ja sateen todennäköisyydellä
+• Värilliset sääkuvakkeet: aurinko, sade, lumi, pilvi
+• Jos lähimmällä asemalla ei ole lämpömittaria, lämpötila haetaan lähimmältä asemalta ja merkitään tähdellä
+• Merituuli vilkaisunäkymässä näkyy yksikön kanssa
+```
+
+**English:**
+
+```
+Chance of rain and colour icons.
+
+• Land: chance of rain for the next hour and the next three
+• Forecast: today, tomorrow and the day after, with wind and the chance of rain
+• Coloured weather icons: sun, rain, snow, cloud
+• If the nearest station has no thermometer, the temperature comes from the nearest one that has, marked with an asterisk
+• Sea wind in the glance now shows its unit
+```
 
 ---
 
