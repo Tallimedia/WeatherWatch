@@ -6,7 +6,13 @@
     real-hardware pass in all three languages, see CHANGELOG.md; 1.2.0,
     2026-10-14 — Forecast page on by default, wind-source fallback label on
     Land, hydrodyn water temp, glance warning icons, promoted from beta/v1.2
-    after its 1.2.0–1.2.5 beta builds were confirmed on real hardware).
+    after its 1.2.0–1.2.5 beta builds were confirmed on real hardware; 1.2.2,
+    2026-10-21 — Enduro/Enduro 3/Enduro 4 device support, thermometer icon
+    redesign, rain-likelihood row simplified to a raindrop/snowflake icon
+    (temp-based swap, no text label), Forecast Today row's "-/-" fallback
+    fix plus wind/rain icons, shortened glance land-temp caption; promoted
+    from beta/land-forecast-redesign's 1.2.67–1.2.72 beta builds after a
+    real-hardware pass).
 
     The beta entry used a7c41e2b9d364f158e0b73a2c65d9f04 (0.1.0–0.1.8). Garmin
     will not promote a beta to a public listing: "If you want to publish your
@@ -35,7 +41,7 @@
         type="widget"
         name="@Strings.AppName"
         entry="FIWeatherWatchApp"
-        version="1.2.1"
+        version="1.2.2"
         launcherIcon="@Drawables.LauncherIcon"
         minApiLevel="3.4.0">
 
@@ -65,6 +71,9 @@
         <iq:product id="fenix9pro51mm"/>
         <iq:product id="fenix9prosolar47mm"/>
         <iq:product id="fenix9prosolar51mm"/>
+        <iq:product id="enduro"/>
+        <iq:product id="enduro3"/>
+        <iq:product id="enduro4"/>
         <iq:product id="fenixe"/>
         <iq:product id="epix2"/>
         <iq:product id="epix2pro42mm"/>
