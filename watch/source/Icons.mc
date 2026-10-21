@@ -44,11 +44,15 @@ module Icons {
         dc.fillRectangle(cx - stemW / 2, topY, stemW, bulbY - topY);
         dc.fillCircle(cx, bulbY, bulbR);
 
-        // Mercury: solid fill from partway down the stem into the bulb —
-        // Nico's reference (2026-10-21) wanted the fill line visible partway
-        // up, not from the very top, so the upper stem reads as an empty
-        // gauge rather than a second colour band.
-        var fillTopY = topY + ((bulbY - topY) * 0.45).toNumber();
+        // Mercury: solid fill starting just below the cap's own hollow neck,
+        // down into the bulb — Nico's reference PNG (2026-10-21) shows the
+        // stem filled almost its whole length, only the rounded cap itself
+        // is hollow. The first pass here filled from 45% down, which left
+        // the ticks bunched into a short gap near the top on real hardware.
+        var holeW = (stemW * 0.55).toNumber();
+        if (holeW < 1) { holeW = 1; }
+        var holeTop = topY + (stemW * 0.3).toNumber();
+        var fillTopY = holeTop + (stemW * 0.5).toNumber();
         var innerStemW = (stemW * 0.42).toNumber();
         if (innerStemW < 2) { innerStemW = 2; }
         var innerBulbR = (bulbR * 0.55).toNumber();
@@ -57,29 +61,27 @@ module Icons {
         dc.fillRectangle(cx - innerStemW / 2, fillTopY, innerStemW, bulbY - fillTopY);
         dc.fillCircle(cx, bulbY, innerBulbR);
 
-        // Hollow the stem above the mercury line, cut from the background —
-        // same cut-out technique Icons.warning() already uses for its
+        // Hollow neck: cut from the background just below the cap, same
+        // cut-out technique Icons.warning() already uses for its
         // exclamation mark, so it survives a 1-bit screen the same way.
-        var holeW = (stemW * 0.55).toNumber();
-        if (holeW < 1) { holeW = 1; }
-        var holeTop = topY + (stemW * 0.3).toNumber();
         if (fillTopY > holeTop) {
             dc.setColor(Theme.BG, Graphics.COLOR_TRANSPARENT);
             dc.fillRectangle(cx - holeW / 2, holeTop, holeW, fillTopY - holeTop);
         }
 
-        // Scale ticks: short solid marks outside the stem's left edge, same
-        // colour as the outer silhouette — not cut-outs, since a cut-out
-        // this thin would need the background to show through a gap
-        // narrower than the hole above tolerates cleanly.
+        // Scale ticks: short solid marks outside the stem's left edge,
+        // spanning most of the stem's length (reference PNG), not just the
+        // short hollow neck above the fill line — real-hardware feedback
+        // was that stopping them at the old (much higher) fill line bunched
+        // them into too short a gap near the top.
         dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
         var tickLen = (s * 0.14).toNumber();
         if (tickLen < 2) { tickLen = 2; }
         var tickH = (s * 0.03).toNumber();
         if (tickH < 1) { tickH = 1; }
-        var tickTop = topY + (stemW * 0.3).toNumber();
-        var tickBottom = fillTopY - tickH;
-        var tickCount = 4;
+        var tickTop = holeTop;
+        var tickBottom = topY + ((bulbY - topY) * 0.75).toNumber() - tickH;
+        var tickCount = 5;
         if (tickBottom > tickTop) {
             for (var i = 0; i < tickCount; i += 1) {
                 var ty = tickTop + ((tickBottom - tickTop) * i / (tickCount - 1).toFloat()).toNumber();
