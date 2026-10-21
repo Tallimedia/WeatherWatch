@@ -18,19 +18,85 @@ module Icons {
     //! Thermometer: a thick capsule stem sitting in a bulb wider than it.
     //! Reference shape is a solid silhouette — thin strokes with tick marks
     //! read as a music note at this size, which is what the first attempt did.
-    function temp(dc as Graphics.Dc, x as Number, y as Number, s as Number, colour as Number) as Void {
-        dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
-        var cx = x + s / 2;
-        var stemW = (s * 0.36).toNumber();
+    //!
+    //! A flat one-colour fill read as a featureless grey blob at this icon's
+    //! actual size on Land (the biggest icon in the app, not a glance-sized
+    //! one) — Nico's call, 2026-10-21. Added an inset "mercury" fill in
+    //! `fillColour` (Theme.tempColour — white/blue/red, the same colour
+    //! already used for the number beside it) so the shape reads as a
+    //! thermometer by contrast, not just outline, and ties the icon to the
+    //! actual reading the way the Forecast page's weather icons tie colour
+    //! to condition.
+    function temp(dc as Graphics.Dc, x as Number, y as Number, s as Number,
+                  colour as Number, fillColour as Number) as Void {
+        var cx = x + (s * 0.42).toNumber();
+        var stemW = (s * 0.30).toNumber();
         if (stemW < 3) { stemW = 3; }
-        var bulbR = (s * 0.30).toNumber();
+        var bulbR = (s * 0.24).toNumber();
         if (bulbR < stemW / 2 + 1) { bulbR = stemW / 2 + 1; }
         var bulbY = y + s - bulbR;
         var topY = y + stemW / 2 + 1;
-        // Rounded cap, stem, then the bulb — drawn as one solid silhouette.
+
+        // Outer silhouette: cap, stem, bulb — same solid-shape rule as every
+        // other icon in this file, nothing here is a thin stroke.
+        dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(cx, topY, stemW / 2);
         dc.fillRectangle(cx - stemW / 2, topY, stemW, bulbY - topY);
         dc.fillCircle(cx, bulbY, bulbR);
+
+        // Mercury: solid fill from partway down the stem into the bulb —
+        // Nico's reference (2026-10-21) wanted the fill line visible partway
+        // up, not from the very top, so the upper stem reads as an empty
+        // gauge rather than a second colour band.
+        var fillTopY = topY + ((bulbY - topY) * 0.45).toNumber();
+        var innerStemW = (stemW * 0.42).toNumber();
+        if (innerStemW < 2) { innerStemW = 2; }
+        var innerBulbR = (bulbR * 0.55).toNumber();
+        if (innerBulbR < innerStemW / 2 + 1) { innerBulbR = innerStemW / 2 + 1; }
+        dc.setColor(fillColour, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(cx - innerStemW / 2, fillTopY, innerStemW, bulbY - fillTopY);
+        dc.fillCircle(cx, bulbY, innerBulbR);
+
+        // Hollow the stem above the mercury line, cut from the background —
+        // same cut-out technique Icons.warning() already uses for its
+        // exclamation mark, so it survives a 1-bit screen the same way.
+        var holeW = (stemW * 0.55).toNumber();
+        if (holeW < 1) { holeW = 1; }
+        var holeTop = topY + (stemW * 0.3).toNumber();
+        if (fillTopY > holeTop) {
+            dc.setColor(Theme.BG, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(cx - holeW / 2, holeTop, holeW, fillTopY - holeTop);
+        }
+
+        // Scale ticks: short solid marks outside the stem's left edge, same
+        // colour as the outer silhouette — not cut-outs, since a cut-out
+        // this thin would need the background to show through a gap
+        // narrower than the hole above tolerates cleanly.
+        dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
+        var tickLen = (s * 0.14).toNumber();
+        if (tickLen < 2) { tickLen = 2; }
+        var tickH = (s * 0.03).toNumber();
+        if (tickH < 1) { tickH = 1; }
+        var tickTop = topY + (stemW * 0.3).toNumber();
+        var tickBottom = fillTopY - tickH;
+        var tickCount = 4;
+        if (tickBottom > tickTop) {
+            for (var i = 0; i < tickCount; i += 1) {
+                var ty = tickTop + ((tickBottom - tickTop) * i / (tickCount - 1).toFloat()).toNumber();
+                dc.fillRectangle(cx - stemW / 2 - tickLen - 2, ty, tickLen, tickH);
+            }
+        }
+
+        // Degree ring: a small hollow circle beside the cap, same cut-out
+        // technique as the mercury-line hollow above.
+        var degR = (s * 0.09).toNumber();
+        if (degR < 3) { degR = 3; }
+        var degCx = cx + stemW / 2 + degR + 3;
+        var degCy = topY;
+        dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(degCx, degCy, degR);
+        dc.setColor(Theme.BG, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(degCx, degCy, (degR * 0.5).toNumber());
     }
 
     //! Wind: three streaming lines, each ending in a curl. The curls are what
@@ -72,6 +138,10 @@ module Icons {
     //! the icon runs under the text beside it.
     function widthFactor(kind as Symbol) as Float {
         if (kind == :wave) { return 1.25; }
+        // Room for the tick marks on the left and the degree ring on the
+        // right — both sit outside the stem+bulb footprint the old plain
+        // silhouette used.
+        if (kind == :temp) { return 1.35; }
         return 1.0;
     }
 

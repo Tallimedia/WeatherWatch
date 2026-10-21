@@ -476,7 +476,11 @@ module Pages {
         var gap = 5;
         var left = ((w(dc) - (drawnW + gap + tw)) / 2).toNumber();
         var iy = _y + ((fh - size) / 2).toNumber();
-        if (kind == :temp)         { Icons.temp(dc, left, iy, size, Theme.DIM); }
+        // Flat (fillColour == colour) at this size — the Sea/Waves air- and
+        // water-temperature rows draw :temp at FONT_XTINY, the same small
+        // scale that's already failed for other icons in this file; the
+        // two-tone treatment is reserved for Land's much bigger hero icon.
+        if (kind == :temp)         { Icons.temp(dc, left, iy, size, Theme.DIM, Theme.DIM); }
         else if (kind == :wind)    { Icons.wind(dc, left, iy, size, Theme.DIM); }
         else if (kind == :wave)    { Icons.wave(dc, left, iy, size, Theme.DIM); }
         else if (kind == :clock)   { Icons.clock(dc, left, iy, size, Theme.DIM); }
@@ -509,7 +513,7 @@ module Pages {
         var total = drawnW + gap + vw + unitGap + uw;
         var left = ((w(dc) - total) / 2).toNumber();
         var iy = _y + ((fh - size) / 2).toNumber();
-        if (kind == :temp)      { Icons.temp(dc, left, iy, size, Theme.DIM); }
+        if (kind == :temp)      { Icons.temp(dc, left, iy, size, Theme.DIM, colour); }
         else if (kind == :wind) { Icons.wind(dc, left, iy, size, Theme.DIM); }
         else if (kind == :wave) { Icons.wave(dc, left, iy, size, Theme.DIM); }
 
