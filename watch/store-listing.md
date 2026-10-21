@@ -1,13 +1,20 @@
-# Connect IQ Store listing copy — v1.2.1
+# Connect IQ Store listing copy — v1.2.2
 
 Paste-ready text for <https://apps-developer.garmin.com>. Keep in sync with
 `../CHANGELOG.md`.
 
 The beta (v0.1.x, v1.1.x and v1.2.x pre-release) is unlisted and needs no copy. This
-is the copy for the public listing, updated for the v1.2.1 release (Land rain likelihood,
-Today/Tomorrow/+2 Forecast with wind, coloured icons and the temperature fallback,
-2026-10-20) on top of v1.2.0 (Forecast page and the Land wind fallback, 2026-10-14) and
-v1.1.0 (road-ice and marine warnings).
+is the copy for the public listing, updated for the v1.2.2 release (Enduro/Enduro
+3/Enduro 4 device support, a redesigned thermometer icon, the rain-chance line on
+Land replaced by a drop/snowflake icon, Forecast's today row getting wind and rain
+icons, and a shortened glance caption, 2026-10-21) on top of v1.2.1 (Land rain
+likelihood, Today/Tomorrow/+2 Forecast with wind, coloured icons and the temperature
+fallback, 2026-10-20), v1.2.0 (Forecast page and the Land wind fallback, 2026-10-14)
+and v1.1.0 (road-ice and marine warnings).
+
+**v1.2.2 is visual/device-compatibility only, no section or structure change** —
+new supported watches, a redrawn icon, and the rain-chance line swapping its text
+label for an icon. Nothing a device description needs updating for.
 
 **v1.2.1 changes two existing sections, not the structure** — MAA / LAND loses the
 six-hourly strip for a rain-likelihood line, and ENNUSTE / FORECAST starts from today
@@ -243,11 +250,14 @@ history, newest first. Each paragraph below is deliberately one single unbroken 
 the Store textarea does not re-wrap pasted text, so a hard line break inside a paragraph
 shows up as a forced break. Only the blank lines between versions are real breaks. For
 the next release: write the new version's paragraph and prepend it. Keep each language
-under 4000 characters (these are about 1717 EN / 1712 FI).
+under 4000 characters (these are about 2265 EN / 2310 FI).
 
 ### Paste into Store — English
 
 ```
+v1.2.2
+Added support for the Garmin Enduro, Enduro 3 and Enduro 4. Fixed the rain-chance line on Land overlapping the icy-road warning when both were showing. The thermometer icon is redesigned with a visible temperature fill and scale ticks. The rain-chance line now shows a raindrop or, below freezing, a snowflake icon instead of its text label. The Forecast page's today row now shows a wind icon and a rain icon, and no longer shows dashes when the latest hourly forecast isn't ready yet. The land-temperature label in the glance is shorter.
+
 v1.2.1
 The Land page now shows the chance of rain for the next hour and the next three ("Rain chance 1h 0% 3h 0%"), replacing the six-hourly forecast strip. The Forecast page now starts from today (with its chance of rain), then tomorrow and the day after, and shows wind for each day. Weather icons are coloured: yellow sun, blue rain, pale snow, grey cloud. When the nearest station has no thermometer, the temperature now comes from the nearest station that has one and is marked with an asterisk (*). The sea wind in the glance now shows its unit.
 
@@ -264,6 +274,9 @@ First public release. Land forecast and current conditions from the nearest repo
 ### Paste into Store — Finnish
 
 ```
+v1.2.2
+Tuki Garmin Enduro-, Enduro 3- ja Enduro 4 -kelloille. Korjattu sateen todennäköisyysrivi Maa-sivulla menemästä päällekkäin liukkaan tien varoituksen kanssa, kun molemmat näkyivät samaan aikaan. Lämpömittarikuvake on uudistettu: siinä näkyy nyt täyttyvä lämpötilapylväs ja asteikon viivat. Sateen todennäköisyysrivi näyttää nyt tekstin sijaan sadepisara- tai, pakkasella, lumihiutalekuvakkeen. Ennuste-sivun tämän päivän rivillä näkyy nyt tuuli- ja sadekuvake, eikä rivi enää näytä viivoja, kun tuorein tuntiennuste ei ole vielä valmis. Vilkaisunäkymän maan lämpötilan otsikko on lyhyempi.
+
 v1.2.1
 Maa-sivu näyttää nyt sateen todennäköisyyden seuraavalle tunnille ja kolmelle tunnille ("Sateen tod. näk. 1h 0% 3h 0%") kuuden tunnin ennustekaistan tilalla. Ennuste-sivu alkaa nyt tästä päivästä (sateen todennäköisyyden kanssa), sitten huominen ja ylihuomenna, ja kullekin päivälle näkyy tuuli. Sääkuvakkeet ovat värillisiä: keltainen aurinko, sininen sade, vaalea lumi, harmaa pilvi. Jos lähimmällä asemalla ei ole lämpömittaria, lämpötila haetaan lähimmältä asemalta jolla on, ja se merkitään tähdellä (*). Merituuli näkyy vilkaisunäkymässä nyt yksikön kanssa.
 
@@ -280,6 +293,39 @@ Ensimmäinen julkinen versio. Ennuste ja nykyhetken sää lähimmältä havainto
 ---
 
 ## Per-version notes (reference — the blocks above are what gets pasted)
+
+## What's new — v1.2.2
+
+**Leads with the new devices** — the most concrete, checkable thing in this release;
+everything else is a visual refinement to pages existing users already know.
+
+**Finnish:**
+
+```
+Tuki uusille kelloille ja selkeämmät kuvakkeet.
+
+• Tuki Garmin Enduro-, Enduro 3- ja Enduro 4 -kelloille
+• Korjattu sateen todennäköisyysrivin ja liukkaan tien varoituksen päällekkäisyys Maa-sivulla
+• Uudistettu lämpömittarikuvake: täyttyvä pylväs ja asteikon viivat
+• Sateen todennäköisyysrivillä nyt sadepisara- tai lumihiutalekuvake tekstin sijaan
+• Ennusteen tämän päivän rivillä tuuli- ja sadekuvake, ei enää viivoja illalla
+• Lyhyempi lämpötilan otsikko vilkaisunäkymässä
+```
+
+**English:**
+
+```
+Support for new watches, and clearer icons.
+
+• Added support for the Garmin Enduro, Enduro 3 and Enduro 4
+• Fixed the rain-chance line on Land overlapping the icy-road warning
+• Redesigned thermometer icon with a visible fill and scale ticks
+• Rain-chance line now shows a raindrop or snowflake icon instead of text
+• Forecast's today row shows wind and rain icons, no more dashes in the evening
+• Shorter land-temperature label in the glance
+```
+
+---
 
 ## What's new — v1.2.1
 
