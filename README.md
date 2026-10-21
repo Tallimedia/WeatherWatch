@@ -18,8 +18,7 @@ Meteorological Institute or Garmin. Weather data from
 | ![Land page](Screenshots/framed/pg1.png) | ![Sea page](Screenshots/framed/pg2.png) | ![Waves page](Screenshots/framed/pg3.png) |
 
 - **Land** — current temperature and wind from the nearest reporting station,
-  named, with its distance, plus a six-hourly forecast strip for the rest of
-  the day.
+  named, with its distance, plus the chance of rain for the next one and three hours.
 - **Sea** — wind, gusts, direction and air temperature from any of 22 Finnish
   marine stations: Harmaja, Utö, Kalbådagrund, Bogskär, Märket and the rest.
 - **Waves** — significant wave height, period, direction and sea water
