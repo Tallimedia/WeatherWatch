@@ -212,6 +212,49 @@ module Icons {
         dc.setPenWidth(1);
     }
 
+    //! Raindrop: a circle with a pointed cap — a solid filled silhouette,
+    //! same construction as the cloud glyphs above (one shape overlapping
+    //! another, no thin strokes). Prefixes Land's rain-likelihood row
+    //! (Nico's reference PNG, 2026-10-21).
+    function raindrop(dc as Graphics.Dc, x as Number, y as Number, s as Number, colour as Number) as Void {
+        dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
+        var cx = x + s / 2;
+        var r = (s * 0.32).toNumber();
+        var bulbCy = y + s - r;
+        dc.fillCircle(cx, bulbCy, r);
+        // Pointed cap: a triangle from the apex down to the circle's own
+        // centre height, as wide as the circle there, so the two shapes
+        // share a seamless edge rather than a visible join line.
+        dc.fillPolygon([
+            [cx, y],
+            [cx + r, bulbCy],
+            [cx - r, bulbCy]
+        ]);
+    }
+
+    //! Snowflake: a thick plus-sign with a short perpendicular crossbar
+    //! partway along each arm — a blocky, solid silhouette, not the
+    //! six-spoke thin-line construction Icons.ice() above already found
+    //! smears into a blob at this kind of size. Swaps in for raindrop()
+    //! on Land's rain-likelihood row when it's cold enough that the
+    //! precipitation is snow, not rain (Nico's reference PNG, 2026-10-21).
+    function snowflake(dc as Graphics.Dc, x as Number, y as Number, s as Number, colour as Number) as Void {
+        dc.setColor(colour, Graphics.COLOR_TRANSPARENT);
+        var cx = x + s / 2;
+        var cy = y + s / 2;
+        var armW = (s * 0.16).toNumber();
+        if (armW < 2) { armW = 2; }
+        var armLen = (s * 0.40).toNumber();
+        dc.fillRectangle(cx - armW / 2, cy - armLen, armW, armLen * 2);
+        dc.fillRectangle(cx - armLen, cy - armW / 2, armLen * 2, armW);
+        var capLen = (armLen * 0.45).toNumber();
+        var capAt = (armLen * 0.62).toNumber();
+        dc.fillRectangle(cx - capLen / 2, cy - capAt, capLen, armW);
+        dc.fillRectangle(cx - capLen / 2, cy + capAt - armW, capLen, armW);
+        dc.fillRectangle(cx - capAt, cy - capLen / 2, armW, capLen);
+        dc.fillRectangle(cx + capAt - armW, cy - capLen / 2, armW, capLen);
+    }
+
     //! Download: an arrow dropping onto a baseline. Marks the row that says
     //! when the reading was last pulled.
     function download(dc as Graphics.Dc, x as Number, y as Number, s as Number, colour as Number) as Void {

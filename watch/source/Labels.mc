@@ -24,7 +24,11 @@ module Labels {
         return en;
     }
 
-    function land() as String     { return pick("Land temp", "Maan lämpö", "Landtemp"); }
+    // Shortened from "Land temp"/"Maan lämpö"/"Landtemp" — Nico's call,
+    // 2026-10-21: the glance column already clipped it to "Maan lämp",
+    // which read oddly, and the slot the user picked already tells them
+    // it's the land reading, not the sea one below it.
+    function land() as String     { return pick("Temp", "Lämpö", "Temp"); }
     function landWind() as String { return pick("Land wind", "Tuuli maalla", "Vind land"); }
     function seaWind() as String  { return pick("Sea wind", "Merituuli", "Havsvind"); }
     function seaGust() as String  { return pick("Sea gust", "Puuska", "Havsby"); }

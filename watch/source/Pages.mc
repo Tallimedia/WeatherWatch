@@ -196,7 +196,7 @@ module Pages {
         compassRow(dc, dir, windSrcLabel);
 
         drawRoadIce(dc);
-        rainLikelihood(dc, _y);
+        rainLikelihood(dc, _y, t);
 
         // One age per page here rather than two: the earlier "8 min · 8 min"
         // read as a repeat rather than as two different fields.
@@ -207,23 +207,40 @@ module Pages {
     //! RESEARCH.md §27 update, 2026-10-15: tester feedback wanted rain data
     //! on Land. First attempt was a live temp-trend sparkline; dropped the
     //! same day on real-hardware feedback (Nico) — the line read as
-    //! meaningless noise (ordinary station wobble filled the whole chart
-    //! height regardless of scale), and sitting directly under Wind with no
-    //! label, it read as wind data, not temperature. Two plain numbers need
-    //! no chart to be unambiguous.
-    function rainLikelihood(dc as Graphics.Dc, top as Number) as Void {
+    //! meaningless noise, and sitting directly under Wind with no label, it
+    //! read as wind data, not temperature. Second attempt was a text label
+    //! ("Sateen tod. näk.") plus numbers, two lines; dropped 2026-10-21 —
+    //! the label made the row tall enough that it collided with the fixed-
+    //! position footer whenever the optional road-ice row above it also
+    //! fired, and Nico's call once the raindrop icon existed anyway was
+    //! that the label was redundant: icon says what, "1h"/"3h" say when,
+    //! "%" says it's a chance. One line, always fits, nothing to collapse.
+    //!
+    //! Icon swaps to a snowflake below freezing — `pop` itself carries no
+    //! rain-vs-snow flag, so this is a temperature approximation, not a
+    //! real precipitation-type field; it can be wrong right at 0°C where
+    //! sleet exists, same honest limitation as any threshold-based call.
+    function rainLikelihood(dc as Graphics.Dc, top as Number, landTemp as Float?) as Void {
         var pop1h = Api.v(Api.forecast, "pop1h");
         var pop3h = Api.v(Api.forecast, "pop3h");
         if (pop1h == null && pop3h == null) { return; }
 
         var cx = (w(dc) / 2).toNumber();
         var lineH = dc.getFontHeight(Graphics.FONT_XTINY);
+        var numbers = "1h " + popText(pop1h) + "   3h " + popText(pop3h);
+        var isSnow = landTemp != null && landTemp < 0.0;
+
+        var iconSize = (lineH * 0.62).toNumber();
+        var gap = 4;
+        var tw = dc.getTextWidthInPixels(numbers, Graphics.FONT_XTINY);
+        var left = cx - (iconSize + gap + tw) / 2;
+        if (isSnow) {
+            Icons.snowflake(dc, left, top + ((lineH - iconSize) / 2).toNumber(), iconSize, Theme.DIM);
+        } else {
+            Icons.raindrop(dc, left, top + ((lineH - iconSize) / 2).toNumber(), iconSize, Theme.DIM);
+        }
         dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, top, Graphics.FONT_XTINY, res(Rez.Strings.RainChance),
-                    Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx, top + lineH, Graphics.FONT_XTINY,
-                    "1h " + popText(pop1h) + "   3h " + popText(pop3h),
-                    Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(left + iconSize + gap, top, Graphics.FONT_XTINY, numbers, Graphics.TEXT_JUSTIFY_LEFT);
     }
 
     function popText(pop as Float?) as String {
@@ -686,16 +703,31 @@ module Pages {
                     Graphics.FONT_NUMBER_MILD, hiLoText, Graphics.TEXT_JUSTIFY_LEFT);
         top += rowH + 2;
 
-        var windRainText = Fmt.windRound(wind[base]) + " (" + Fmt.windRound(gust[base]) + ")"
-                           + "  ·  " + res(Rez.Strings.Rain) + " " + Fmt.one(rain[base]) + " mm"
-                           + popSuffix(pop[base]);
+        // Wind and rain icons instead of the old text label ("Sade"/"Rain")
+        // — Nico's call, 2026-10-21: wind had no icon or label at all on
+        // this row (unlike every other wind figure in the app), and the
+        // raindrop already proven on Land saves the width the text label
+        // cost. Two icon+text clusters measured and centred as one group,
+        // same approach as drawRainIconText() on Land.
+        var windText = Fmt.windRound(wind[base]) + " (" + Fmt.windRound(gust[base]) + ")";
+        var rainText = Fmt.one(rain[base]) + " mm" + popSuffix(pop[base]);
+        var rowIconSize = (xtinyH * 0.62).toNumber();
+        var iconGap = 3;
+        var clusterGap = 10;
+        var windIconW = (rowIconSize * Icons.widthFactor(:wind)).toNumber();
+        var windTw = dc.getTextWidthInPixels(windText, Graphics.FONT_XTINY);
+        var rainTw = dc.getTextWidthInPixels(rainText, Graphics.FONT_XTINY);
+        var totalW = windIconW + iconGap + windTw + clusterGap + rowIconSize + iconGap + rainTw;
+        var rowLeft2 = cx - (totalW / 2).toNumber();
+        var iy2 = top + ((xtinyH - rowIconSize) / 2).toNumber();
         dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
-        // Guarded against overflow, same as the header's own source line —
-        // Swedish's "Nederbörd" ran this close enough to the round bezel's
-        // edge to clip, found on real sim output 2026-10-13.
-        dc.drawText(cx, top, Graphics.FONT_XTINY,
-                    fit(dc, windRainText, Graphics.FONT_XTINY, (w(dc) * 0.92).toNumber()),
-                    Graphics.TEXT_JUSTIFY_CENTER);
+        Icons.wind(dc, rowLeft2, iy2, rowIconSize, Theme.DIM);
+        dc.drawText(rowLeft2 + windIconW + iconGap, top, Graphics.FONT_XTINY, windText,
+                    Graphics.TEXT_JUSTIFY_LEFT);
+        var rainX = rowLeft2 + windIconW + iconGap + windTw + clusterGap;
+        Icons.raindrop(dc, rainX, iy2, rowIconSize, Theme.DIM);
+        dc.drawText(rainX + rowIconSize + iconGap, top, Graphics.FONT_XTINY, rainText,
+                    Graphics.TEXT_JUSTIFY_LEFT);
         top += xtinyH + 6;
 
         // --- divider ---
