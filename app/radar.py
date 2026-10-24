@@ -1,10 +1,16 @@
-"""Radar tile for the Edge radar app (FIBikeWeather/RESEARCH.md §6).
+"""Radar tile, shared by the Edge radar app (FIBikeWeather/RESEARCH.md §6) and
+the car's rain radar screen (FIRoadWeather/RESEARCH.md §5.5).
 
-One small PNG centred on the rider: FMI's Finnish radar composite over a grey
-land/water basemap, a marker where the rider is, and the frame time stamped in
-the corner. Cropped and drawn here rather than on the device — the one Edge
-radar app found in research placed its marker with hand-tuned pixel constants,
-which is exactly the part that breaks silently when the image format changes.
+One PNG centred on the rider or car: FMI's Finnish radar composite over a grey
+land/water basemap, a marker where they are, and the frame time stamped in the
+corner. Cropped and drawn here rather than on the device — the one Edge radar
+app found in research placed its marker with hand-tuned pixel constants, which
+is exactly the part that breaks silently when the image format changes.
+
+National reflectivity (`suomi_dbz_eureffin`) is the layer for both apps — not
+HydroClass, which exists only per-radar-site with no national mosaic and would
+leave most of a long drive blank (RESEARCH.md §5.5). The two callers differ
+only in tile size and byte budget: see MAX_TILE_BYTES vs CAR_MAX_TILE_BYTES.
 
 The image is square in **kilometres**, not degrees. A degree of longitude is
 about half a degree of latitude at 62°N, so a square bounding box in degrees
@@ -44,6 +50,14 @@ PALETTE_COLOURS = 32
 #: when it is dry, blockier when the whole tile is rain. Nothing real is lost.
 MAX_TILE_BYTES = 20_000
 BLOCK_STEPS = (1, 2, 3, 4, 5, 6)
+
+#: The car screen's budget (FIRoadWeather, /v1/road/radar). Fetched over the
+#: car's own data connection, not relayed through a phone link, so there is
+#: no transfer-size failure mode to protect against — only ordinary page
+#: weight. 10x the Edge's budget still downloads well under a second on
+#: anything but a dead cell signal, and avoids the heavy blockiness
+#: MAX_TILE_BYTES forces on a busy radar frame.
+CAR_MAX_TILE_BYTES = 200_000
 
 _FRAME_RE = re.compile(
     r"<Name>suomi_dbz_eureffin</Name>.*?<Dimension name=\"time\"[^>]*>([^<]+)</Dimension>",
@@ -123,6 +137,14 @@ async def fetch_base(clat: float, clon: float, radius_km: float, size: int,
             # WMS 1.3.0 with EPSG:4326 is latitude-first.
             "bbox": f"{south:.5f},{west:.5f},{north:.5f},{east:.5f}",
             "width": size, "height": size, "format": "image/png",
+            # GeoServer defaults to nearest-neighbour, which visibly blocks
+            # up both the coastline and the radar echoes at these pixel
+            # sizes — the source grid is coarser than the requested image.
+            # One value per layer (confirmed live against openwms.fmi.fi,
+            # 2026-10-24): same bbox/size, 40 kB nearest vs 82 kB bilinear,
+            # and the bilinear tile is the one that doesn't look broken on a
+            # full-screen car display (FIRoadWeather/RESEARCH.md §5.5).
+            "interpolations": "bilinear,bilinear",
             "time": frame.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
         },
     )
@@ -131,17 +153,20 @@ async def fetch_base(clat: float, clon: float, radius_km: float, size: int,
     return response.content
 
 
-def draw(base_png: bytes, px: float, py: float, frame: datetime) -> bytes:
-    """Add the rider marker and frame time, then reduce to a small palette PNG.
+def draw(base_png: bytes, px: float, py: float, frame: datetime,
+        max_bytes: int = MAX_TILE_BYTES) -> bytes:
+    """Add the rider/car marker and frame time, then reduce to a small palette PNG.
 
     The largest block factor in BLOCK_STEPS is tried from the smallest up until the file
-    fits MAX_TILE_BYTES (see the note there); the last one is returned if none does.
+    fits ``max_bytes`` (see the note on MAX_TILE_BYTES); the last one is returned if none
+    does. ``max_bytes`` defaults to the Edge's tight budget; the car client passes a looser
+    one (FIRoadWeather/RESEARCH.md §5.5) since it has no Bluetooth/ANT+ transfer to protect.
     """
     original = Image.open(io.BytesIO(base_png)).convert("RGB")
     out = b""
     for factor in BLOCK_STEPS:
         out = _encode(original, factor, px, py, frame)
-        if len(out) <= MAX_TILE_BYTES:
+        if len(out) <= max_bytes:
             break
     return out
 

@@ -1269,6 +1269,43 @@ async def bike_radar(
                     headers={"Cache-Control": "max-age=120"})
 
 
+@app.get("/v1/road/radar")
+async def road_radar(
+    lat: float, lon: float,
+    radius_km: float = Query(50, ge=10, le=150, description="Snapped to 25, 50 or 100"),
+    size: int = Query(640, ge=240, le=800, description="Square tile, pixels"),
+) -> Response:
+    """Radar tile centred on the car, for FIRoadWeather's MapWithContentTemplate screen.
+
+    Same national reflectivity composite and base-image cache as
+    ``/v1/bike/radar`` (FIRoadWeather/RESEARCH.md §5.5 — HydroClass was
+    rejected for v1: it only exists per-radar-site, with no national mosaic,
+    so most of a long drive would render blank). Differs only in the larger
+    default tile and a looser byte budget (``CAR_MAX_TILE_BYTES``): the car
+    has its own data connection, not a phone-relayed BLE/ANT+ link to protect.
+
+    **Coordinates are never logged and never persisted.**
+    """
+    if not (59.0 <= lat <= 70.5 and 19.0 <= lon <= 32.0):
+        raise HTTPException(status_code=404, detail="outside Finland")
+    radius = radar.snap_radius(radius_km)
+    clat, clon = radar.snap_centre(lat, lon)
+    try:
+        frame = await cache.aget_or_set("radar:frame", config.TTL_RADAR,
+                                        radar.fetch_latest_frame)
+        base = await cache.aget_or_set(
+            f"radar:{frame:%Y%m%d%H%M}:{clat:.2f}:{clon:.2f}:{radius}:{size}",
+            config.TTL_RADAR * 2,
+            lambda: radar.fetch_base(clat, clon, radius, size, frame),
+        )
+    except (FMIError, httpx.HTTPError) as exc:
+        raise _fail(exc if isinstance(exc, FMIError) else FMIError(str(exc))) from exc
+    px, py = radar.marker_pixel(lat, lon, clat, clon, radius, size)
+    png = radar.draw(base, px, py, frame, max_bytes=radar.CAR_MAX_TILE_BYTES)
+    return Response(content=png, media_type="image/png",
+                    headers={"Cache-Control": "max-age=120"})
+
+
 @app.get("/v1/marine")
 async def marine(
     fmisid: int = Query(config.DEFAULT_SEA_FMISID, description="Marine station id"),
