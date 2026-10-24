@@ -52,6 +52,11 @@ MARINE_STATIONS: tuple[Station, ...] = (
     Station(101464, "Mustasaari Valassaaret", 63.435083, 21.068557),
     Station(101481, "Maalahti Strömmingsbådan", 62.978388, 20.740078),
     Station(101479, "Korsnäs Bredskäret", 62.934880, 21.184850),
+    # Fills the ~170 km coastal gap down to Pori Tahkoluoto, missed in the
+    # 2026-09-21 rebuild. Anemometer sits 29 m up on the Sälgrund
+    # lighthouse — reads slightly high for open-sea wind, slightly low for
+    # NW-E wind (shielded by nearby islands). Added v1.2.3 (FI-WEATHER-ROADMAP.md C5n).
+    Station(101256, "Kaskinen Sälgrund", 62.333820, 21.190810),
     Station(101267, "Pori Tahkoluoto satama", 61.630419, 21.376203),
     Station(101061, "Rauma Kylmäpihlaja", 61.144750, 21.302730),
     Station(101059, "Kustavi Isokari", 60.722198, 21.026810),
@@ -71,6 +76,9 @@ MARINE_STATIONS: tuple[Station, ...] = (
     Station(100683, "Porvoo Kilpilahti satama", 60.303725, 25.549164),
     Station(101039, "Loviisa Orrengrund", 60.274765, 26.447587),
     Station(101030, "Kotka Rankki", 60.375377, 26.958926),
+    # Outer-archipelago island station near Kotka, missed in the 2026-09-21
+    # rebuild. Added v1.2.3 (FI-WEATHER-ROADMAP.md C5n).
+    Station(101042, "Kotka Haapasaari", 60.286760, 27.184820),
     Station(101231, "Virolahti Koivuniemi", 60.527197, 27.672743),
     Station(100919, "Hammarland Märket", 60.300980, 19.131420),
     Station(100928, "Kumlinge kirkonkylä", 60.258229, 20.746975),

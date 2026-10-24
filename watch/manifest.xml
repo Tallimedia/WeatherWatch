@@ -12,7 +12,12 @@
     (temp-based swap, no text label), Forecast Today row's "-/-" fallback
     fix plus wind/rain icons, shortened glance land-temp caption; promoted
     from beta/land-forecast-redesign's 1.2.67–1.2.72 beta builds after a
-    real-hardware pass).
+    real-hardware pass; 1.2.3, 2026-10-24 — removed plain `enduro` (crashed
+    on launch, memory budget too small — Enduro 3/4 unaffected, see
+    FI-WEATHER-ROADMAP.md C5p), added Venu X1, Instinct 3 AMOLED 45/50mm,
+    Instinct Crossover AMOLED, Marq 3, D2 Mach 2/2 Pro, D2 Air X10 (all
+    confirmed clean in sim, C5m/C5o/C5q), added two Sea stations — Kaskinen
+    Sälgrund and Kotka Haapasaari (C5n)).
 
     The beta entry used a7c41e2b9d364f158e0b73a2c65d9f04 (0.1.0–0.1.8). Garmin
     will not promote a beta to a public listing: "If you want to publish your
@@ -41,7 +46,7 @@
         type="widget"
         name="@Strings.AppName"
         entry="FIWeatherWatchApp"
-        version="1.2.2"
+        version="1.2.3"
         launcherIcon="@Drawables.LauncherIcon"
         minApiLevel="3.4.0">
 
@@ -71,7 +76,6 @@
         <iq:product id="fenix9pro51mm"/>
         <iq:product id="fenix9prosolar47mm"/>
         <iq:product id="fenix9prosolar51mm"/>
-        <iq:product id="enduro"/>
         <iq:product id="enduro3"/>
         <iq:product id="enduro4"/>
         <iq:product id="fenixe"/>
@@ -86,8 +90,16 @@
         <iq:product id="venu3s"/>
         <iq:product id="venu441mm"/>
         <iq:product id="venu445mm"/>
+        <iq:product id="venux1"/>
         <iq:product id="vivoactive5"/>
         <iq:product id="vivoactive6"/>
+        <iq:product id="instinct3amoled45mm"/>
+        <iq:product id="instinct3amoled50mm"/>
+        <iq:product id="instinctcrossoveramoled"/>
+        <iq:product id="marq3"/>
+        <iq:product id="d2mach2"/>
+        <iq:product id="d2mach2pro"/>
+        <iq:product id="d2airx10"/>
         <iq:product id="fr165"/>
         <iq:product id="fr165m"/>
         <iq:product id="fr170"/>
