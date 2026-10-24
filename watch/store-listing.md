@@ -1,16 +1,23 @@
-# Connect IQ Store listing copy — v1.2.2
+# Connect IQ Store listing copy — v1.2.3
 
 Paste-ready text for <https://apps-developer.garmin.com>. Keep in sync with
 `../CHANGELOG.md`.
 
 The beta (v0.1.x, v1.1.x and v1.2.x pre-release) is unlisted and needs no copy. This
-is the copy for the public listing, updated for the v1.2.2 release (Enduro/Enduro
-3/Enduro 4 device support, a redesigned thermometer icon, the rain-chance line on
-Land replaced by a drop/snowflake icon, Forecast's today row getting wind and rain
-icons, and a shortened glance caption, 2026-10-21) on top of v1.2.1 (Land rain
-likelihood, Today/Tomorrow/+2 Forecast with wind, coloured icons and the temperature
-fallback, 2026-10-20), v1.2.0 (Forecast page and the Land wind fallback, 2026-10-14)
-and v1.1.0 (road-ice and marine warnings).
+is the copy for the public listing, updated for the v1.2.3 release (removed the
+plain Enduro, which crashed on launch; added Venu X1, Instinct 3 AMOLED 45/50mm,
+Instinct Crossover AMOLED, Marq 3, D2 Mach 2, D2 Mach 2 Pro and D2 Air X10; added two
+Sea stations, Kaskinen Sälgrund and Kotka Haapasaari, 2026-10-24) on top of v1.2.2
+(Enduro/Enduro 3/Enduro 4 device support, a redesigned thermometer icon, the
+rain-chance line on Land replaced by a drop/snowflake icon, Forecast's today row
+getting wind and rain icons, and a shortened glance caption, 2026-10-21), v1.2.1
+(Land rain likelihood, Today/Tomorrow/+2 Forecast with wind, coloured icons and the
+temperature fallback, 2026-10-20), v1.2.0 (Forecast page and the Land wind fallback,
+2026-10-14) and v1.1.0 (road-ice and marine warnings).
+
+**v1.2.3 changes the MEA/SEA station count (40 → 42 coastal) and is otherwise
+device-compatibility only** — new supported watches, one device dropped for a
+crash. Nothing else a device description needs updating for.
 
 **v1.2.2 is visual/device-compatibility only, no section or structure change** —
 new supported watches, a redrawn icon, and the rain-chance line swapping its text
@@ -82,7 +89,7 @@ Finnish weather, wind and waves, land and water
 **Why these.** The dashboard has two fields only — a name and a description — so the name
 is the whole short pitch, and it is what store search matches on. A bare product name
 would waste it. Both forms say *on the water* rather than *at sea*: `vesillä` covers sea
-and lakes alike, `merellä` does not, and 14 of the 54 stations are on lakes, so the
+and lakes alike, `merellä` does not, and 14 of the 56 stations are on lakes, so the
 distinction is real rather than stylistic. "land and water" carries the same sense in
 English.
 
@@ -122,7 +129,7 @@ ENNUSTE
 Tämä päivä, huominen ja ylihuomenna — sää, ylin ja alin lämpötila, tuuli ja sademäärä, tälle päivälle myös sateen todennäköisyys. Sivun voi piilottaa asetuksista.
 
 MERI
-Tuuli, puuskat ja suunta 40 rannikkoasemalta ja 14 sisävesiasemalta — Harmajasta Märketiin, Saimaalta Näsijärvelle. Tuulivaroitus näkyy samalla sivulla, kun on voimassa.
+Tuuli, puuskat ja suunta 42 rannikkoasemalta ja 14 sisävesiasemalta — Harmajasta Märketiin, Saimaalta Näsijärvelle. Tuulivaroitus näkyy samalla sivulla, kun on voimassa.
 
 AALLOT
 Merkitsevä aallonkorkeus, jakso, suunta ja veden lämpötila Ilmatieteen laitoksen aaltopoijuilta. Poijut nostetaan talveksi pois vedestä; silloin sovellus kertoo sen ja näyttää mallidataa selvästi merkittynä. Aallokkovaroitus näkyy samalla sivulla, kun on voimassa.
@@ -164,7 +171,7 @@ FORECAST
 Today, tomorrow and the day after — weather, high and low, wind and rain, plus the chance of rain for today. The page can be hidden in settings.
 
 SEA
-Wind, gusts and direction from 40 coastal and 14 inland lake stations — Harmaja to Märket, Saimaa to Näsijärvi. A wind warning appears on this same page when one is in effect.
+Wind, gusts and direction from 42 coastal and 14 inland lake stations — Harmaja to Märket, Saimaa to Näsijärvi. A wind warning appears on this same page when one is in effect.
 
 WAVES
 Significant wave height, period, direction and water temperature from FMI's wave buoys. The buoys are lifted out for the winter; when none is reporting the app says so and falls back to model output, clearly labelled. A wave warning appears on this same page when one is in effect.
@@ -250,11 +257,14 @@ history, newest first. Each paragraph below is deliberately one single unbroken 
 the Store textarea does not re-wrap pasted text, so a hard line break inside a paragraph
 shows up as a forced break. Only the blank lines between versions are real breaks. For
 the next release: write the new version's paragraph and prepend it. Keep each language
-under 4000 characters (these are about 2265 EN / 2310 FI).
+under 4000 characters (these are about 2606 EN / 2700 FI).
 
 ### Paste into Store — English
 
 ```
+v1.2.3
+Removed support for the Garmin Enduro (original) after finding it could crash on launch; Enduro 3 and Enduro 4 are unaffected. Added support for the Venu X1, Instinct 3 AMOLED (45mm and 50mm), Instinct Crossover AMOLED, Marq 3, D2 Mach 2, D2 Mach 2 Pro and D2 Air X10. Added two Sea stations: Kaskinen Sälgrund and Kotka Haapasaari.
+
 v1.2.2
 Added support for the Garmin Enduro, Enduro 3 and Enduro 4. Fixed the rain-chance line on Land overlapping the icy-road warning when both were showing. The thermometer icon is redesigned with a visible temperature fill and scale ticks. The rain-chance line now shows a raindrop or, below freezing, a snowflake icon instead of its text label. The Forecast page's today row now shows a wind icon and a rain icon, and no longer shows dashes when the latest hourly forecast isn't ready yet. The land-temperature label in the glance is shorter.
 
@@ -274,6 +284,9 @@ First public release. Land forecast and current conditions from the nearest repo
 ### Paste into Store — Finnish
 
 ```
+v1.2.3
+Poistettu tuki Garmin Enduro (alkuperäinen) -kellolta, koska sovellus saattoi kaatua sitä käynnistettäessä; Enduro 3 ja Enduro 4 toimivat normaalisti. Tuki lisätty Garmin Venu X1-, Instinct 3 AMOLED (45 mm ja 50 mm)-, Instinct Crossover AMOLED-, Marq 3-, D2 Mach 2-, D2 Mach 2 Pro- ja D2 Air X10 -kelloille. Lisätty kaksi uutta merisääasemaa: Kaskinen Sälgrund ja Kotka Haapasaari.
+
 v1.2.2
 Tuki Garmin Enduro-, Enduro 3- ja Enduro 4 -kelloille. Korjattu sateen todennäköisyysrivi Maa-sivulla menemästä päällekkäin liukkaan tien varoituksen kanssa, kun molemmat näkyivät samaan aikaan. Lämpömittarikuvake on uudistettu: siinä näkyy nyt täyttyvä lämpötilapylväs ja asteikon viivat. Sateen todennäköisyysrivi näyttää nyt tekstin sijaan sadepisara- tai, pakkasella, lumihiutalekuvakkeen. Ennuste-sivun tämän päivän rivillä näkyy nyt tuuli- ja sadekuvake, eikä rivi enää näytä viivoja, kun tuorein tuntiennuste ei ole vielä valmis. Vilkaisunäkymän maan lämpötilan otsikko on lyhyempi.
 
@@ -287,12 +300,40 @@ v1.1.0
 Viralliset FMI-varoitukset suoraan sillä sivulla, jota ne koskevat: liukkaan tien varoitus Maalla, tuulivaroitus Merellä ja aallokkovaroitus Aalloilla. Varoitus näkyy siinä missä lukemakin, ei erillistä välilehteä. Selkeämmät otsikot: Maasää ja Merisää.
 
 v1.0.0
-Ensimmäinen julkinen versio. Ennuste ja nykyhetken sää lähimmältä havaintoasemalta, merituuli ja puuskat 40 rannikko- ja 14 sisävesiasemalta sekä aallonkorkeus, jakso, suunta ja veden lämpötila Ilmatieteen laitoksen aaltopoijuilta. Omat tuuli-, puuska-, aalto- ja lämpötilarajat, vilkaisunäkymään kaksi valittavaa arvoa, suomi, ruotsi ja englanti sekä tuuli m/s, solmuina tai boforeina.
+Ensimmäinen julkinen versio. Ennuste ja nykyhetken sää lähimmältä havaintoasemalta, merituuli ja puuskat 42 rannikko- ja 14 sisävesiasemalta sekä aallonkorkeus, jakso, suunta ja veden lämpötila Ilmatieteen laitoksen aaltopoijuilta. Omat tuuli-, puuska-, aalto- ja lämpötilarajat, vilkaisunäkymään kaksi valittavaa arvoa, suomi, ruotsi ja englanti sekä tuuli m/s, solmuina tai boforeina.
 ```
 
 ---
 
 ## Per-version notes (reference — the blocks above are what gets pasted)
+
+## What's new — v1.2.3
+
+**Leads with the removed device** — a crash is the one thing in this release that
+actually matters to someone affected by it; the new devices are additions nobody
+was blocked on before.
+
+**Finnish:**
+
+```
+Kaatumiskorjaus ja seitsemän uutta kelloa.
+
+• Poistettu tuki Garmin Enduro (alkuperäinen) -kellolta — saattoi kaatua käynnistettäessä
+• Tuki Venu X1-, Instinct 3 AMOLED-, Instinct Crossover AMOLED-, Marq 3-, D2 Mach 2-, D2 Mach 2 Pro- ja D2 Air X10 -kelloille
+• Kaksi uutta merisääasemaa: Kaskinen Sälgrund ja Kotka Haapasaari
+```
+
+**English:**
+
+```
+A crash fix and seven new watches.
+
+• Removed support for the Garmin Enduro (original) — could crash on launch
+• Added support for the Venu X1, Instinct 3 AMOLED, Instinct Crossover AMOLED, Marq 3, D2 Mach 2, D2 Mach 2 Pro and D2 Air X10
+• Two new Sea stations: Kaskinen Sälgrund and Kotka Haapasaari
+```
+
+---
 
 ## What's new — v1.2.2
 
