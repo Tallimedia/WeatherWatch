@@ -63,6 +63,20 @@ FMI_RADAR_CAPS = os.getenv("FMI_RADAR_CAPS", "https://openwms.fmi.fi/geoserver/R
 # the capabilities document that names the newest frame is 400 kB.
 TTL_RADAR = int(os.getenv("TTL_RADAR", "240"))
 
+# Maanmittauslaitos (National Land Survey of Finland) open WMTS — the car
+# radar screen's basemap (FIRoadWeather/RESEARCH.md §5.5). FMI's own WMS has
+# exactly one basemap layer (naturalearthgray) and it is too coarse for a
+# close-up car view at any resampling; MML's tile pyramid stays crisp at
+# every zoom. Free, but requires a key registered through MML's own OmaTili
+# account service — there is no sensible default, an empty key simply fails.
+# MML's docs flag the open interface as "not intended for high-volume
+# services" — the basemap is cached far longer than a radar frame
+# (TTL_MML_BASEMAP) specifically to respect that, since unlike the radar
+# overlay it never changes.
+MML_API_KEY = os.getenv("MML_API_KEY", "")
+MML_WMTS = os.getenv("MML_WMTS", "https://avoin-karttakuva.maanmittauslaitos.fi/avoin/wmts")
+TTL_MML_BASEMAP = int(os.getenv("TTL_MML_BASEMAP", str(24 * 3600)))
+
 # A name FMI does not know will not start being known in the next few minutes,
 # and each attempt costs four upstream calls.
 TTL_UNKNOWN_PLACE = int(os.getenv("TTL_UNKNOWN_PLACE", "600"))

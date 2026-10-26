@@ -1277,12 +1277,16 @@ async def road_radar(
 ) -> Response:
     """Radar tile centred on the car, for FIRoadWeather's MapWithContentTemplate screen.
 
-    Same national reflectivity composite and base-image cache as
-    ``/v1/bike/radar`` (FIRoadWeather/RESEARCH.md §5.5 — HydroClass was
-    rejected for v1: it only exists per-radar-site, with no national mosaic,
-    so most of a long drive would render blank). Differs only in the larger
-    default tile and a looser byte budget (``CAR_MAX_TILE_BYTES``): the car
-    has its own data connection, not a phone-relayed BLE/ANT+ link to protect.
+    National reflectivity composite (FIRoadWeather/RESEARCH.md §5.5 —
+    HydroClass was rejected for v1: it only exists per-radar-site, with no
+    national mosaic, so most of a long drive would render blank), but the
+    basemap underneath it is Maanmittauslaitos's (National Land Survey of
+    Finland) tile service, not FMI's own `naturalearthgray` — that layer is
+    too coarse for a close-up car view at any resampling (same RESEARCH.md
+    §5.5). Basemap and radar overlay are fetched and cached separately
+    (`fetch_mml_basemap` at `TTL_MML_BASEMAP`, far longer than a radar frame
+    — MML's docs ask that the open interface not be hit at high volume, and
+    the basemap cannot change) and composited fresh per request.
 
     **Coordinates are never logged and never persisted.**
     """
@@ -1293,11 +1297,17 @@ async def road_radar(
     try:
         frame = await cache.aget_or_set("radar:frame", config.TTL_RADAR,
                                         radar.fetch_latest_frame)
-        base = await cache.aget_or_set(
-            f"radar:{frame:%Y%m%d%H%M}:{clat:.2f}:{clon:.2f}:{radius}:{size}",
-            config.TTL_RADAR * 2,
-            lambda: radar.fetch_base(clat, clon, radius, size, frame),
+        basemap = await cache.aget_or_set(
+            f"mmlbase:{clat:.2f}:{clon:.2f}:{radius}:{size}",
+            config.TTL_MML_BASEMAP,
+            lambda: radar.fetch_mml_basemap(clat, clon, radius, size),
         )
+        overlay = await cache.aget_or_set(
+            f"radaroverlay:{frame:%Y%m%d%H%M}:{clat:.2f}:{clon:.2f}:{radius}:{size}",
+            config.TTL_RADAR * 2,
+            lambda: radar.fetch_radar_overlay(clat, clon, radius, size, frame),
+        )
+        base = radar.compose_mml(basemap, overlay)
     except (FMIError, httpx.HTTPError) as exc:
         raise _fail(exc if isinstance(exc, FMIError) else FMIError(str(exc))) from exc
     px, py = radar.marker_pixel(lat, lon, clat, clon, radius, size)

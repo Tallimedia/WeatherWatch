@@ -19,6 +19,7 @@ would be stretched. The box is built from the radius and the local cosine.
 
 from __future__ import annotations
 
+import asyncio
 import io
 import math
 import re
@@ -33,6 +34,10 @@ from .fmi import FMIError, client
 _HELSINKI = ZoneInfo("Europe/Helsinki")
 _KM_PER_DEG_LAT = 111.2
 _KM_PER_DEG_LON_EQ = 111.32
+
+#: Standard Web Mercator slippy-tile size, same as every OSM-derived service.
+_MML_TILE_PX = 256
+_MML_MAX_ZOOM = 18
 
 #: Radii offered by the app (RESEARCH.md §7). Anything else is rounded to the
 #: nearest so the cache key space stays three entries wide per cell.
@@ -151,6 +156,140 @@ async def fetch_base(clat: float, clon: float, radius_km: float, size: int,
     if response.status_code != 200 or response.headers.get("content-type", "").split(";")[0] != "image/png":
         raise FMIError(f"radar GetMap {response.status_code}: {response.text[:120]}")
     return response.content
+
+
+async def fetch_radar_overlay(clat: float, clon: float, radius_km: float, size: int,
+                              frame: datetime) -> bytes:
+    """The radar layer alone, transparent where there is no echo.
+
+    Companion to :func:`fetch_mml_basemap` for the car screen: MML has no
+    radar data of its own, so the two are fetched separately and composited
+    in :func:`compose_mml` rather than asking GeoServer for both layers in
+    one `GetMap` the way :func:`fetch_base` does for the bike app. Confirmed
+    live (2026-10-26) that `suomi_dbz_eureffin` alone, with `transparent=true`
+    and no basemap layer in the same request, returns real alpha — 0 where
+    there is no echo, ~204/255 where there is — not an opaque white fill.
+    """
+    south, west, north, east = bbox(clat, clon, radius_km)
+    response = await client().get(
+        config.FMI_RADAR_WMS,
+        params={
+            "service": "WMS", "version": "1.3.0", "request": "GetMap",
+            "layers": "Radar:suomi_dbz_eureffin",
+            "styles": "", "crs": "EPSG:4326",
+            "bbox": f"{south:.5f},{west:.5f},{north:.5f},{east:.5f}",
+            "width": size, "height": size, "format": "image/png",
+            "transparent": "true",
+            "interpolations": "bilinear",
+            "time": frame.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+        },
+    )
+    if response.status_code != 200 or response.headers.get("content-type", "").split(";")[0] != "image/png":
+        raise FMIError(f"radar overlay GetMap {response.status_code}: {response.text[:120]}")
+    return response.content
+
+
+def _lonlat_to_tilef(lon: float, lat: float, zoom: int) -> tuple[float, float]:
+    """Fractional Web Mercator tile coordinates — the standard slippy-tile
+    formula shared by every OSM-derived tile service, MML's WMTS included."""
+    n = 2 ** zoom
+    x = (lon + 180.0) / 360.0 * n
+    lat_rad = math.radians(lat)
+    y = (1.0 - math.asinh(math.tan(lat_rad)) / math.pi) / 2.0 * n
+    return x, y
+
+
+def _pick_zoom(west: float, east: float, lat: float, size: int) -> int:
+    """The zoom level whose metres/pixel most closely matches the requested
+    bbox width spread over `size` pixels — rounds to the nearest integer
+    zoom rather than always rounding up, so a radius between two zooms costs
+    roughly the tile count either neighbouring zoom would (not systematically
+    more).
+    """
+    width_km = (east - west) * _KM_PER_DEG_LON_EQ * math.cos(math.radians(lat))
+    target_mpp = (width_km * 1000) / size
+    base_mpp_at_z0 = 156543.03392 * math.cos(math.radians(lat))
+    zoom = round(math.log2(base_mpp_at_z0 / target_mpp))
+    return max(0, min(_MML_MAX_ZOOM, zoom))
+
+
+async def _fetch_mml_tile(x: int, y: int, zoom: int) -> Image.Image:
+    url = f"{config.MML_WMTS}/1.0.0/taustakartta/default/WGS84_Pseudo-Mercator/{zoom}/{y}/{x}.png"
+    response = await client().get(url, params={"api-key": config.MML_API_KEY})
+    if response.status_code != 200:
+        raise FMIError(f"MML tile {zoom}/{x}/{y}: {response.status_code}")
+    return Image.open(io.BytesIO(response.content)).convert("RGB")
+
+
+async def fetch_mml_basemap(clat: float, clon: float, radius_km: float, size: int) -> bytes:
+    """Maanmittauslaitos's (National Land Survey of Finland) background map,
+    stitched from WMTS tiles and cropped to exactly `size`x`size` pixels.
+
+    Replaces `Basemaps:naturalearthgray` for the car radar screen
+    (RESEARCH.md §5.5) — FMI's WMS has that one basemap layer and it is too
+    coarse for a close-up car view at any resampling; MML's tile pyramid
+    stays crisp at every zoom, confirmed live 2026-10-26 against a tile over
+    Espoo/Helsinki at zoom 10.
+
+    No marker, no radar, no timestamp — those belong to the frame-specific
+    overlay and are composited on top in :func:`compose_mml`. This function's
+    result never changes for a given (clat, clon, radius, size), so the
+    caller should cache it far longer than a radar frame
+    (`config.TTL_MML_BASEMAP`) — MML's own docs ask that the open interface
+    not be hit at high volume, and there is no reason to re-fetch a basemap
+    that cannot have changed.
+    """
+    if not config.MML_API_KEY:
+        raise FMIError("MML_API_KEY is not set — register one at the MML OmaTili "
+                       "service (RESEARCH.md §5.5) before requesting the car basemap")
+    south, west, north, east = bbox(clat, clon, radius_km)
+    zoom = _pick_zoom(west, east, clat, size)
+
+    x0f, y0f = _lonlat_to_tilef(west, north, zoom)
+    x1f, y1f = _lonlat_to_tilef(east, south, zoom)
+    x_min, x_max = int(x0f), int(x1f)
+    y_min, y_max = int(y0f), int(y1f)
+
+    tiles = await asyncio.gather(*[
+        _fetch_mml_tile(x, y, zoom)
+        for y in range(y_min, y_max + 1)
+        for x in range(x_min, x_max + 1)
+    ])
+
+    canvas = Image.new("RGB", (
+        (x_max - x_min + 1) * _MML_TILE_PX,
+        (y_max - y_min + 1) * _MML_TILE_PX,
+    ))
+    i = 0
+    for y in range(y_min, y_max + 1):
+        for x in range(x_min, x_max + 1):
+            canvas.paste(tiles[i], ((x - x_min) * _MML_TILE_PX, (y - y_min) * _MML_TILE_PX))
+            i += 1
+
+    crop = (
+        (x0f - x_min) * _MML_TILE_PX, (y0f - y_min) * _MML_TILE_PX,
+        (x1f - x_min) * _MML_TILE_PX, (y1f - y_min) * _MML_TILE_PX,
+    )
+    cropped = canvas.crop(crop).resize((size, size), Image.LANCZOS)
+    buf = io.BytesIO()
+    cropped.save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def compose_mml(basemap_png: bytes, overlay_png: bytes) -> bytes:
+    """Alpha-composite the radar overlay onto the MML basemap.
+
+    Separate from :func:`draw`, which still adds the marker and timestamp —
+    this only merges the two source images so the result can be fed into
+    :func:`draw` exactly like :func:`fetch_base`'s single-call output is for
+    the bike app, reusing its marker/timestamp/quantize logic unchanged.
+    """
+    base = Image.open(io.BytesIO(basemap_png)).convert("RGBA")
+    overlay = Image.open(io.BytesIO(overlay_png)).convert("RGBA")
+    base.alpha_composite(overlay)
+    buf = io.BytesIO()
+    base.convert("RGB").save(buf, format="PNG")
+    return buf.getvalue()
 
 
 def draw(base_png: bytes, px: float, py: float, frame: datetime,
