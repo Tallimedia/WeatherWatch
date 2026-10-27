@@ -19,6 +19,16 @@ guess which file is the one to upload today.
 | `screenshots/` | the store gallery, framed in the device |
 | `archive/` | every superseded release — nothing current lives here |
 
+**Binaries (`.iq`/`.prg`/`-settings.json`) are gitignored as of 2026-10-27** —
+found during a public-repo audit that this `tallimedia` remote is public, and
+a public repo handing out the installable app bypasses the Connect IQ Store
+entirely (no review visibility, no install tracking, and it defeats any
+future paid unlock). `build-release.sh` still writes them here locally for
+upload exactly as before; they're just not tracked in git anymore. Pre-cutoff
+versions remain in the private `origin` remote's git history. If a from-
+scratch clone ever needs an old binary back, pull it from `origin`'s history
+or rebuild from the matching source tag — don't re-add it to `dist/` here.
+
 The listing copy is in [`../watch/store-listing.md`](../watch/store-listing.md).
 
 `watch/bin/` follows the same rule but is gitignored (it's raw build output,

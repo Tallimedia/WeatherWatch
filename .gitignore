@@ -27,8 +27,19 @@ watch/bin/
 *.iq
 watch/bin/*.iq
 
-# Hand-offs are the exception: a tester build has to be reachable from a
-# machine that is not this one, so it is tracked deliberately rather than
-# force-added past the rules above.
+# dist/ holds store assets and marketing art, tracked deliberately so they're
+# reachable from another machine — but NOT the app binaries themselves
+# (.iq/.prg/-settings.json). This repo's `tallimedia` remote is public, and
+# a public repo handing out the installable app defeats the Connect IQ
+# Store as the intended distribution path (and any future paid unlock).
+# Binaries live in dist/ locally and in the private `origin` remote's git
+# history (pre-2026-10-27 commits) — build-release.sh still writes them to
+# dist/ locally for upload, they're just not tracked here anymore.
 !dist/
 !dist/**
+dist/*.iq
+dist/*.prg
+dist/*-settings.json
+dist/archive/*.iq
+dist/archive/*.prg
+dist/archive/*-settings.json
