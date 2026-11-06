@@ -9,6 +9,49 @@ Design reasoning lives in `RESEARCH.md` (owned by the `claude-docs` repo).
 
 ## Watch app
 
+### v1.2.4 — 2026-11-06 (public)
+Promoted from `beta/amoled-graphics` after beta builds 1.2.8–1.2.10 were
+confirmed on real hardware (quatix 8) and across the full MIP capability
+spread in the simulator. Public versioning is independent of the number of
+beta iterations, same as every prior release.
+- **AMOLED graphics tier.** A richer rendering tier for AMOLED devices —
+  gradient temperature/wind/wave gauges, full-colour icons, and redesigned
+  Land, Sea, Waves, Forecast and About pages — built against 46 of this
+  app's 80 supported devices. MIP devices (the other 34) keep the exact
+  `Pages.mc` rendering shipped since v1.0.0, unchanged. The split happens at
+  build time: `AmoledX.mc` modules and `Pages.mc`'s MIP draw functions each
+  carry a `:amoledTheme`/`:mipTheme` tag, and `monkey.jungle` excludes one
+  or the other per device, classified by the installed SDK's own
+  `compiler.json` `displayType` field. Confirmed via a fenix7 (MIP) sim
+  rebuild (regression-free) and real quatix 8 AMOLED hardware, including a
+  live road-ice warning rendering correctly alongside the new design.
+- **Snow depth on the Land page, both tiers.** FMI's `snow_aws` observation
+  parameter, hidden whenever the reading is ≤ 0 cm so it doesn't show on a
+  bare-ground day. AMOLED shows a full-colour icon cluster after the wind
+  row; MIP shows the same icon (where the device supports it) inline on the
+  compass row next to the direction label. Backend guards a real `-1` "no
+  snow" sentinel on this endpoint, confirmed live against Helsinki
+  Kaisaniemi — the same convention the Digitraffic road-station snow field
+  already used, but not something this endpoint had needed before.
+- **A real crash found and fixed before it shipped.** `drawScaledBitmap`
+  doesn't exist at all on 19 of this app's 34 MIP devices (the whole
+  fenix 6 line, every Marq, the fr255 line) — found via a sim spot-check on
+  `fr255s`, not assumed from SDK docs. `Pages.drawSnowDepth()` now tries
+  `drawScaledBitmap`, falls back to a fixed-size plain `drawBitmap` (a
+  separately-sized 18px icon, confirmed via a live sim probe that this
+  older call survives where the scaled one doesn't), and falls back again
+  to `Icons.ice()`'s hand-drawn 6-spoke vector if even that's unavailable —
+  not `Icons.snowflake()`, whose 4-arm cross reads as a plain "+" at
+  row-icon size.
+- **Small-screen header fix.** `Pages.mc`'s `fit()` was truncating Land's
+  "place · distance" line into unreadable noise ("1....") on the smallest
+  screens (218px, `fr255s`) — it now drops the distance suffix outright and
+  fits just the place name, rather than truncating through the suffix
+  character by character.
+- Store listing, hero/cover art and the public website
+  (weatherapp.tallimedia.com) all updated to lead with the AMOLED graphics
+  tier and snow depth as this release's headline features.
+
 ### v1.2.1 — 2026-10-20 (public)
 Promoted from `beta/land-forecast-redesign` after beta builds 1.2.6–1.2.67 were
 checked on real hardware (quatix 8) and in the simulator. Public versioning is
