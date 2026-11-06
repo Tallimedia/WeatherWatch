@@ -4,7 +4,7 @@ STR = {
   fi: {
     heroA:"Suomen sää,", heroB:"maalla ja merellä.",
     lede:"Ennusteet, merituuli ja live-aaltodata — suoraan Ilmatieteen laitoksen omasta avoimesta datasta, ei globaalista mallista. Kaikki alla on live-dataa juuri nyt. Nyt saatavilla Connect IQ -kaupassa.",
-    tagDev:"v1.2.1", tagArea:"Suomi",
+    tagDev:"v1.2.4", tagArea:"Suomi",
     navLive:"Live-data", navWhat:"Ominaisuudet", navData:"Data",
     onLand:"Maalla", onLandSub:"Havainnot ja loppupäivä lähimmältä asemalta.",
     atSea:"Merellä", atSeaSub:"Tuuli merihavaintoasemalta, aallot Ilmatieteen laitoksen poijuilta.",
@@ -65,7 +65,7 @@ STR = {
   sv: {
     heroA:"Finlands väder,", heroB:"på land och till havs.",
     lede:"Prognoser, havsvind och live-vågdata — direkt från Meteorologiska institutets egna öppna data, inte en global modell. Allt nedan är live just nu. Finns nu i Connect IQ Store.",
-    tagDev:"v1.2.1", tagArea:"Finland",
+    tagDev:"v1.2.4", tagArea:"Finland",
     navLive:"Livedata", navWhat:"Funktioner", navData:"Data",
     onLand:"På land", onLandSub:"Observationer och resten av dagen från närmaste station.",
     atSea:"Till havs", atSeaSub:"Vind från en havsstation, vågor från institutets vågbojar.",
@@ -126,7 +126,7 @@ STR = {
   en: {
     heroA:"Finnish weather,", heroB:"land and sea.",
     lede:"Forecasts, marine wind and live wave data — from the Finnish Meteorological Institute's own open data, not a global model. Everything below is live right now. Available now on the Connect IQ Store.",
-    tagDev:"v1.2.1", tagArea:"Finland",
+    tagDev:"v1.2.4", tagArea:"Finland",
     navLive:"Live data", navWhat:"Features", navData:"Data",
     onLand:"On land", onLandSub:"Current conditions and the rest of today, from the nearest reporting station.",
     atSea:"At sea", atSeaSub:"Wind from a Finnish marine station, waves from FMI's wave buoys.",
@@ -238,7 +238,11 @@ function warnLine(level, moderateKey, severeKey) {
   const moderate = level === "moderate" || level === "Moderate";
   if (!severe && !moderate) return "";
   const text = T(severe ? severeKey : moderateKey);
-  return `<p class="warn${severe ? " severe" : ""}">${WARN_ICON}${text}</p>`;
+  // Road warnings get the dedicated icy-road illustration (2026-10-30 data-
+  // metric set) instead of the generic triangle — distinguished by key,
+  // since this function doesn't otherwise know road from sea.
+  const ic = moderateKey === "IcyRoadWarning" ? metricIcon("icy_road", 18) : WARN_ICON;
+  return `<p class="warn${severe ? " severe" : ""}">${ic}${text}</p>`;
 }
 
 /* Evenly-spaced sample of at most `n` items, always including the first and
@@ -316,7 +320,7 @@ async function loadNow(place) {
                 : at(obs, "windspeedms")}</span></div>
           <div>${T("gust")}<b>${fmt(obs.windgust, 1)} m/s</b>
             <span class="at">${at(obs, "windgust")}</span></div>
-          <div>${RAIN_ICON}${T("rain")}<b>${fmt(rainNow, 1)} mm</b>
+          <div>${metricIcon("rain_amount", 14)}${T("rain")}<b>${fmt(rainNow, 1)} mm</b>
             <span class="at">${ahead.length ? localTime(ahead[0].epochtime) : "–"}</span></div>
           <div>${T("humidity")}<b>${fmt(obs.humidity, 0)}%</b>
             <span class="at">${at(obs, "humidity")}</span></div>

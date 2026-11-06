@@ -26,20 +26,24 @@ SHOTS = Path(__file__).resolve().parents[2] / "Screenshots"
 
 # Per-language art. Finnish is the store's primary listing language
 # (store-listing.md), so it gets its own hero/cover with a Finnish capture and
-# translated copy, not a relabelled English one. Both read from the Forecast
-# page since v1.2.0 — the release's headline feature belongs in the store art,
-# not just the gallery, same reasoning that put v1.1.0's live Sea warning
-# here (RESEARCH.md §16 and §27).
+# translated copy, not a relabelled English one. Read from the Land page as
+# of v1.2.4 (was Forecast through v1.2.3) — the release's headline feature
+# belongs in the store art, not just the gallery, same reasoning that put
+# v1.1.0's live Sea warning here (RESEARCH.md §16 and §27); v1.2.4's headline
+# is the AMOLED graphics tier + snow depth, both visible on Land. Finnish
+# capture keeps its live black-ice warning (Nico's call, 2026-11-06) —
+# English has none live at capture time, so it shows the plain page instead
+# of a forced one, in keeping with "a real capture, not a re-staging".
 LANGS = {
     "en": dict(
         hero=HERE / "hero-1440x720.png",
         cover=HERE / "cover-500x500.png",
-        capture=SHOTS / "pg-fc-eng.png",
+        capture=SHOTS / "pg1-amoled-eng-v124.png",
         subtitle=["Finnish weather, land and sea —", "straight from the source."],
         bullets=[
+            "New: richer graphics on AMOLED watches",
+            "New: current snow depth, from FMI's weather-station network",
             "Live observations and a 3-day forecast",
-            "Marine wind from 40 coastal and 14 lake stations",
-            "Wave height and water temperature from FMI buoys",
             "Official FMI warnings on the page they're about",
             "Your own wind, gust and wave limits",
         ],
@@ -51,12 +55,12 @@ LANGS = {
     "fi": dict(
         hero=HERE / "hero-1440x720-fi.png",
         cover=HERE / "cover-500x500-fi.png",
-        capture=SHOTS / "pg-fc-fin.png",
+        capture=SHOTS / "pg1-amoled-v124.png",
         subtitle=["Suomen sää, maalla ja merellä —", "suoraan lähteeltä."],
         bullets=[
+            "Uutta: entistä näyttävämmät grafiikat AMOLED-kelloille",
+            "Uutta: lumensyvyys Ilmatieteen laitoksen sääasemilta",
             "Reaaliaikaiset havainnot ja 3 päivän ennuste",
-            "Merituuli 40 rannikko- ja 14 sisävesiasemalta",
-            "Aallonkorkeus ja veden lämpötila FMI:n poijuilta",
             "Viralliset FMI-varoitukset sillä sivulla, jota ne koskevat",
             "Omat tuuli-, puuska- ja aaltorajasi",
         ],

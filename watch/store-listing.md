@@ -122,6 +122,8 @@ Suomen sää, maalla ja merellä.
 
 FIWeatherWatch näyttää sen, mitä Ilmatieteen laitoksen omat mittarit raportoivat juuri nyt.
 
+Jos pidät tästä sääapista, toivon että ehdit antaa sille hyvän arvosanan ja kommentin, kiitos!
+
 MAA
 Lämpötila ja tuuli lähimmältä havaintoasemalta, asema ja sen etäisyys näkyvissä. Sateen todennäköisyys seuraavalle tunnille ja kolmelle tunnille. Jos asemalla ei ole tuulianturia tai lämpömittaria, lukema haetaan lähimmältä asemalta ja merkitään sen mukaan. Liukkaan tien varoitus näkyy samalla sivulla, kun Ilmatieteen laitos sellaisen antaa.
 
@@ -257,11 +259,14 @@ history, newest first. Each paragraph below is deliberately one single unbroken 
 the Store textarea does not re-wrap pasted text, so a hard line break inside a paragraph
 shows up as a forced break. Only the blank lines between versions are real breaks. For
 the next release: write the new version's paragraph and prepend it. Keep each language
-under 4000 characters (these are about 2606 EN / 2700 FI).
+under 4000 characters (these are about 3000 EN / 3098 FI).
 
 ### Paste into Store — English
 
 ```
+v1.2.4
+Richer graphics on AMOLED watches — a gradient temperature gauge, full-colour weather icons and a redesigned Land, Sea, Waves, Forecast and About page; MIP watches keep the existing look unchanged. Added current snow depth to the Land page, from the same FMI weather-station network as the rest of the page's readings, shown whenever a station is actually reporting snow on the ground.
+
 v1.2.3
 Removed support for the Garmin Enduro (original) after finding it could crash on launch; Enduro 3 and Enduro 4 are unaffected. Added support for the Venu X1, Instinct 3 AMOLED (45mm and 50mm), Instinct Crossover AMOLED, Marq 3, D2 Mach 2, D2 Mach 2 Pro and D2 Air X10. Added two Sea stations: Kaskinen Sälgrund and Kotka Haapasaari.
 
@@ -284,6 +289,9 @@ First public release. Land forecast and current conditions from the nearest repo
 ### Paste into Store — Finnish
 
 ```
+v1.2.4
+Entistä näyttävämmät grafiikat AMOLED-kelloille — liukuväriasteikko lämpötilalle, täysvärikuvakkeet ja uudistettu Maa-, Meri-, Aallot-, Ennuste- ja Tietoja-sivu; MIP-kellot säilyttävät nykyisen ulkoasun ennallaan. Maa-sivulle lisätty ajantasainen lumensyvyys samalta Ilmatieteen laitoksen sääasemaverkolta kuin sivun muutkin lukemat, näkyvissä aina kun asema ilmoittaa lunta olevan maassa.
+
 v1.2.3
 Poistettu tuki Garmin Enduro (alkuperäinen) -kellolta, koska sovellus saattoi kaatua sitä käynnistettäessä; Enduro 3 ja Enduro 4 toimivat normaalisti. Tuki lisätty Garmin Venu X1-, Instinct 3 AMOLED (45 mm ja 50 mm)-, Instinct Crossover AMOLED-, Marq 3-, D2 Mach 2-, D2 Mach 2 Pro- ja D2 Air X10 -kelloille. Lisätty kaksi uutta merisääasemaa: Kaskinen Sälgrund ja Kotka Haapasaari.
 
@@ -306,6 +314,35 @@ Ensimmäinen julkinen versio. Ennuste ja nykyhetken sää lähimmältä havainto
 ---
 
 ## Per-version notes (reference — the blocks above are what gets pasted)
+
+## What's new — v1.2.4
+
+**Leads with the AMOLED graphics tier** — the headline feature of this release, and
+the thing the hero/cover art now shows instead of the Forecast page. Snow depth is
+the second new thing, explicitly sourced (FMI's weather-station network) since
+the app already surfaces two other sources of winter data (road-ice risk from
+Fintraffic's road stations, precipitation-phase snow from the forecast) and this
+is neither of those.
+
+**Finnish:**
+
+```
+Uudet grafiikat AMOLED-kelloille ja lumensyvyys.
+
+• Entistä näyttävämmät grafiikat AMOLED-kelloille — liukuväriasteikot ja täysvärikuvakkeet Maa-, Meri-, Aallot-, Ennuste- ja Tietoja-sivuilla; MIP-kellojen ulkoasu ennallaan
+• Lumensyvyys Maa-sivulle, Ilmatieteen laitoksen sääasemaverkolta
+```
+
+**English:**
+
+```
+New AMOLED graphics and snow depth.
+
+• Richer graphics on AMOLED watches — gradient gauges and full-colour icons on Land, Sea, Waves, Forecast and About; MIP watches unchanged
+• Snow depth added to the Land page, from FMI's weather-station network
+```
+
+---
 
 ## What's new — v1.2.3
 
