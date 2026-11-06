@@ -9,6 +9,16 @@ Design reasoning lives in `RESEARCH.md` (owned by the `claude-docs` repo).
 
 ## Watch app
 
+### v1.2.41 — 2026-11-06 (public)
+Same-day fix on top of v1.2.4, before that build was ever uploaded.
+- **"Update available" notice turned off.** Land's footer icon and the
+  About page pill (`var updateAvailable`) were still reading a hardcoded
+  `true` — a sim-only test fake from when C5i's visual was first built,
+  never wired to real data and never reverted. Found live on the
+  production info page. No real `latest_version` field exists on the
+  backend yet, so both spots are hardcoded off instead of permanently
+  nagging every user — revisit once C5i's backend half is actually built.
+
 ### v1.2.4 — 2026-11-06 (public)
 Promoted from `beta/amoled-graphics` after beta builds 1.2.8–1.2.10 were
 confirmed on real hardware (quatix 8) and across the full MIP capability

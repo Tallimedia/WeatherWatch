@@ -33,7 +33,13 @@
     the full MIP capability spread, including a real crash found and fixed
     along the way — drawScaledBitmap doesn't exist on 19 of this app's 34
     MIP devices, caught via sim spot-checks before it ever reached a
-    device).
+    device); 1.2.41, same day — the "update available" notice (Land's
+    footer icon and the About page pill) was still reading a hardcoded
+    `var updateAvailable = true;` sim-only test fake left over from C5i's
+    scaffolding, found live on the production info page before this ever
+    shipped. No real `latest_version` backend field exists yet, so both
+    spots are now hardcoded off instead, rather than nagging every user
+    permanently — revisit when C5i's backend half is actually built.
 
     The beta entry used a7c41e2b9d364f158e0b73a2c65d9f04 (0.1.0–0.1.8). Garmin
     will not promote a beta to a public listing: "If you want to publish your
@@ -62,7 +68,7 @@
         type="widget"
         name="@Strings.AppName"
         entry="FIWeatherWatchApp"
-        version="1.2.4"
+        version="1.2.41"
         launcherIcon="@Drawables.LauncherIcon"
         minApiLevel="3.4.0">
 

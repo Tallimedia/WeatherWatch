@@ -41,11 +41,12 @@ module AmoledAbout {
             Graphics.TEXT_JUSTIFY_CENTER);
         top += dc.getFontHeight(Graphics.FONT_XTINY) + SZ(s, 14);
 
-        // TEMP sim-only fake — remove before committing (or replace with
-        // the real latest_version-vs-Config.VERSION check once C5i's
-        // backend half, the `latest_version` field on /v1/observations,
-        // is actually wired up).
-        var updateAvailable = true;
+        // Off until C5i's backend half (a real `latest_version` field on
+        // /v1/observations, compared against Config.VERSION) is actually
+        // built — this was a hardcoded `true` sim-only test fake that
+        // nearly shipped in v1.2.4 as a permanent "update available" nag
+        // for every user, found on the production info page 2026-11-06.
+        var updateAvailable = false;
         if (updateAvailable) {
             top = updatePill(dc, cx, s, top) + SZ(s, 14);
         }

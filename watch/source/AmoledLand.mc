@@ -225,7 +225,12 @@ module AmoledLand {
         // at a time in winter (Nico's call, 2026-10-28): the update notice
         // needs a spot that isn't at the mercy of road-ice season.
         var ageText = Fmt.age(Api.v(d, "atW"));
-        var updateAvailable = true; // TEMP sim-only fake — remove before committing.
+        // Off until C5i's backend half (a real `latest_version` field on
+        // /v1/observations, compared against Config.VERSION) is actually
+        // built — this was a hardcoded `true` sim-only test fake that
+        // nearly shipped in v1.2.4 as a permanent "update available" nag
+        // for every user, found on the production info page 2026-11-06.
+        var updateAvailable = false;
         if (updateAvailable) {
             var footerIconH = SZ(s, 11);
             var ubmp2 = updateBmp();
