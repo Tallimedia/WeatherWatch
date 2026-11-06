@@ -570,7 +570,8 @@ into the store artwork.
 
 **One set per app, not per device, and the count is capped** — every watch sees the same
 images, so each slot has to earn its place. From `Screenshots/framed/`, framed in the
-device skin, already under the store's 300 kB limit:
+device skin, already under the store's 150 kB limit (confirmed directly against the
+dashboard's upload page 2026-11-06 — an earlier note here said 300 kB, which was wrong):
 
 | File | Shows |
 |---|---|

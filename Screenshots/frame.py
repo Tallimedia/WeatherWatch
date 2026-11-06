@@ -25,9 +25,11 @@ from PIL import Image, ImageDraw
 
 HERE = Path(__file__).parent
 
-# The Connect IQ store rejects screenshots over 300 kB. A framed capture is
-# around that as plain RGB, so it is palettised only if it has to be.
-STORE_MAX_BYTES = 300_000
+# The Connect IQ store dashboard rejects screenshots over 150 kB (confirmed
+# directly against the upload page, 2026-11-06 — the 300 kB figure this
+# constant used to carry was stale/wrong). A framed capture is usually well
+# under that as plain RGB, so it is palettised only if it has to be.
+STORE_MAX_BYTES = 150_000
 OUT = HERE / "framed"
 DEVICE = "fenix847mm"
 SDK_DEVICES = Path.home() / "Library/Application Support/Garmin/ConnectIQ/Devices"
