@@ -155,3 +155,12 @@ MOBILE_URL = os.getenv("MOBILE_URL", "https://weather.kavaleff.com")
 
 DEFAULT_PLACE = os.getenv("DEFAULT_PLACE", "Helsinki")
 DEFAULT_SEA_FMISID = int(os.getenv("DEFAULT_SEA_FMISID", "100996"))  # Helsinki Harmaja
+
+# AI-generated written station forecast (Finland Live Weather App Project/
+# MASTERPLAN.md, "Written station forecast", 2026-10-30). Unset by default —
+# /v1/forecast-text and /v1/forecast-signal return a clear 503 rather than
+# silently failing when there's no key, same philosophy as every other
+# optional piece of this app.
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-5-5")
+FORECAST_TEXT_SEA_KM = float(os.getenv("FORECAST_TEXT_SEA_KM", "25"))

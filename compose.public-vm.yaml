@@ -8,6 +8,10 @@ services:
     container_name: fiweatherwatch-backend
     restart: unless-stopped
     env_file: .env
+    volumes:
+      # Anthropic token-usage log (2026-10-30) — bind-mounted so it survives
+      # container recreation on every deploy, unlike docker's own log driver.
+      - ./data:/app/data
     networks:
       - edge
     healthcheck:

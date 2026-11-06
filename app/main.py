@@ -11,11 +11,13 @@ with charts off for production.
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, AsyncIterator
 
 import xml.etree.ElementTree as ET
@@ -1326,6 +1328,395 @@ async def road_radar(
     png = radar.draw(base, px, py, frame, max_bytes=radar.CAR_MAX_TILE_BYTES)
     return Response(content=png, media_type="image/png",
                     headers={"Cache-Control": "max-age=120"})
+
+
+def _day_part_now() -> tuple[str, datetime, datetime]:
+    """Current Helsinki day-part: (name, window_start, window_end).
+
+    Two windows a day (revised 2026-11-06, was four): "day" 08:00-16:00,
+    "evening" 16:00-08:00 the next morning. "evening" wraps past midnight,
+    so it's computed relative to whichever calendar day `now` actually
+    falls in rather than a fixed 00:00 anchor — at 02:00 the window is
+    "yesterday 16:00 to today 08:00", not the other way round.
+    """
+    now = datetime.now(_HELSINKI)
+    if 8 <= now.hour < 16:
+        start = now.replace(hour=8, minute=0, second=0, microsecond=0)
+        end = now.replace(hour=16, minute=0, second=0, microsecond=0)
+        return "day", start, end
+    if now.hour >= 16:
+        start = now.replace(hour=16, minute=0, second=0, microsecond=0)
+        end = (now + timedelta(days=1)).replace(hour=8, minute=0, second=0, microsecond=0)
+    else:
+        start = (now - timedelta(days=1)).replace(hour=16, minute=0, second=0, microsecond=0)
+        end = now.replace(hour=8, minute=0, second=0, microsecond=0)
+    return "evening", start, end
+
+
+# What's-coming-up teasers per window: "day" gets one (the evening/night
+# ahead), "evening" gets two (night, then tomorrow morning) since no new
+# window is generated between 16:00 and the next day's 08:00.
+_NEXT_PERIODS = {"day": ["evening"], "evening": ["night", "morning"]}
+
+
+async def _nearest_sea_or_lake(lat: float, lon: float):
+    """Nearest marine-or-lake station to a point, pooled together.
+
+    Same pooling the existing Sea box's own nearest-station pick already
+    uses client-side (mobile.js/site.js `nearestSeaStation`) — a
+    lake-adjacent inland city doesn't get a free pass just because it has
+    no marine station; its nearest lake station is checked too, and often
+    still isn't close (confirmed for Jyväskylä, MASTERPLAN.md, 61 km to the
+    nearest of only 14 lake stations nationwide despite sitting on
+    Jyväsjärvi).
+    """
+    candidates = list(stations.SEA_STATIONS) + list(stations.LAKE_STATIONS)
+    if not candidates:
+        return None
+    best = min(candidates, key=lambda s: haversine_km(lat, lon, s.lat, s.lon))
+    return best, haversine_km(lat, lon, best.lat, best.lon)
+
+
+_FORECAST_TEXT_PROMPT = {
+    "fi": (
+        "Olet suomalainen säätoimittaja, joka kirjoittaa lyhyen, hauskan "
+        "mutta asiallisen sääkatsauksen annetun JSON-datan pohjalta. Sävy: "
+        "rento, vähän leikkisä, ei muodollinen — mutta silti täsmällinen ja "
+        "hyödyllinen, ei vitsaile tärkeiden varoitusten kustannuksella. "
+        "Yhdistä maan ja meren tiedot YHTEEN kappaleeseen, 2-4 lausetta, "
+        "enintään noin 70 sanaa — tiivistä, älä luettele jokaista lukua. "
+        "Aloita ajankohtaan sopivalla fraasilla ('day_part'-kentän mukaan: "
+        "day='Päivän sää näyttää...' tai 'Tänään...', "
+        "evening='Illan sää näyttää...') tai vastaavalla luontevalla "
+        "vaihtoehdolla — ÄLÄ aloita suoraan paikkakunnan nimellä, mainitse "
+        "paikka vasta myöhemmin lauseessa luontevasti. "
+        "Lopeta mielellään lyhyellä, käytännöllisellä oivalluksella, jos "
+        "data antaa siihen aiheen (esim. mitä kannattaa varoa tai mitä ei "
+        "tarvitse murehtia) — ei pakollinen joka kerta, mutta hyvä efekti "
+        "kun sopii. Käytä välillä pieniä aistihavaintoja (esim. miltä kostea "
+        "ilma tuntuu, miltä tuuli tai valo vaikuttaa) tekstin elävöittämiseen, "
+        "mutta vain kun data tukee sitä — ei joka lauseeseen. Lisää lopuksi "
+        "YKSI lyhyt, erillinen virke KUTAKIN 'next_periods'-listan jaksoa "
+        "kohden, samassa järjestyksessä kuin listassa (lista sisältää yhden "
+        "tai kaksi jaksoa) — käytä sanaa 'Illalla' jaksolle 'evening', "
+        "'Yöllä' jaksolle 'night' ja 'Huomenna aamulla' jaksolle 'morning' "
+        "(esim. 'Yöllä selkenee' tai 'Huomenna aamulla vielä sumuista'). "
+        "Pidä kukin virke lyhyenä. Jätä jonkin jakson virke kokonaan pois, "
+        "jos forecast_points-datassa ei näy mitään mainitsemisen arvoista "
+        "muutosta kyseiselle jaksolle. "
+        "Jos 'sea'-kenttä on mukana, tee tekstissä selväksi onko "
+        "aaltolukema oikean poijun mittaama (mode: waves) vai mallinnettu "
+        "koska poijua ei ole lähellä (mode: model) — älä koskaan esitä "
+        "mallinnettua lukemaa mitattuna. Jos 'sea' puuttuu kokonaan, älä "
+        "mainitse merta lainkaan. Ei otsikoita, ei listaa, pelkkä leipäteksti "
+        "ilman lainausmerkkejä ympärillä."
+    ),
+    "en": (
+        "You are a Finnish weather writer producing a short, witty but "
+        "accurate forecast blurb from the given JSON data. Tone: casual, a "
+        "bit playful, not formal — but still precise and useful, never "
+        "joking at the expense of a real warning. Combine land and sea data "
+        "into ONE paragraph, 2-4 sentences, about 70 words max — be concise, "
+        "don't list every number. Open with a phrase fitting the time of "
+        "day (per the 'day_part' field: day='Today's weather is...' or "
+        "'Right now...', evening='Tonight's weather is looking...') or a "
+        "similarly natural equivalent — do NOT lead with the place name, "
+        "mention the place later in the sentence instead. Feel free to "
+        "close with a short, practical takeaway when the data supports "
+        "one (e.g. what to watch out for, or what not to worry about) — "
+        "not mandatory every time, but a nice touch when it fits. "
+        "Sprinkle in the occasional sensory touch (how the damp air "
+        "feels, how the wind or light comes across) to bring it to life, "
+        "but only when the data supports it — not every sentence. Add "
+        "ONE short, separate sentence for EACH entry in the "
+        "'next_periods' list, in the same order (the list holds one or "
+        "two entries) — use 'Overnight' for 'evening', "
+        "'Later tonight' for 'night', and 'Tomorrow morning' for "
+        "'morning' (e.g. 'Overnight, clearing up' or 'Tomorrow morning, "
+        "still foggy'). Keep each sentence short. Skip any entry's "
+        "sentence entirely if forecast_points shows nothing worth "
+        "mentioning for that period. If a 'sea' field is present, "
+        "make clear in the text whether the wave reading is a measured buoy "
+        "value (mode: waves) or a modelled estimate because no buoy is "
+        "nearby (mode: model) — never present a modelled value as measured. "
+        "If 'sea' is absent entirely, don't mention the sea at all. No "
+        "headings, no lists, plain prose only, no surrounding quote marks."
+    ),
+}
+
+
+_FORECAST_SIGNAL_PROMPT = {
+    "fi": (
+        "Olet suomalainen säätoimittaja, joka kirjoittaa lyhyen, selkeän "
+        "sääraportin tekstiviestimuotoon annetun JSON-datan pohjalta. "
+        "Käytä VAIN maatietoja ('now', 'forecast_points') — meritietoja ei "
+        "ole mukana eikä niitä pidä mainita. Tuota TÄSMÄLLEEN tämä "
+        "rakenne, ei mitään muuta ennen tai jälkeen, ei otsikkoa, ei "
+        "lainausmerkkejä, ei markdown-muotoilua:\n\n"
+        "Rivi 1: 'Nyt <paikka> <lämpötila>°C, <säätila>. Sateen "
+        "todennäköisyys <luonteva ajanilmaus 'day_part'-kentän mukaan: "
+        "day→'iltapäivällä', evening→'yöllä'> <prosentti> %, <lyhyt "
+        "määräarvio, esim. 'lähinnä 0–1 mm' tai 'vähäistä'>.'\n"
+        "Rivi 2: 'Tuuli <suunta>sta <nopeus> m/s, puuskissa <puuskanopeus> "
+        "m/s. <Voimassa olevat varoitukset lyhyesti, tai 'Ei voimassa "
+        "olevia varoituksia.' jos ei ole>.'\n"
+        "Tyhjä rivi.\n"
+        "Sen jälkeen yksi rivi KUTAKIN 'next_periods'-listan jaksoa "
+        "kohden, samassa järjestyksessä, muodossa '<Jakso>: <lyhyt yhden "
+        "lauseen kuvaus>.' — käytä sanaa 'Illalla' jaksolle 'evening', "
+        "'Yöllä' jaksolle 'night' ja 'Huomenna aamulla' jaksolle "
+        "'morning'. ÄLÄ lisää kellonaikoja tai sulkeita jakson nimen "
+        "perään — vain nimi ja kuvaus. Jätä jonkin jakson rivi kokonaan "
+        "pois, jos forecast_points-datassa ei näy mitään mainitsemisen "
+        "arvoista muutosta sille jaksolle.\n\n"
+        "Esimerkki tyylistä ja rakenteesta (ÄLÄ kopioi lukuja, käytä aina "
+        "annettua dataa):\n"
+        "Nyt Espoossa 2°C, poutaa. Sateen todennäköisyys iltapäivällä "
+        "20 %, lähinnä 0–1 mm.\n"
+        "Tuuli luoteesta 4 m/s, puuskissa 7 m/s. Ei voimassa olevia "
+        "varoituksia.\n\n"
+        "Illalla: pilvistyy, lämpötila laskee noin -1°C:een, tuuli "
+        "tyyntyy."
+    ),
+    "en": (
+        "You are a Finnish weather writer producing a short, clear "
+        "weather report formatted for a text message, from the given "
+        "JSON data. Use ONLY land data ('now', 'forecast_points') — no "
+        "sea data is included and none should be mentioned. Produce "
+        "EXACTLY this structure, nothing else before or after, no "
+        "heading, no quote marks, no markdown:\n\n"
+        "Line 1: 'Now in <place> <temp>°C, <conditions>. Rain chance "
+        "<natural time phrase per 'day_part': day→'this afternoon', "
+        "evening→'overnight'> <percent>%, <short amount estimate, e.g. "
+        "'mostly 0-1mm' or 'light'>.'\n"
+        "Line 2: 'Wind from <direction> <speed> m/s, gusting <gust "
+        "speed> m/s. <Any active warnings, briefly, or 'No active "
+        "warnings.' if none>.'\n"
+        "Blank line.\n"
+        "Then one line for EACH entry in the 'next_periods' list, in the "
+        "same order, formatted as '<Period>: <short one-sentence "
+        "description>.' — use 'Tonight' for 'evening', 'Overnight' for "
+        "'night', and 'Tomorrow morning' for 'morning'. Do NOT add "
+        "clock times or parentheses after the period name — just the "
+        "name and description. Skip any period's line entirely if "
+        "forecast_points shows nothing worth mentioning for it.\n\n"
+        "Example of the style and structure (don't copy the numbers, "
+        "always use the given data):\n"
+        "Now in Espoo 2°C, dry. Rain chance this afternoon 20%, mostly "
+        "0-1mm.\n"
+        "Wind from the NW 4 m/s, gusting 7 m/s. No active warnings.\n\n"
+        "Tonight: clouding over, temp dropping to around -1°C, wind "
+        "easing."
+    ),
+}
+
+
+_ANTHROPIC_USAGE_LOG = Path("/app/data/anthropic_usage.jsonl")
+
+
+def _log_anthropic_usage(usage: dict) -> None:
+    """Append one JSONL line per call so a daily script can total token
+    spend. Written to a bind-mounted path (see compose.public-vm.yaml) so
+    it survives container recreation on every deploy, unlike docker's own
+    log driver."""
+    try:
+        _ANTHROPIC_USAGE_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with _ANTHROPIC_USAGE_LOG.open("a") as f:
+            f.write(json.dumps({
+                "ts": int(time.time()),
+                "input_tokens": usage.get("input_tokens", 0),
+                "output_tokens": usage.get("output_tokens", 0),
+                "thinking_tokens": usage.get("output_tokens_details", {}).get("thinking_tokens", 0),
+            }) + "\n")
+    except OSError:
+        pass  # never fail the actual request over a logging write
+
+
+async def _call_anthropic(system: str, user: str) -> str:
+    headers = {
+        "x-api-key": config.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+    }
+    body = {
+        "model": config.ANTHROPIC_MODEL,
+        "max_tokens": 500,
+        # Explicitly off: this model defaults to extended thinking, which
+        # was silently eating the entire max_tokens budget on its internal
+        # reasoning and leaving zero tokens for the actual forecast text
+        # (stop_reason: max_tokens, 400/400 thinking tokens, empty output) —
+        # not needed for a short descriptive blurb anyway.
+        "thinking": {"type": "between_tools"},
+        "system": system,
+        "messages": [{"role": "user", "content": user}],
+    }
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(
+            "https://api.anthropic.com/v1/messages", headers=headers, json=body
+        )
+    if resp.status_code != 200:
+        raise FMIError(f"anthropic {resp.status_code}: {resp.text[:300]}")
+    data = resp.json()
+    _log_anthropic_usage(data.get("usage", {}))
+    return "".join(
+        p.get("text", "") for p in data.get("content", []) if p.get("type") == "text"
+    ).strip()
+
+
+@app.get("/v1/forecast-text")
+async def forecast_text(
+    place: str = Query(..., max_length=config.MAX_PLACE_LEN),
+    lang: str = Query("fi", pattern="^(fi|sv|en)$"),
+) -> dict:
+    """AI-written Land+Sea forecast paragraph for the current day-part window.
+
+    See "Finland Live Weather App Project/MASTERPLAN.md", "Written station
+    forecast" (2026-10-30) for the full design. Cached per land station +
+    day-part + date — generated at most once per window, reused by every
+    later request in that same window regardless of place name, as long as
+    it resolves to the same nearest station.
+    """
+    if not config.ANTHROPIC_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="forecast-text not configured (no ANTHROPIC_API_KEY)",
+        )
+    try:
+        lat, lon, resolved_place = await _resolve(place)
+    except UnknownPlace as exc:
+        raise _fail(exc) from exc
+
+    day_part, win_start, win_end = _day_part_now()
+
+    try:
+        obs = await observations(place=place)
+    except HTTPException:
+        obs = {}
+    # Falls back to rounded coordinates if the station id is unavailable
+    # (e.g. observations briefly down) — still caches sanely, just keyed a
+    # little more loosely than usual for that one request.
+    station_key = obs.get("fmisid") or f"{round(lat, 2)},{round(lon, 2)}"
+    cache_key = f"ftext:{station_key}:{day_part}:{win_start.date()}:{lang}"
+
+    async def generate() -> dict:
+        # Window end plus a buffer so the model has real data to base its
+        # "what's next" teaser(s) on. "evening"'s own window already runs
+        # to next-day 08:00, covering both its teasers (night, morning)
+        # with no extra buffer needed; "day" ends at 16:00 but its single
+        # teaser is about the evening/night ahead, so it gets +8h.
+        now = datetime.now(_HELSINKI)
+        base_hours = max(1, int((win_end - now).total_seconds() // 3600) + 1)
+        extra_hours = 8 if day_part == "day" else 0
+        hours_ahead = min(24, base_hours + extra_hours)
+        fc = await forecast(place=place, hours=hours_ahead, step=60, lang=lang)
+
+        sea_block = None
+        nearest = await _nearest_sea_or_lake(lat, lon)
+        if nearest is not None:
+            sea_station, distance_km = nearest
+            if distance_km <= config.FORECAST_TEXT_SEA_KM:
+                try:
+                    sea_block = await marine(fmisid=sea_station.fmisid, lang=lang)
+                except HTTPException:
+                    sea_block = None
+
+        data_summary = {
+            "place": resolved_place,
+            "day_part": day_part,
+            "next_periods": _NEXT_PERIODS[day_part],
+            "now": obs,
+            "forecast_points": fc.get("points", []),
+            "sea": sea_block,
+        }
+        try:
+            text = await _call_anthropic(
+                _FORECAST_TEXT_PROMPT.get(lang, _FORECAST_TEXT_PROMPT["en"]),
+                json.dumps(data_summary, ensure_ascii=False, default=str),
+            )
+        except (FMIError, httpx.HTTPError) as exc:
+            raise HTTPException(
+                status_code=502, detail=f"forecast-text generation failed: {exc}"
+            ) from exc
+        return {
+            "text": text,
+            "day_part": day_part,
+            "station_fmisid": obs.get("fmisid"),
+            "place": resolved_place,
+            "generated_at": int(time.time()),
+        }
+
+    ttl = max(60, int((win_end - datetime.now(_HELSINKI)).total_seconds()))
+    return await cache.aget_or_set(cache_key, ttl, generate)
+
+
+@app.get("/v1/forecast-signal")
+async def forecast_signal(
+    place: str = Query(..., max_length=config.MAX_PLACE_LEN),
+    lang: str = Query("fi", pattern="^(fi|sv|en)$"),
+) -> dict:
+    """Short, structured land-only weather report for messaging (Signal
+    etc) — current conditions + rain + wind/warnings + short teaser
+    line(s) for what's next. No AI-prose tone, no sea data, unlike
+    /v1/forecast-text's combined land+sea paragraph.
+
+    Shares /v1/forecast-text's two-windows-a-day cache scheme (see
+    "Finland Live Weather App Project/MASTERPLAN.md" for the design and
+    2026-11-06 revision from four windows to two): "day" 08:00-16:00,
+    "evening" 16:00-08:00 next morning. Cached per land station +
+    day-part + date.
+    """
+    if not config.ANTHROPIC_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="forecast-signal not configured (no ANTHROPIC_API_KEY)",
+        )
+    try:
+        lat, lon, resolved_place = await _resolve(place)
+    except UnknownPlace as exc:
+        raise _fail(exc) from exc
+
+    day_part, win_start, win_end = _day_part_now()
+
+    try:
+        obs = await observations(place=place)
+    except HTTPException:
+        obs = {}
+    station_key = obs.get("fmisid") or f"{round(lat, 2)},{round(lon, 2)}"
+    cache_key = f"fsignal:{station_key}:{day_part}:{win_start.date()}:{lang}"
+
+    async def generate() -> dict:
+        now = datetime.now(_HELSINKI)
+        base_hours = max(1, int((win_end - now).total_seconds() // 3600) + 1)
+        extra_hours = 8 if day_part == "day" else 0
+        hours_ahead = min(24, base_hours + extra_hours)
+        fc = await forecast(place=place, hours=hours_ahead, step=60, lang=lang)
+
+        data_summary = {
+            "place": resolved_place,
+            "day_part": day_part,
+            "next_periods": _NEXT_PERIODS[day_part],
+            "now": obs,
+            "forecast_points": fc.get("points", []),
+        }
+        try:
+            text = await _call_anthropic(
+                _FORECAST_SIGNAL_PROMPT.get(lang, _FORECAST_SIGNAL_PROMPT["en"]),
+                json.dumps(data_summary, ensure_ascii=False, default=str),
+            )
+        except (FMIError, httpx.HTTPError) as exc:
+            raise HTTPException(
+                status_code=502, detail=f"forecast-signal generation failed: {exc}"
+            ) from exc
+        return {
+            "text": text,
+            "day_part": day_part,
+            "station_fmisid": obs.get("fmisid"),
+            "place": resolved_place,
+            "generated_at": int(time.time()),
+        }
+
+    ttl = max(60, int((win_end - datetime.now(_HELSINKI)).total_seconds()))
+    return await cache.aget_or_set(cache_key, ttl, generate)
 
 
 @app.get("/v1/marine")
