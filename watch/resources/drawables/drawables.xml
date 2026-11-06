@@ -1,3 +1,57 @@
 <drawables>
     <bitmap id="LauncherIcon" filename="launcher_icon.png"/>
+
+    <!-- AMOLED icon set (C5s) — Recraft-generated art (replaced an earlier
+         flat-icon batch 2026-10-27), cropped to true content bounds and
+         scaled to fit 64px on the long side, true aspect kept. Kept at
+         their own colour (not tinted with Dc.drawBitmap2's :tintColor)
+         since they're full-colour illustrations, not single-colour glyphs
+         like Icons.mc's hand-drawn shapes. -->
+    <bitmap id="IconWindBitmap" filename="icon_wind.png"/>
+    <bitmap id="IconRainBitmap" filename="icon_rain.png"/>
+    <!-- Replaced 2026-10-28 with a double-sine-wave + arrow icon, closer
+         to the wind icon's flowing-line language than the original —
+         compared live on the Waves page, Nico's call to keep it. -->
+    <bitmap id="IconWaveBitmap" filename="icon_wave.png"/>
+    <bitmap id="IconTempBitmap" filename="icon_temp.png"/>
+    <bitmap id="IconSkyClearBitmap" filename="icon_sky_clear.png"/>
+    <!-- Snow depth (C5s, 2026-11-06) — a plain six-armed snowflake, no
+         background shape (Nico's call, after both the hand-drawn
+         Icons.snowflake() vector and the master set's post+badge
+         icon_snow_amount.png were tried and rejected on this row). New
+         Recraft generation, master copy at Finland Live Weather App
+         Project/Graphics/Weather Icons Master/icon_snow_flake.png.
+         Cropped to alpha bounds and scaled to 64px, same as the rest. -->
+    <bitmap id="IconSnowBitmap" filename="icon_snow.png"/>
+    <!-- Same source, fixed small size (18px) for Pages.mc's MIP fallback —
+         devices without drawScaledBitmap (fr255s and ~18 others, see
+         Pages.mc's drawSnowDepth()) can still draw a plain unscaled
+         bitmap, just not a resized one. -->
+    <bitmap id="IconSnowSmallBitmap" filename="icon_snow_small.png"/>
+
+    <!-- Condition-icon set, 2026-10-28 — not wired into _symbolKind() yet.
+         Two takes on "night + cloudy" kept side by side on purpose (Nico's
+         call) rather than picking one now: ...Night (moon overlapping the
+         cloud, matching the day icon's composition) and ...NightAlt (moon
+         separate, upper right) — which one becomes the real one is an open
+         call for whenever day/night switching actually gets wired up.
+         IconSkyFogBitmap has no corresponding _symbolKind() category yet —
+         FMI's smartsymbol would need checking for an actual fog code before
+         this is more than a spare asset. -->
+    <bitmap id="IconSkyCloudyNightBitmap" filename="icon_sky_cloudy_night.png"/>
+    <bitmap id="IconSkyCloudyNightAltBitmap" filename="icon_sky_cloudy_night_alt.png"/>
+    <bitmap id="IconSkyRainNightBitmap" filename="icon_sky_rain_night.png"/>
+    <bitmap id="IconSkyRainBitmap" filename="icon_sky_rain.png"/>
+    <bitmap id="IconSkyFogBitmap" filename="icon_sky_fog.png"/>
+
+    <!-- Single-colour, no background ornament — unlike the illustrations
+         above, this one gets tinted (Theme colours) and rotated to a
+         compass bearing at draw time, so it has to stay a plain stroke
+         shape. Native drawn orientation points NE (45°, up-and-right). -->
+    <bitmap id="IconArrowBitmap" filename="icon_arrow.png"/>
+
+    <!-- Update-available badge icon (C5i/C5s, 2026-10-28) — full-colour
+         illustration like the weather icon set, used on its own green
+         circular badge (see AmoledLand.mc's updateBadge()). -->
+    <bitmap id="IconUpdateBitmap" filename="icon_update.png"/>
 </drawables>

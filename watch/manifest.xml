@@ -17,7 +17,23 @@
     FI-WEATHER-ROADMAP.md C5p), added Venu X1, Instinct 3 AMOLED 45/50mm,
     Instinct Crossover AMOLED, Marq 3, D2 Mach 2/2 Pro, D2 Air X10 (all
     confirmed clean in sim, C5m/C5o/C5q), added two Sea stations — Kaskinen
-    Sälgrund and Kotka Haapasaari (C5n)).
+    Sälgrund and Kotka Haapasaari (C5n); 1.2.4, a richer AMOLED-only
+    rendering tier (gradient gauges, full-colour icons, redesigned Land/
+    Sea/Waves/Forecast/About pages) via a build-time monkey.jungle device
+    split (FI-WEATHER-ROADMAP.md C5s) — MIP devices keep the exact Pages.mc
+    rendering shipped since 1.0.0, confirmed unchanged via a MIP sim
+    rebuild; AMOLED devices confirmed on real quatix 8 hardware, including
+    a live road-ice warning rendering correctly alongside the new design.
+    Also adds snow depth (FMI's snow_aws observation parameter) to Land on
+    both tiers, hidden whenever the reading is <= 0 cm — originally slotted
+    for v2.5 (C10), folded into this cycle instead. Promoted from
+    beta/amoled-graphics after its 1.2.8–1.2.10 beta builds were confirmed
+    on real hardware and across the full AMOLED screen-size/shape spread
+    (360–466px round, plus the one rectangular AMOLED device, Venu X1) and
+    the full MIP capability spread, including a real crash found and fixed
+    along the way — drawScaledBitmap doesn't exist on 19 of this app's 34
+    MIP devices, caught via sim spot-checks before it ever reached a
+    device).
 
     The beta entry used a7c41e2b9d364f158e0b73a2c65d9f04 (0.1.0–0.1.8). Garmin
     will not promote a beta to a public listing: "If you want to publish your
@@ -46,7 +62,7 @@
         type="widget"
         name="@Strings.AppName"
         entry="FIWeatherWatchApp"
-        version="1.2.3"
+        version="1.2.4"
         launcherIcon="@Drawables.LauncherIcon"
         minApiLevel="3.4.0">
 

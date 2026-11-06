@@ -74,9 +74,12 @@
     <string id="SeaWindModerate">Hård vind</string>
     <string id="SeaWindSevere">Stormvarning</string>
     <string id="SeaWaveModerate">Hög sjö</string>
-    <string id="SeaWaveSevere">Mycket hög sjö</string>
+    <string id="SeaWaveSevere">Stormsjö</string>
     <string id="Gust">by</string>
     <string id="WaterTemp">Vatten</string>
+    <string id="AirTemp">Luft</string>
+    <string id="SeaTemp">Hav</string>
+    <string id="UpdateAvailable">New update</string>
     <string id="Period">Period</string>
     <string id="Modelled">modellerad</string>
     <string id="WindRoad">vägstation</string>

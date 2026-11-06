@@ -192,6 +192,7 @@ module Api {
                 "wind"  => f(pick(data, "windspeedms")),
                 "gust"  => f(pick(data, "windgust")),
                 "dir"   => f(pick(data, "winddirection")),
+                "snow"  => f(pick(data, "snow_aws")),
                 "atT"   => n(pickIn(data, "at", "temperature")),
                 "atW"   => n(pickIn(data, "at", "windspeedms")),
                 // Two-tier wind fallback (RESEARCH.md §C5j): "station" is the

@@ -16,6 +16,7 @@ module Theme {
     const OVER = Graphics.COLOR_ORANGE;      // above a wind / wave limit
     const COLD = Graphics.COLOR_BLUE;
     const HOT = Graphics.COLOR_RED;
+    const UPDATE = 0x33CC66;                 // app-update-available notice (C5s)
 
     //! Forecast-page weather-condition icons (Icons.wx*) — decorative, not a
     //! threshold signal like the colours above, which is why these get their

@@ -74,9 +74,12 @@
     <string id="SeaWindModerate">Kova tuuli</string>
     <string id="SeaWindSevere">Myrskyvaroitus</string>
     <string id="SeaWaveModerate">Suuri aallokko</string>
-    <string id="SeaWaveSevere">Vaarallinen aallokko</string>
+    <string id="SeaWaveSevere">Kova aallokko</string>
     <string id="Gust">puuska</string>
     <string id="WaterTemp">Vesi</string>
+    <string id="AirTemp">Ilma</string>
+    <string id="SeaTemp">Meri</string>
+    <string id="UpdateAvailable">New update</string>
     <string id="Period">Jakso</string>
     <string id="Modelled">mallinnettu</string>
     <string id="WindRoad">tieasema</string>

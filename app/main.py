@@ -141,6 +141,13 @@ _OBSERVATION_PARAMS = [
     "windgust",
     "winddirection",
     "windcompass8",
+    # Snow depth from the weather-station network itself (not the Digitraffic
+    # road stations `_latest_road` already reads). Confirmed live against this
+    # endpoint (not just the WFS one): a station with a snow sensor but no
+    # snow uses the same -1 "no snow" sentinel as the road network, guarded
+    # below. Stations without a snow sensor at all report JSON `null`, which
+    # `_latest()` already treats as missing.
+    "snow_aws",
 ]
 
 
@@ -467,6 +474,11 @@ async def observations(
         raise HTTPException(status_code=404, detail="no observations for that location")
 
     current, measured_at = _latest(rows, _OBSERVATION_PARAMS)
+    # -1 is this endpoint's own "no snow" sentinel too (confirmed live against
+    # Helsinki Kaisaniemi), same as `_latest_road`'s road-station guard — not
+    # a missing reading, so it must not reach the client as a negative depth.
+    if current.get("snow_aws") is not None and current["snow_aws"] < 0:
+        current["snow_aws"] = 0
     current["age_seconds"] = _age_seconds(current.get("epochtime"))
     # `at` is when FMI measured each field; `retrieved` is when we fetched from
     # FMI, which differs by up to the cache TTL.

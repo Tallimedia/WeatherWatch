@@ -69,14 +69,20 @@
     <string id="PageLand">Land</string>
     <string id="PageSea">Sea</string>
     <string id="PageBuoy">Waves</string>
-    <string id="IcyRoadWarning">Icy road warning</string>
-    <string id="BlackIceWarning">Black ice warning</string>
-    <string id="SeaWindModerate">Strong wind warning</string>
+    <string id="IcyRoadWarning">Icy road</string>
+    <string id="BlackIceWarning">Black ice</string>
+    <string id="SeaWindModerate">Strong wind</string>
     <string id="SeaWindSevere">Gale warning</string>
     <string id="SeaWaveModerate">Rough seas</string>
-    <string id="SeaWaveSevere">High wave warning</string>
+    <string id="SeaWaveSevere">High wave</string>
     <string id="Gust">gust</string>
     <string id="WaterTemp">Water</string>
+    <string id="AirTemp">Air</string>
+    <string id="SeaTemp">Sea</string>
+    <!-- English kept for every language — Nico's call, 2026-10-28: a short
+         software-update nag doesn't need translation the way weather
+         data/safety warnings do. -->
+    <string id="UpdateAvailable">New update</string>
     <string id="Period">Period</string>
     <string id="Modelled">modelled</string>
     <string id="WindRoad">road station</string>

@@ -18,6 +18,34 @@ module Pages {
         return WatchUi.loadResource(id) as String;
     }
 
+    //! Same drawable as AmoledLand.mc's cached copy — the full-colour
+    //! gradient snowflake, not Icons.mc's hand-drawn vector (which read as
+    //! a plain "+" at row-icon size here too, same finding as on the AMOLED
+    //! page). Nico's call to try the bitmap on MIP despite the general
+    //! full-colour-dithers-on-MIP finding (FI-WEATHER-ROADMAP.md C5s) —
+    //! this is a single simple gradient glyph, not a rich multi-tone
+    //! illustration like the sun/cloud or wind icons that showed banding.
+    (:mipTheme)
+    var _snowBmp = null;
+    (:mipTheme)
+    function snowBmp() as WatchUi.BitmapResource {
+        if (_snowBmp == null) { _snowBmp = WatchUi.loadResource(Rez.Drawables.IconSnowBitmap); }
+        return _snowBmp;
+    }
+
+    //! Fixed-size (18px) sibling of snowBmp(), same source art — for the
+    //! ~19 MIP devices that lack drawScaledBitmap entirely (fr255s and the
+    //! rest of its "no enhancedGraphicSupport" group) but still have the
+    //! older, more basic plain drawBitmap, confirmed by a live sim probe
+    //! (2026-11-06) rather than assumed from SDK docs.
+    (:mipTheme)
+    var _snowBmpSmall = null;
+    (:mipTheme)
+    function snowBmpSmall() as WatchUi.BitmapResource {
+        if (_snowBmpSmall == null) { _snowBmpSmall = WatchUi.loadResource(Rez.Drawables.IconSnowSmallBitmap); }
+        return _snowBmpSmall;
+    }
+
     function w(dc as Graphics.Dc) as Number { return dc.getWidth(); }
     function h(dc as Graphics.Dc) as Number { return dc.getHeight(); }
 
@@ -139,6 +167,10 @@ module Pages {
 
     // ---------------------------------------------------------------- land
 
+    //! MIP-tier page (device-tier split, C5s) — AmoledLand.mc is the
+    //! AMOLED-tier equivalent; monkey.jungle routes each device to exactly
+    //! one of the two.
+    (:mipTheme)
     function drawLand(dc as Graphics.Dc) as Void {
         var d = Api.land;
         var name = Api.v(d, "name");
@@ -193,7 +225,12 @@ module Pages {
         var windSrcLabel = (windSrc != null && !windSrc.equals("station"))
             ? (windSrc.equals("road") ? res(Rez.Strings.WindRoad) : res(Rez.Strings.PageForecast))
             : null;
-        compassRow(dc, dir, windSrcLabel);
+        // Snow depth rides on the compass row too, to the right of the
+        // direction label (Nico's call, 2026-11-06 — moved off its own row
+        // after first trying that above the direction row).
+        var compassRowY = _y;
+        var compassRight = compassRow(dc, dir, windSrcLabel);
+        drawSnowDepth(dc, compassRight, compassRowY, dc.getFontHeight(Graphics.FONT_SMALL));
 
         drawRoadIce(dc);
         rainLikelihood(dc, _y, t);
@@ -256,6 +293,7 @@ module Pages {
     //! different words, not just different colours, since colour alone
     //! disappears on a 1-bit screen (§24) and a mono port is a live
     //! possibility for this app.
+    (:mipTheme)
     function drawRoadIce(dc as Graphics.Dc) as Void {
         var level = Api.v(Api.road, "level");
         if (level == null) { return; }
@@ -273,8 +311,80 @@ module Pages {
         iconRow(dc, :ice, Graphics.FONT_XTINY, text, colour, 4);
     }
 
+    //! Exception row: snow depth at the station, present only when it's
+    //! actually reporting some (not just a sensor that exists and reads
+    //! zero, same reasoning as AmoledLand.mc's equivalent — a "0cm" row
+    //! would otherwise show nearly every day outside winter). MIP-tier
+    //! equivalent of AmoledLand.mc's snow cluster — reuses the existing
+    //! Icons.snowflake() hand-drawn vector rather than a full-colour
+    //! bitmap, since that's what the rest of this page's own icon set
+    //! already is (and a gradient illustration would dither on MIP,
+    //! confirmed with the AMOLED icon set — FI-WEATHER-ROADMAP.md C5s).
+    (:mipTheme)
+    //! Inline, not its own row — `afterX`/`rowY`/`rowH` describe the
+    //! compass row it rides on (see compassRow()'s return value), since
+    //! this cluster sits to that row's right rather than stacking below it.
+    function drawSnowDepth(dc as Graphics.Dc, afterX as Number, rowY as Number, rowH as Number) as Void {
+        var snow = Api.v(Api.land, "snow");
+        if (snow == null || snow <= 0.0) { return; }
+        var text = Math.round(snow).toNumber().toString() + "cm";
+        var font = Graphics.FONT_XTINY;
+        var gap = 10;
+        var x = afterX + gap;
+
+        // Real crash, found on fr255s sim (2026-11-06): `drawScaledBitmap`
+        // doesn't exist at all on a device without `enhancedGraphicSupport`
+        // — not a graceful no-op, an unhandled "Symbol Not Found" that
+        // takes the whole app down. 19 of this app's 34 MIP devices lack
+        // it (the whole fenix 6 line, every Marq, the fr255 line) — this
+        // is the entire reason `dc has :X` guards exist elsewhere in this
+        // app (PageView.mc's setAntiAlias). Falls back to the same
+        // Icons.snowflake() vector already proven on the rain/precipitation
+        // row on exactly these devices.
+        if (dc has :drawScaledBitmap) {
+            var bmp = snowBmp();
+            var iconH = (rowH * 0.6).toNumber();
+            var iconW = (iconH * bmp.getWidth() / bmp.getHeight()).toNumber();
+            var iy = rowY + (rowH - iconH) / 2;
+            dc.drawScaledBitmap(x, iy, iconW, iconH, bmp);
+            dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(x + iconW + 4, rowY + (rowH - dc.getFontHeight(font)) / 2, font, text,
+                Graphics.TEXT_JUSTIFY_LEFT);
+        } else if (dc has :drawBitmap) {
+            // Confirmed via a live sim probe on fr255s, 2026-11-06: plain
+            // unscaled drawBitmap is older/more basic than drawScaledBitmap
+            // and survives on devices that lack the scaled one. Fixed 18px
+            // size, same source art as snowBmp() just pre-sized small,
+            // since this call can't resize it at draw time.
+            var sbmp = snowBmpSmall();
+            var iy = rowY + (rowH - sbmp.getHeight()) / 2;
+            dc.drawBitmap(x, iy, sbmp);
+            dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(x + sbmp.getWidth() + 4, rowY + (rowH - dc.getFontHeight(font)) / 2, font, text,
+                Graphics.TEXT_JUSTIFY_LEFT);
+        } else {
+            // Last-resort fallback, for any device lacking even plain
+            // drawBitmap (none found among this app's 34 MIP devices so
+            // far, but this keeps the row from crashing if one exists).
+            // Icons.ice() is a true 6-spoke line snowflake (3 crossing
+            // lines at 60°), already proven readable at this row-icon size
+            // on the road-ice warning row — unlike Icons.snowflake(), a
+            // 4-arm cross whose ornamental end-ticks vanish this small and
+            // read as a plain "+" (found on fr255s sim, 2026-11-06).
+            var iconSize = (rowH * 0.6).toNumber();
+            var iy = rowY + (rowH - iconSize) / 2;
+            Icons.ice(dc, x, iy, iconSize, Theme.DIM);
+            dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(x + iconSize + 4, rowY + (rowH - dc.getFontHeight(font)) / 2, font, text,
+                Graphics.TEXT_JUSTIFY_LEFT);
+        }
+    }
+
     // ----------------------------------------------------------------- sea
 
+    //! MIP-tier page (device-tier split, C5s) — AmoledSea.mc is the
+    //! AMOLED-tier equivalent.
+    (:mipTheme)
     function drawSea(dc as Graphics.Dc) as Void {
         var m = Api.marine;
         headerPlain(dc, res(Rez.Strings.PageSea), Api.v(m, "stName"));
@@ -321,7 +431,12 @@ module Pages {
     //! and footer down into the page-dot pager on Land, which has less
     //! spare height than Sea/Buoy (it already carries the forecast strip
     //! below). Folding the label into the existing row costs nothing extra.
-    function compassRow(dc as Graphics.Dc, dir as Numeric?, suffix as String?) as Void {
+    //! Returns the row's own right edge (screen x, before `_y` advances) —
+    //! Land's snow-depth cluster rides on this same row, to the right of the
+    //! compass label (Nico's call, 2026-11-06), and needs to know where the
+    //! label's content actually ended since it's centred as its own unit.
+    //! Sea/Buoy just ignore the return value.
+    function compassRow(dc as Graphics.Dc, dir as Numeric?, suffix as String?) as Number {
         var label = Fmt.compass(dir);
         if (suffix != null) { label = label + " · " + suffix; }
         var labelW = dc.getTextWidthInPixels(label, Graphics.FONT_SMALL);
@@ -331,7 +446,9 @@ module Pages {
         arrow(dc, left + r, _y + dc.getFontHeight(Graphics.FONT_SMALL) / 2, r, dir);
         dc.setColor(Theme.INK, Graphics.COLOR_TRANSPARENT);
         dc.drawText(left + r * 2 + 6, _y, Graphics.FONT_SMALL, label, Graphics.TEXT_JUSTIFY_LEFT);
+        var right = left + total;
         _y += dc.getFontHeight(Graphics.FONT_SMALL) + 4;
+        return right;
     }
 
     //! Exception row: FMI marine warning (CAP feed), present only when one is
@@ -340,6 +457,7 @@ module Pages {
     //! (wind) and the Waves page (wave height); `severity` is the raw CAP
     //! string ("Moderate"/"Severe"/"Extreme"/"Minor") the backend passes
     //! through unshaped, same as `ice_risk.level`.
+    (:mipTheme)
     function drawSeaWarning(dc as Graphics.Dc, severity as String?,
                             moderateRes as ResourceId, severeRes as ResourceId) as Void {
         if (severity == null) { return; }
@@ -357,6 +475,9 @@ module Pages {
 
     // ---------------------------------------------------------------- buoy
 
+    //! MIP-tier page (device-tier split, C5s) — AmoledWaves.mc is the
+    //! AMOLED-tier equivalent.
+    (:mipTheme)
     function drawBuoy(dc as Graphics.Dc) as Void {
         var m = Api.marine;
         var hasWave = Api.v(m, "hasWave") == true;
@@ -560,6 +681,20 @@ module Pages {
                  maxW as Number) as String {
         if (text == null) { return ""; }
         if (dc.getTextWidthInPixels(text, font) <= maxW) { return text; }
+
+        // A "name · suffix" compound string (Land's place name + distance,
+        // e.g. "Enontekiö Kilpisjärvi · 1.3 km") reads as noise once
+        // character-truncation eats into the suffix — "1...." on the
+        // smallest screen (fr255s, 218px) says nothing useful. Drop the
+        // suffix outright and fit just the name instead of truncating
+        // through it (found 2026-11-06).
+        var sep = text.find(" · ");
+        if (sep != null) {
+            var name = text.substring(0, sep);
+            if (dc.getTextWidthInPixels(name, font) <= maxW) { return name; }
+            text = name;
+        }
+
         var t = text;
         while (t.length() > 4 && dc.getTextWidthInPixels(t + "…", font) > maxW) {
             t = t.substring(0, t.length() - 1);
@@ -587,6 +722,10 @@ module Pages {
     //! smaller than a line of text, which is what made the version collide
     //! there — and CC BY 4.0 wants the source named in the app, not only in
     //! the store listing.
+    //!
+    //! MIP-tier page (device-tier split, C5s) — AmoledAbout.mc is the
+    //! AMOLED-tier equivalent.
+    (:mipTheme)
     function drawAbout(dc as Graphics.Dc) as Void {
         headerPlain(dc, res(Rez.Strings.PageAbout), null);
         var cx = (w(dc) / 2).toNumber();
@@ -634,6 +773,10 @@ module Pages {
     //! bucket loop just needed to stop skipping dayOffset 0. The bottom row
     //! still renders two unlabelled-by-data columns the same way; only
     //! which calendar day each one names changed.
+    //!
+    //! MIP-tier page (device-tier split, C5s) — AmoledForecast.mc is the
+    //! AMOLED-tier equivalent.
+    (:mipTheme)
     function drawForecast(dc as Graphics.Dc) as Void {
         // No header title — Nico's call, 2026-10-13: this page is already
         // identifiable by its own distinct layout, and the room a title

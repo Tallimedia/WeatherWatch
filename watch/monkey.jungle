@@ -1,1 +1,44 @@
 project.manifest = manifest.xml
+
+# Device-tier split (C5s, FI-WEATHER-ROADMAP.md) — AMOLED devices get the
+# richer AmoledX.mc rendering (:amoledTheme), MIP devices keep the original
+# Pages.mc rendering (:mipTheme). AMOLED is the majority (46 of 80 devices),
+# so it's the base default; the 34 MIP devices below each get an explicit
+# override. Classified via the installed SDK's compiler.json displayType
+# field, same mechanism as FILiigaWatch/Theme.mc's colour/mono split.
+base.excludeAnnotations = mipTheme
+
+descentmk2.excludeAnnotations = amoledTheme
+descentmk2s.excludeAnnotations = amoledTheme
+enduro3.excludeAnnotations = amoledTheme
+enduro4.excludeAnnotations = amoledTheme
+fenix6.excludeAnnotations = amoledTheme
+fenix6pro.excludeAnnotations = amoledTheme
+fenix6s.excludeAnnotations = amoledTheme
+fenix6spro.excludeAnnotations = amoledTheme
+fenix6xpro.excludeAnnotations = amoledTheme
+fenix7.excludeAnnotations = amoledTheme
+fenix7pro.excludeAnnotations = amoledTheme
+fenix7pronowifi.excludeAnnotations = amoledTheme
+fenix7s.excludeAnnotations = amoledTheme
+fenix7spro.excludeAnnotations = amoledTheme
+fenix7x.excludeAnnotations = amoledTheme
+fenix7xpro.excludeAnnotations = amoledTheme
+fenix7xpronowifi.excludeAnnotations = amoledTheme
+fenix8solar47mm.excludeAnnotations = amoledTheme
+fenix8solar51mm.excludeAnnotations = amoledTheme
+fenix9prosolar47mm.excludeAnnotations = amoledTheme
+fenix9prosolar51mm.excludeAnnotations = amoledTheme
+fr255.excludeAnnotations = amoledTheme
+fr255m.excludeAnnotations = amoledTheme
+fr255s.excludeAnnotations = amoledTheme
+fr255sm.excludeAnnotations = amoledTheme
+fr955.excludeAnnotations = amoledTheme
+marqadventurer.excludeAnnotations = amoledTheme
+marqathlete.excludeAnnotations = amoledTheme
+marqaviator.excludeAnnotations = amoledTheme
+marqcaptain.excludeAnnotations = amoledTheme
+marqcommander.excludeAnnotations = amoledTheme
+marqdriver.excludeAnnotations = amoledTheme
+marqexpedition.excludeAnnotations = amoledTheme
+marqgolfer.excludeAnnotations = amoledTheme

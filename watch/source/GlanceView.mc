@@ -130,6 +130,8 @@ class FIWeatherGlanceView extends WatchUi.GlanceView {
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
+        // See PageView.mc's onUpdate — same reasoning, FI-WEATHER-ROADMAP.md C5s.
+        if (dc has :setAntiAlias) { dc.setAntiAlias(true); }
         dc.setColor(Graphics.COLOR_TRANSPARENT, Graphics.COLOR_BLACK);
         dc.clear();
 

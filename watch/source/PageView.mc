@@ -46,9 +46,38 @@ class PageView extends WatchUi.View {
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
+        // API 3.2.0, below this app's own 3.4.0 floor — safe on every
+        // supported device. Smooths every hand-drawn icon in Icons.mc
+        // (polygons/circles/rectangles), off by default otherwise.
+        // FI-WEATHER-ROADMAP.md C5s.
+        if (dc has :setAntiAlias) { dc.setAntiAlias(true); }
+        drawPage(dc, pageAt(_page));
+    }
+
+    // Device-tier split (C5s): drawPage() is defined twice, each tagged for
+    // exactly one tier, same pattern as FILiigaWatch/Theme.mc's colour/mono
+    // split. monkey.jungle's excludeAnnotations means only one definition
+    // ever survives compilation per device, so neither tier's build ever
+    // references the other tier's symbols (AmoledX.mc modules are
+    // themselves :amoledTheme-tagged, and Pages.mc's drawLand/drawSea/
+    // drawBuoy/drawForecast/drawAbout are :mipTheme-tagged) — this function
+    // is the only place the choice is made.
+
+    //! AmoledX.mc modules draw their own clear()/drawPager(), so each
+    //! branch returns early rather than falling through to a shared one.
+    (:amoledTheme)
+    hidden function drawPage(dc as Graphics.Dc, which as Number) as Void {
+        if (which == 0) { AmoledLand.draw(dc, _page, pageCount()); return; }
+        if (which == 1) { AmoledSea.draw(dc, _page, pageCount()); return; }
+        if (which == 2) { AmoledWaves.draw(dc, _page, pageCount()); return; }
+        if (which == 4) { AmoledForecast.draw(dc, _page, pageCount()); return; }
+        AmoledAbout.draw(dc, _page, pageCount());
+    }
+
+    (:mipTheme)
+    hidden function drawPage(dc as Graphics.Dc, which as Number) as Void {
         dc.setColor(Theme.INK, Theme.BG);
         dc.clear();
-        var which = pageAt(_page);
         if (which == 0) { Pages.drawLand(dc); }
         else if (which == 1) { Pages.drawSea(dc); }
         else if (which == 2) { Pages.drawBuoy(dc); }
