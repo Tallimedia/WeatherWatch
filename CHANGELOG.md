@@ -9,6 +9,25 @@ Design reasoning lives in `RESEARCH.md` (owned by the `claude-docs` repo).
 
 ## Watch app
 
+### v1.2.42 — 2026-11-06 (public)
+Emergency fix, same day, hours after v1.2.41 went live.
+- **Crash fix: 5 devices classified AMOLED actually lack `drawScaledBitmap`.**
+  `descentg2`, `fr165`, `fr165m`, `fr70` and `instinct3amoled50mm` all have
+  `displayType=amoled` in the SDK's own `compiler.json`, but not the
+  `enhancedGraphicSupport` the AMOLED rendering tier assumes — the app
+  crashed with "Symbol Not Found: drawScaledBitmap" on literally the first
+  icon draw, every single launch. Found live on `instinct3amoled50mm`
+  hardware shortly after the v1.2.41 upload, then confirmed in sim on the
+  other four. Fixed by routing all five to the MIP rendering tier instead
+  (`monkey.jungle`), the same tier any other capability-limited device
+  already uses — verified crash-free on all five afterward.
+  `instinct3amoled45mm` and `vivoactive5`, the other two devices also
+  missing `enhancedGraphicSupport`, were individually tested and do NOT
+  crash, so they stay on the AMOLED tier. The lesson from the MIP
+  `drawScaledBitmap` crash found earlier the same release (see v1.2.4)
+  should have prompted testing the AMOLED side just as thoroughly before
+  that upload, not after.
+
 ### v1.2.41 — 2026-11-06 (public)
 Same-day fix on top of v1.2.4, before that build was ever uploaded.
 - **"Update available" notice turned off.** Land's footer icon and the

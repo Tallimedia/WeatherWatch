@@ -39,7 +39,15 @@
     scaffolding, found live on the production info page before this ever
     shipped. No real `latest_version` backend field exists yet, so both
     spots are now hardcoded off instead, rather than nagging every user
-    permanently — revisit when C5i's backend half is actually built.
+    permanently — revisit when C5i's backend half is actually built; 1.2.42,
+    hours later — 5 devices classified AMOLED (displayType=amoled) turned
+    out to lack drawScaledBitmap, crashing on the very first icon draw
+    every launch (descentg2, fr165, fr165m, fr70, instinct3amoled50mm,
+    found live on instinct3amoled50mm hardware, confirmed in sim on the
+    rest) — routed to the MIP tier instead in monkey.jungle, verified
+    crash-free. instinct3amoled45mm and vivoactive5, the other two devices
+    missing enhancedGraphicSupport, individually confirmed NOT to crash,
+    stay on AMOLED.
 
     The beta entry used a7c41e2b9d364f158e0b73a2c65d9f04 (0.1.0–0.1.8). Garmin
     will not promote a beta to a public listing: "If you want to publish your
@@ -68,7 +76,7 @@
         type="widget"
         name="@Strings.AppName"
         entry="FIWeatherWatchApp"
-        version="1.2.41"
+        version="1.2.42"
         launcherIcon="@Drawables.LauncherIcon"
         minApiLevel="3.4.0">
 

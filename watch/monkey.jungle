@@ -42,3 +42,18 @@ marqcommander.excludeAnnotations = amoledTheme
 marqdriver.excludeAnnotations = amoledTheme
 marqexpedition.excludeAnnotations = amoledTheme
 marqgolfer.excludeAnnotations = amoledTheme
+
+# EMERGENCY FIX, 1.2.42, 2026-11-06: these 5 AMOLED-classified devices lack
+# drawScaledBitmap despite having displayType=amoled — confirmed crashing
+# live on instinct3amoled50mm hardware and in sim on descentg2/fr165/
+# fr165m/fr70 ("Symbol Not Found: drawScaledBitmap" at AmoledLand.mc's
+# first icon draw, every launch). Routed to the MIP tier instead, same as
+# any other device without the capability — proven crash-free everywhere.
+# instinct3amoled45mm and vivoactive5, the other two devices missing
+# enhancedGraphicSupport, were individually confirmed NOT to crash, so
+# they stay on the AMOLED tier.
+descentg2.excludeAnnotations = amoledTheme
+fr165.excludeAnnotations = amoledTheme
+fr165m.excludeAnnotations = amoledTheme
+fr70.excludeAnnotations = amoledTheme
+instinct3amoled50mm.excludeAnnotations = amoledTheme
