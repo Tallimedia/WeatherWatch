@@ -2419,6 +2419,11 @@ if config.ENABLE_PUBLIC or config.ENABLE_CHARTS:
         StaticFiles(directory=_HERE / "roadweather" / "static"),
         name="roadweather-static",
     )
+    app.mount(
+        "/roadweather/shots",
+        StaticFiles(directory=_HERE / "roadweather" / "shots"),
+        name="roadweather-shots",
+    )
 
 
 if config.ENABLE_CHARTS:

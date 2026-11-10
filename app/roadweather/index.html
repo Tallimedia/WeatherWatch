@@ -1,37 +1,365 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="fi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Finnish RoadWeather</title>
-<meta name="description" content="Road surface conditions, ice risk and Finnish weather for cars with Google built-in.">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finnish RoadWeather — road surface conditions and ice risk, in the car</title>
+<meta name="description" content="Road surface conditions, ice risk and Finnish weather on the car's own screen. For Android Automotive cars with Google built-in.">
 <link rel="icon" type="image/png" sizes="32x32" href="/public/icons/tm-favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/public/icons/tm-favicon-16.png">
 <link rel="apple-touch-icon" href="/public/icons/tm-apple-touch-icon.png">
+<link rel="stylesheet" href="/public/styles.css">
 <style>
-body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(#090d1a,#131a30);color:#f5f8fd;
-  font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-main{max-width:34rem;padding:48px 24px;text-align:center}
-h1{font-size:30px;margin:0 0 6px;letter-spacing:-.01em}
-p.lead{color:#96a6c2;margin:0 0 28px}
-p.src{color:#62708a;font-size:13px;margin:32px 0 0}
-a{color:#5e94ff;text-decoration:none;margin:0 10px}
-a:hover{text-decoration:underline}
-a.cta{display:inline-block;margin:0 0 32px;padding:10px 22px;border-radius:999px;
-  border:1px solid #2c364e;background:#162038;color:#8ac6ff;font-size:15px;
-  font-weight:600}
-a.cta:hover{text-decoration:none;border-color:#3c4a68}
+  /* Dark mode, default — same mechanism and token values as weatherapp/
+     volvowatchapp/liigawatch.tallimedia.com: the dark palette lives in
+     :root, and `data-theme="light"` (set by the toggle button, remembered
+     in localStorage) is what opts out. Scoped here since styles.css is
+     shared and still undarkened. */
+  :root {
+    --color-bg: #16181a; --color-surface: #1e2022; --color-neutral-100: #232527;
+    --color-input-bg: #1e2022;
+    --color-divider: color-mix(in srgb, #fff 14%, transparent);
+    --color-text: #f0f0f1; --color-neutral-300: #3a3c3e; --color-neutral-400: #4a4c4e;
+    --color-neutral-500: #8b8b8e; --color-neutral-600: #a3a3a6;
+    --color-neutral-700: #c2c2c4; --color-neutral-800: #dcdcdd;
+    --color-accent-700: #94bce3; --color-accent-2: #94bce3;
+  }
+  :root[data-theme="light"] {
+    --color-bg: #f2f2f3; --color-surface: #e9e9ea; --color-neutral-100: #f5f5f8;
+    --color-input-bg: #fff;
+    --color-divider: color-mix(in srgb, #1d1f20 16%, transparent);
+    --color-text: #1d1f20; --color-neutral-300: #d4d4d7; --color-neutral-400: #c2c2c5;
+    --color-neutral-500: #98989b; --color-neutral-600: #7a7a7d;
+    --color-neutral-700: #5d5d60; --color-neutral-800: #424244;
+    --color-accent-700: #416180; --color-accent-2: #5980a6;
+  }
+  .theme-btn { display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
+               width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--color-neutral-300);
+               background: var(--color-input-bg); color: var(--color-neutral-700); cursor: pointer; padding: 0; }
+  .theme-btn svg { width: 16px; height: 16px; display: block; }
+  .theme-btn[aria-pressed="true"] { color: var(--color-accent-700); border-color: var(--color-accent-700); }
+  #lang { font: inherit; font-size: 14px; padding: 5px 8px; border-radius: 8px;
+          border: 1px solid var(--color-neutral-300); background: var(--color-input-bg); color: var(--color-text); }
+
+  body { margin: 0; }
+  a { color: var(--color-accent-700); }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 0 32px; }
+  .feature-card { background: var(--color-neutral-100); border: 1px solid var(--color-divider);
+                  border-radius: 14px; padding: 20px; }
+  .feature-card h3 { margin: 0 0 8px; font-size: 15px; letter-spacing: 0.04em;
+                      text-transform: uppercase; color: var(--color-accent-700); }
+  .feature-card p { margin: 0; font-size: 14.5px; line-height: 1.55; color: var(--color-neutral-800); }
+  .device-shot { width: 100%; display: block; border-radius: 10px; border: 1px solid var(--color-divider); }
+  .shot-frame { border-radius: 10px; overflow: hidden; border: 1px solid var(--color-divider);
+                background: var(--color-neutral-100); }
+  .shot-frame img { width: 100%; display: block; }
+  .shot-cap { font-family: var(--font-heading); text-transform: uppercase;
+              letter-spacing: 0.08em; font-size: 11px; margin-top: 8px;
+              color: var(--color-accent-700); text-align: center; }
+  .disclaimer { font-size: 13px; color: var(--color-neutral-600); margin-top: 8px; }
 </style>
 </head>
-<body><main>
-  <h1>Finnish RoadWeather</h1>
-  <p class="lead">Road surface conditions, ice risk and Finnish weather,
-    for cars with Google built-in.</p>
-  <p><a class="cta" href="https://play.google.com/store/apps/details?id=fi.roadweather.app">Get it on Google Play →</a></p>
-  <p><a href="/privacy">Privacy</a>·<a href="/terms">Terms</a></p>
-  <p class="src">Data: Finnish Meteorological Institute (CC BY 4.0) and
-    Fintraffic / digitraffic.fi (CC 4.0 BY). Independent app, not affiliated
-    with or endorsed by either organisation.</p>
-</main></body>
+<body>
+
+<nav class="nav" style="display:flex;align-items:center;gap:24px;padding:14px 32px;border-bottom:1px solid var(--color-divider);position:sticky;top:0;background:var(--color-bg);z-index:5;flex-wrap:wrap">
+  <a href="https://www.tallimedia.com" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--color-text)">
+    <svg width="22" height="22" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="5">
+      <path d="M8 27 32 9l24 18"></path><path d="M14 27v29h36V27"></path>
+      <path d="M32 56V41" stroke="var(--color-accent)"></path>
+    </svg>
+    <span style="font-family:var(--font-heading);font-weight:600;font-size:17px;
+        letter-spacing:0.06em;text-transform:uppercase">Tallimedia</span>
+  </a>
+  <span style="color:var(--color-neutral-400)">/</span>
+  <span style="display:flex;align-items:center;gap:8px;font-family:var(--font-heading);
+      font-weight:600;font-size:17px">
+    <svg width="20" height="20" viewBox="0 0 64 64" fill="none"><path d="M24 10 8 56M40 10l16 46" stroke="var(--color-accent-900)" stroke-width="4" stroke-linecap="round"></path><path d="M32 14v6M32 28v8M32 44v10" stroke="var(--color-accent)" stroke-width="4" stroke-linecap="round"></path></svg>
+    <span>Road Weather</span>
+  </span>
+  <div style="flex:1"></div>
+  <span style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;
+      font-family:var(--font-heading);font-weight:600;font-size:14px;
+      text-transform:uppercase;letter-spacing:0.06em">
+    <a href="#screens" id="nav-screens">Screens</a>
+    <a href="#features" id="nav-features">Features</a>
+    <a class="btn btn-primary blueprint"
+       href="https://play.google.com/store/apps/details?id=fi.roadweather.app"
+       style="color: var(--color-bg); text-transform: uppercase; letter-spacing: 0.06em">
+      <span id="nav-install">Get it on Google Play</span>
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+    </a>
+    <button class="theme-btn" id="theme-toggle" type="button" aria-label="Light mode" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
+      </svg>
+    </button>
+    <select id="lang" aria-label="Language">
+      <option value="fi">Suomi</option><option value="sv">Svenska</option><option value="en">English</option>
+    </select>
+  </span>
+</nav>
+
+<header class="wrap">
+  <div style="padding:56px 0 40px;border-bottom:1px solid var(--color-divider)">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px">
+      <span class="tag tag-accent">Android Automotive</span>
+      <span class="tag tag-outline">v0.8.2</span>
+      <span class="tag tag-neutral" id="tag-area">Finland</span>
+    </div>
+    <h1 style="font-size:56px;line-height:0.98;letter-spacing:-0.02em;margin:0 0 18px;text-wrap:balance" id="hero">
+      Finland's own road and weather data, in the car.</h1>
+    <p style="font-size:18px;max-width:52ch;color:var(--color-neutral-800);margin:0 0 6px;text-wrap:pretty" id="lede">
+      Road surface temperature, ice risk, traffic warnings and weather for cars with
+      Google built-in — on FMI and Fintraffic open data.</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin:18px 0 6px">
+      <a class="btn btn-primary blueprint"
+         href="https://play.google.com/store/apps/details?id=fi.roadweather.app"
+         style="color: var(--color-bg); font-size: 15px; padding: 13px 22px; text-transform: uppercase; letter-spacing: 0.06em">
+        <span id="cta-install">Install from Google Play</span>
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      </a>
+    </div>
+    <p class="disclaimer" id="disclaimer-top">Independent app, not affiliated with or endorsed
+      by the Finnish Meteorological Institute or Fintraffic.</p>
+  </div>
+</header>
+
+<main class="wrap" style="padding:40px 0 64px">
+
+  <section id="screens" style="margin-bottom:48px">
+    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:24px">
+      <span class="sec-num" style="font-family:var(--font-heading);font-size:13px;
+          letter-spacing:0.08em;text-transform:uppercase;color:var(--color-accent-700)" id="h-screens">Screens</span>
+      <span class="sec-rule" style="flex:1;height:1px;background:var(--color-divider)"></span>
+    </div>
+    <div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:40px;align-items:center">
+      <img class="device-shot" src="/roadweather/shots/road.png" alt="Road Weather road tab on an Android Automotive head unit, showing road temperature, ice risk and a short forecast">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px">
+        <figure style="margin:0"><div class="shot-frame"><img src="/roadweather/shots/weather.png" alt="Weather tab with current conditions and forecast"></div>
+          <figcaption class="shot-cap" id="cap-weather">Weather</figcaption></figure>
+        <figure style="margin:0"><div class="shot-frame"><img src="/roadweather/shots/warnings.png" alt="Warnings tab with nearby road notices and weather warnings"></div>
+          <figcaption class="shot-cap" id="cap-warnings">Warnings</figcaption></figure>
+        <figure style="margin:0"><div class="shot-frame"><img src="/roadweather/shots/about.png" alt="About screen with data sources and attribution"></div>
+          <figcaption class="shot-cap" id="cap-about">About</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:16px">
+      <span class="sec-num" style="font-family:var(--font-heading);font-size:13px;
+          letter-spacing:0.08em;text-transform:uppercase;color:var(--color-accent-700)" id="h-features">Features</span>
+      <span class="sec-rule" style="flex:1;height:1px;background:var(--color-divider)"></span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px">
+      <div class="feature-card"><h3 id="f1-h">Road surface</h3>
+        <p id="f1-p">Surface temperature from the nearest road weather station, with the
+          station named and its distance shown. Road condition — dry, moist, wet or worse
+          — from Fintraffic's own sensors, plus an outlook for the hours ahead.</p></div>
+      <div class="feature-card"><h3 id="f2-h">Ice risk</h3>
+        <p id="f2-p">A frost and ice warning derived from the numbers that decide it:
+          surface temperature against freezing, and against the dew point. Air temperature
+          above zero does not mean the road is.</p></div>
+      <div class="feature-card"><h3 id="f3-h">Warnings</h3>
+        <p id="f3-p">Nearby road notices from Fintraffic — lane closures, roadworks, speed
+          restrictions — sorted by distance, plus official weather warnings from the
+          Finnish Meteorological Institute.</p></div>
+      <div class="feature-card"><h3 id="f4-h">Weather</h3>
+        <p id="f4-p">Current conditions and the forecast for your location, from FMI's own
+          post-processed forecast. Forecast hours shown with at-a-glance icons.</p></div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="wrap" style="padding:32px 0 56px;border-top:1px solid var(--color-divider)">
+  <div style="display:flex;gap:40px;font-size:14px;flex-wrap:wrap">
+    <div style="display:grid;gap:6px">
+      <span style="font-family:var(--font-heading);font-size:12px;letter-spacing:0.08em;
+          text-transform:uppercase;color:var(--color-neutral-600)" id="h-legal">Legal</span>
+      <a href="/terms" id="foot-terms">Terms</a><a href="/privacy" id="foot-privacy">Privacy</a>
+    </div>
+    <div style="display:grid;gap:6px">
+      <span style="font-family:var(--font-heading);font-size:12px;letter-spacing:0.08em;
+          text-transform:uppercase;color:var(--color-neutral-600)" id="h-contact">Contact</span>
+      <a href="mailto:iot@tallimedia.com">iot@tallimedia.com</a>
+    </div>
+  </div>
+  <p class="disclaimer" style="margin-top:20px" id="disclaimer-bottom">Data: Finnish
+    Meteorological Institute (CC BY 4.0) and Fintraffic / digitraffic.fi (CC 4.0 BY).
+    Independent app, not affiliated with or endorsed by either organisation. Coverage is
+    Finland only. The app is maintained independently, with no 24/7 service guarantee.</p>
+</footer>
+
+<script>
+(function () {
+  /* Same mechanism as weatherapp/volvowatchapp/liigawatch.tallimedia.com: a
+     flat STR dictionary per language, T(key) looks up the current one with
+     an English fallback, applyStrings() pushes it into the DOM by element
+     id. */
+  var STR = {
+    fi: {
+      navScreens: 'Kuvakaappaukset', navFeatures: 'Ominaisuudet', tagArea: 'Suomi',
+      navInstall: 'Hanki Google Playsta', ctaInstall: 'Asenna Google Playsta',
+      hero: 'Suomen oma tie- ja säädata autossa.',
+      lede: 'Tienpinnan lämpötila, liukkausvaroitus, tieilmoitukset ja sää autoon, '
+          + 'joissa on Google sisäänrakennettuna — Ilmatieteen laitoksen ja Fintrafficin avoimesta datasta.',
+      disclaimer: 'Sovellus on riippumaton eikä Ilmatieteen laitoksen tai Fintrafficin hyväksymä tai tukema.',
+      hScreens: 'Kuvakaappaukset', capWeather: 'Sää', capWarnings: 'Varoitukset', capAbout: 'Tietoja',
+      hFeatures: 'Ominaisuudet',
+      f1h: 'Tienpinta',
+      f1p: 'Tienpinnan lämpötila lähimmältä tiesääasemalta, aseman nimi ja etäisyys '
+          + 'näkyvissä. Keli — kuiva, kostea, märkä tai huonompi — Fintrafficin omista '
+          + 'antureista, sekä keliennuste tuleville tunneille.',
+      f2h: 'Liukkausvaroitus',
+      f2p: 'Kuuran ja jään riski lasketaan tienpinnan lämpötilasta suhteessa nollaan ja '
+          + 'kastepisteeseen. Plussan puolella oleva ilman lämpötila ei tarkoita, että '
+          + 'tiekin olisi.',
+      f3h: 'Varoitukset',
+      f3p: 'Lähialueen tieilmoitukset Fintrafficilta — kaistan sulkeminen, tietyöt, '
+          + 'nopeusrajoitukset — etäisyyden mukaan järjestettynä, sekä Ilmatieteen '
+          + 'laitoksen viralliset säävaroitukset.',
+      f4h: 'Sää',
+      f4p: 'Ajantasainen sää ja sääennuste sijaintisi mukaan Ilmatieteen laitoksen '
+          + 'jälkikäsitellystä ennusteesta. Ennustetunnit näkyvät kuvakkeilla.',
+      hLegal: 'Tietosuoja', hContact: 'Yhteystiedot', terms: 'Käyttöehdot', privacy: 'Tietosuoja',
+      footDisclaimer: 'Tiedot: Ilmatieteen laitos (CC BY 4.0) ja Fintraffic / digitraffic.fi '
+          + '(CC 4.0 BY). Sovellus on riippumaton eikä kummankaan organisaation hyväksymä '
+          + 'tai tukema. Kattavuus vain Suomessa. Sovellusta ylläpidetään yksityisvoimin, '
+          + 'ei 24/7 palvelulupausta.'
+    },
+    sv: {
+      navScreens: 'Skärmbilder', navFeatures: 'Funktioner', tagArea: 'Finland',
+      navInstall: 'Hämta på Google Play', ctaInstall: 'Installera från Google Play',
+      hero: 'Finlands egna väg- och väderdata i bilen.',
+      lede: 'Vägytans temperatur, halkrisk, vägmeddelanden och väder för bilar med Google '
+          + 'inbyggt — på öppna data från Meteorologiska institutet och Fintraffic.',
+      disclaimer: 'Appen är oberoende och varken godkänd av eller knuten till Meteorologiska '
+          + 'institutet eller Fintraffic.',
+      hScreens: 'Skärmbilder', capWeather: 'Väder', capWarnings: 'Varningar', capAbout: 'Om',
+      hFeatures: 'Funktioner',
+      f1h: 'Vägytan',
+      f1p: 'Vägytans temperatur från närmaste vägväderstation, med stationens namn och '
+          + 'avstånd. Väglag — torrt, fuktigt, vått eller sämre — från Fintraffics egna '
+          + 'sensorer, samt en väglagsprognos för de närmaste timmarna.',
+      f2h: 'Halkrisk',
+      f2p: 'Risken för rimfrost och is räknas fram ur vägytans temperatur mot noll och mot '
+          + 'daggpunkten. Att lufttemperaturen är på plussidan betyder inte att vägen är det.',
+      f3h: 'Varningar',
+      f3p: 'Vägmeddelanden i närheten från Fintraffic — avstängda körfält, vägarbeten, '
+          + 'hastighetsbegränsningar — sorterade efter avstånd, samt officiella '
+          + 'vädervarningar från Meteorologiska institutet.',
+      f4h: 'Väder',
+      f4p: 'Aktuellt väder och väderprognos för din plats, från Meteorologiska institutets '
+          + 'efterbehandlade prognos. Prognostimmarna visas med ikoner.',
+      hLegal: 'Juridiskt', hContact: 'Kontakt', terms: 'Villkor', privacy: 'Integritet',
+      footDisclaimer: 'Data: Meteorologiska institutet (CC BY 4.0) och Fintraffic / '
+          + 'digitraffic.fi (CC 4.0 BY). Appen är oberoende och varken godkänd av eller '
+          + 'knuten till någon av organisationerna. Täckning endast i Finland. Appen '
+          + 'underhålls privat, utan 24/7-tjänstegaranti.'
+    },
+    en: {
+      navScreens: 'Screens', navFeatures: 'Features', tagArea: 'Finland',
+      navInstall: 'Get it on Google Play', ctaInstall: 'Install from Google Play',
+      hero: 'Finland’s own road and weather data, in the car.',
+      lede: 'Road surface temperature, ice risk, traffic warnings and weather for cars '
+          + 'with Google built-in — on FMI and Fintraffic open data.',
+      disclaimer: 'Independent app, not affiliated with or endorsed by the Finnish '
+          + 'Meteorological Institute or Fintraffic.',
+      hScreens: 'Screens', capWeather: 'Weather', capWarnings: 'Warnings', capAbout: 'About',
+      hFeatures: 'Features',
+      f1h: 'Road surface',
+      f1p: 'Surface temperature from the nearest road weather station, with the station '
+          + 'named and its distance shown. Road condition — dry, moist, wet or worse — '
+          + 'from Fintraffic’s own sensors, plus an outlook for the hours ahead.',
+      f2h: 'Ice risk',
+      f2p: 'A frost and ice warning derived from the numbers that decide it: surface '
+          + 'temperature against freezing, and against the dew point. Air temperature '
+          + 'above zero does not mean the road is.',
+      f3h: 'Warnings',
+      f3p: 'Nearby road notices from Fintraffic — lane closures, roadworks, speed '
+          + 'restrictions — sorted by distance, plus official weather warnings from the '
+          + 'Finnish Meteorological Institute.',
+      f4h: 'Weather',
+      f4p: 'Current conditions and the forecast for your location, from FMI’s own '
+          + 'post-processed forecast. Forecast hours shown with at-a-glance icons.',
+      hLegal: 'Legal', hContact: 'Contact', terms: 'Terms', privacy: 'Privacy',
+      footDisclaimer: 'Data: Finnish Meteorological Institute (CC BY 4.0) and Fintraffic / '
+          + 'digitraffic.fi (CC 4.0 BY). Independent app, not affiliated with or endorsed '
+          + 'by either organisation. Coverage is Finland only. The app is maintained '
+          + 'independently, with no 24/7 service guarantee.'
+    }
+  };
+
+  function storedLang() {
+    try { return localStorage.getItem('rw-lang'); } catch (_) { return null; }
+  }
+  var LANG = storedLang() || 'fi';
+  function T(k) { return (STR[LANG] && STR[LANG][k]) || STR.en[k]; }
+
+  function set(id, k) {
+    var e = document.getElementById(id);
+    if (e) { e.textContent = T(k); }
+  }
+
+  function applyStrings() {
+    document.documentElement.lang = LANG;
+    set('nav-screens', 'navScreens'); set('nav-features', 'navFeatures');
+    set('nav-install', 'navInstall'); set('cta-install', 'ctaInstall');
+    set('tag-area', 'tagArea');
+    set('hero', 'hero'); set('lede', 'lede');
+    set('disclaimer-top', 'disclaimer');
+    set('h-screens', 'hScreens');
+    set('cap-weather', 'capWeather'); set('cap-warnings', 'capWarnings'); set('cap-about', 'capAbout');
+    set('h-features', 'hFeatures');
+    set('f1-h', 'f1h'); set('f1-p', 'f1p');
+    set('f2-h', 'f2h'); set('f2-p', 'f2p');
+    set('f3-h', 'f3h'); set('f3-p', 'f3p');
+    set('f4-h', 'f4h'); set('f4-p', 'f4p');
+    set('h-legal', 'hLegal'); set('h-contact', 'hContact');
+    set('foot-terms', 'terms'); set('foot-privacy', 'privacy');
+    set('disclaimer-bottom', 'footDisclaimer');
+  }
+
+  /* Dark is the default look (matching weatherapp/volvowatchapp/liigawatch);
+     the toggle is purely an opt-OUT into light, remembered in localStorage. */
+  function initTheme() {
+    var btn = document.getElementById('theme-toggle');
+    if (!btn) { return; }
+    var stored = null;
+    try { stored = localStorage.getItem('rw-theme'); } catch (_) {}
+    function apply(light) {
+      if (light) { document.documentElement.setAttribute('data-theme', 'light'); }
+      else { document.documentElement.removeAttribute('data-theme'); }
+      btn.setAttribute('aria-pressed', String(!!light));
+    }
+    apply(stored === 'light');
+    btn.addEventListener('click', function () {
+      var light = document.documentElement.getAttribute('data-theme') !== 'light';
+      try {
+        if (light) { localStorage.setItem('rw-theme', 'light'); }
+        else { localStorage.removeItem('rw-theme'); }
+      } catch (_) {}
+      apply(light);
+    });
+  }
+
+  function initLang() {
+    var sel = document.getElementById('lang');
+    if (!sel) { return; }
+    sel.value = LANG;
+    sel.addEventListener('change', function (e) {
+      LANG = e.target.value;
+      try { localStorage.setItem('rw-lang', LANG); } catch (_) {}
+      applyStrings();
+    });
+  }
+
+  initTheme();
+  initLang();
+  applyStrings();
+})();
+</script>
+
+</body>
 </html>
